@@ -18,9 +18,9 @@ export default function App() {
         initialRouteName="Home"
         screenOptions={({ route }) => ({
           headerShown: false,
+          tabBarShowLabel: false, // Hides the labels
           tabBarActiveTintColor: "#F6B93B",
           tabBarInactiveTintColor: "#888",
-          tabBarShowLabel: true,
           tabBarStyle: {
             height: 70,
             paddingBottom: 18,
@@ -32,25 +32,41 @@ export default function App() {
             right: 16,
             bottom: 16,
             backgroundColor: "#fff",
-            elevation: 10, // Android shadow
-            shadowColor: "#000", // iOS shadow
+            elevation: 10,
+            shadowColor: "#000",
             shadowOpacity: 0.07,
             shadowRadius: 8,
           },
           tabBarIcon: ({ color, size }) => {
             let iconName;
-            if (route.name === "Home") iconName = "home-variant";
-            else if (route.name === "Charity") iconName = "hand-heart";
-            else if (route.name === "Campaigns") iconName = "bullhorn";
-            else if (route.name === "Profile") iconName = "account";
-            return <Icon name={iconName} color={color} size={size} />;
+            switch (route.name) {
+              case "Home":
+                iconName = "home-outline";
+                break;
+              case "Marketplace":
+                iconName = "tag-outline";
+                break;
+              case "Sell":
+                iconName = "plus-circle-outline";
+                break;
+              case "Chat":
+                iconName = "message-text-outline";
+                break;
+              case "Options":
+                iconName = "menu";
+                break;
+              default:
+                iconName = "circle";
+            }
+            return <Icon name={iconName} color={color} size={28} />;
           },
         })}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Charity" component={DummyScreen} />
-        <Tab.Screen name="Campaigns" component={DummyScreen} />
-        <Tab.Screen name="Profile" component={DummyScreen} />
+        <Tab.Screen name="Marketplace" component={DummyScreen} />
+        <Tab.Screen name="Sell" component={DummyScreen} />
+        <Tab.Screen name="Chat" component={DummyScreen} />
+        <Tab.Screen name="Options" component={DummyScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
