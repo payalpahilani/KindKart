@@ -6,6 +6,7 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import HomeScreen from "./Components/screens/HomeScreen";
 import MarketplaceScreen from "./Components/screens/MarketPlaceScreen";
+import ListItemScreen from "./Components/screens/ListItemScreen";
 
 function DummyScreen() {
   return null;
@@ -87,7 +88,7 @@ export default function App() {
       >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Marketplace" component={MarketplaceScreen} />
-        <Tab.Screen name="Sell" component={DummyScreen} />
+        <Tab.Screen name="Sell" component={ListItemScreen} />
         <Tab.Screen name="Chat" component={DummyScreen} />
         <Tab.Screen name="Options" component={DummyScreen} />
       </Tab.Navigator>
