@@ -3,12 +3,12 @@
 import 'react-native-get-random-values';
 
 import { initializeApp } from 'firebase/app';
-// ② Use the React Native entrypoint for auth:
 import {
   initializeAuth,
   getReactNativePersistence,
   getAuth
 } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -20,13 +20,14 @@ const firebaseConfig = {
   appId: "1:731786242882:web:3f4c3647d8de088f8536db"
 };
 
-// 1️⃣ Initialize the Firebase JS SDK
+// 1️⃣ Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// 2️⃣ Immediately register the native Auth component
+// 2️⃣ Set up persistent auth storage for React Native
 initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 
-// 3️⃣ Export the auth instance
+// 3️⃣ Export Firebase services
 export const auth = getAuth(app);
+export const db = getFirestore(app); 
