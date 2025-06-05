@@ -1,5 +1,11 @@
-import AppNavigator from './Navigation/AppNavigator';
+import React from "react";
+import AppNavigator from "./Navigation/AppNavigator";
+import { ThemeProvider } from "./Components/Utilitis/ThemeContext";
 
 export default function App() {
-  return <AppNavigator />
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
 }
