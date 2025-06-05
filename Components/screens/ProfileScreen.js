@@ -1,4 +1,3 @@
-// Components/screens/ProfileScreen.js
 import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
   View,
@@ -19,11 +18,11 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ThemeContext } from '../Utilitis/ThemeContext';      //  ← add
+import { ThemeContext } from '../Utilitis/ThemeContext';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { isDarkMode } = useContext(ThemeContext);           //  ← add
+  const { isDarkMode } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState(null);
@@ -32,16 +31,13 @@ export default function ProfileScreen() {
     notifications: false,
   });
 
-  /* ───── read profile & prefs ───── */
   const readProfile = async () => {
     try {
       setLoading(true);
       const uid = auth.currentUser?.uid;
       if (!uid) return;
-
       const userSnap = await getDoc(doc(db, 'users', uid));
       if (userSnap.exists()) setUser(userSnap.data());
-
       const prefSnap = await getDoc(doc(db, 'users', uid, 'preferences', 'general'));
       if (prefSnap.exists()) setPrefs(prefSnap.data());
       else await setDoc(doc(db, 'users', uid, 'preferences', 'general'), prefs);
@@ -62,7 +58,6 @@ export default function ProfileScreen() {
     readProfile();
   }, []);
 
-  /* ───── update preference ───── */
   const updatePreference = async (key, val) => {
     setPrefs(p => ({ ...p, [key]: val }));
     const uid = auth.currentUser?.uid;
@@ -74,22 +69,26 @@ export default function ProfileScreen() {
     }
   };
 
-  /* ───── navigation rows ───── */
   const handleRowPress = (label) => {
     if (label === 'Settings') navigation.navigate('SettingsScreen');
-    else if (label === 'About the app')
-       navigation.navigate('AboutUsScreen');
-    else if (label === 'Terms & Condition')
-       navigation.navigate('TermsAndConditions')
-    else if (label === 'Exit the app') signOut(auth);
+    else if (label === 'About the app') navigation.navigate('AboutUsScreen');
+    else if (label === 'Terms & Condition') navigation.navigate('TermsAndConditions');
+    else if (label === 'Exit the app') {
+      signOut(auth)
+        .then(() => {
+          navigation.replace('LoginScreen');
+        })
+        .catch((error) => {
+          console.error('Sign out error:', error);
+          Alert.alert('Error', 'Failed to sign out. Please try again.');
+        });
+    }
   };
 
-  /* ───── choose theme styles ───── */
   const styles = isDarkMode ? darkStyles : lightStyles;
   const statusBarStyle = isDarkMode ? 'light-content' : 'dark-content';
-  const statusBarBg    = isDarkMode ? '#121212' : '#fff';
+  const statusBarBg = isDarkMode ? '#121212' : '#fff';
 
-  
   if (loading)
     return (
       <SafeAreaView style={styles.safe}>
@@ -111,11 +110,9 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
 
-  /* ───── main UI ───── */
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
-
       <ScrollView
         style={styles.body}
         showsVerticalScrollIndicator={false}
@@ -127,7 +124,6 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* profile header */}
         <TouchableOpacity
           style={styles.profileHeader}
           onPress={() => navigation.navigate('EditProfileScreen', { user })}
@@ -146,7 +142,6 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* regular donation card */}
         <TouchableOpacity style={styles.card}>
           <View style={styles.cardLeft}>
             <Icon name="calendar-heart" size={24} color={isDarkMode ? '#fff' : '#000'} />
@@ -163,7 +158,6 @@ export default function ProfileScreen() {
           <Icon name="chevron-right" size={26} color={isDarkMode ? '#ccc' : '#888'} />
         </TouchableOpacity>
 
-        {/* toggles */}
         {[
           { icon: 'alarm', label: 'New Campaign Alert', key: 'campaignAlert' },
           { icon: 'bell-outline', label: 'Turn on notification', key: 'notifications' },
@@ -182,7 +176,6 @@ export default function ProfileScreen() {
           </View>
         ))}
 
-        {/* option rows */}
         {[
           { icon: 'cog-outline', label: 'Settings' },
           { icon: 'comment-question-outline', label: 'FAQ' },
