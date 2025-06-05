@@ -1,14 +1,14 @@
-// firebaseConfig.js
-// ① Crypto polyfill must be first.
 import 'react-native-get-random-values';
+import { getStorage } from 'firebase/storage';
 
-import { initializeApp } from 'firebase/app';
-// ② Use the React Native entrypoint for auth:
+import { initializeApp, getApps } from 'firebase/app';
 import {
   initializeAuth,
   getReactNativePersistence,
-  getAuth
+  getAuth,
+  getAuth as getAuthInstance,
 } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -20,13 +20,32 @@ const firebaseConfig = {
   appId: "1:731786242882:web:3f4c3647d8de088f8536db"
 };
 
-// 1️⃣ Initialize the Firebase JS SDK
-const app = initializeApp(firebaseConfig);
+// Initialize app only if not already initialized
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-// 2️⃣ Immediately register the native Auth component
-initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// Initialize Auth only if not already initialized
+let auth;
+try {
+  auth = getAuth(app);
+} catch (e) {
+  // fallback if already initialized (should not really throw here)
+  auth = getAuthInstance();
+}
 
-// 3️⃣ Export the auth instance
-export const auth = getAuth(app);
+// Initialize native Auth with persistence only if possible
+// (optional) This part depends on your React Native Firebase version
+try {
+  initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch (e) {
+  // Auth already initialized, ignore error
+  if (e.code !== 'auth/already-initialized') {
+    throw e;
+  }
+}
+
+// Initialize Firestore
+const db = getFirestore(app);
+const storage = getStorage(app);
+export { auth, db, storage };

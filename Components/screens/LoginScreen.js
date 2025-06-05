@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }) {
       const credential = GoogleAuthProvider.credential(idToken, accessToken);
 
       signInWithCredential(auth, credential)
-        .then(() => navigation.replace('Home'))
+        .then(() => navigation.replace('MainTabs'))
         .catch(err => Alert.alert('Google Login Error', err.message));
     }
   }, [response]);
@@ -45,7 +45,7 @@ export default function LoginScreen({ navigation }) {
       return Alert.alert('Error', 'Please enter both email and password.');
     }
     signInWithEmailAndPassword(auth, email, password)
-      .then(() => navigation.replace('Home'))
+      .then(() => navigation.replace('MainTabs'))
       .catch(err => Alert.alert('Login failed', err.message));
   };
 
