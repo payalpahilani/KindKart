@@ -21,7 +21,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform all --profile=production --non-interactive
+          eas build --platform android --profile=production --non-interactive
 
   build-develop:
     if: github.ref == 'refs/heads/develop'
@@ -37,4 +37,4 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform all --profile=preview --non-interactive
+          eas build --platform android --profile=preview --non-interactive
