@@ -1,73 +1,113 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
+import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const TermsAndConditionsScreen = () => {
+  const navigation = useNavigation();
+  const { isDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
+
+  const bgColor = isDarkMode ? '#121212' : '#fff';
+  const textColor = isDarkMode ? '#e0e0e0' : '#333';
+  const subHeaderColor = isDarkMode ? '#ccc' : '#222';
+  const paragraphColor = isDarkMode ? '#aaa' : '#555';
+  const cardBg = isDarkMode ? '#1E1E1E' : '#fafafa';
+
+const sections = [
+  t('terms.sections.user', { returnObjects: true }),
+  t('terms.sections.content', { returnObjects: true }),
+  t('terms.sections.prohibited', { returnObjects: true }),
+  t('terms.sections.modification', { returnObjects: true }),
+  t('terms.sections.contact', { returnObjects: true }),
+];
+
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Terms and Conditions</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: bgColor }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={true}
+        bounces={false}
+      >
+        {/* Back Button */}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="arrow-left" size={24} color={textColor} />
+        </TouchableOpacity>
 
-      <Text style={styles.paragraph}>
-        Welcome to KindKart. By accessing or using this app, you agree to be bound by these Terms and Conditions. If you do not agree with any part, please do not use the app.
-      </Text>
+        <Text style={[styles.header, { color: textColor }]}>{t('terms.title')}</Text>
 
-      <Text style={styles.subHeader}>1. User Responsibilities</Text>
-      <Text style={styles.paragraph}>
-        You are responsible for maintaining the confidentiality of your account and password, and for restricting access to your device.
-      </Text>
+        <Text style={[styles.paragraph, { color: paragraphColor }]}>
+          {t('terms.intro')}
+        </Text>
 
-      <Text style={styles.subHeader}>2. Content</Text>
-      <Text style={styles.paragraph}>
-        Users are solely responsible for the content they post. Inappropriate, offensive, or illegal content is strictly prohibited.
-      </Text>
+        {sections.map((section, i) => (
+          <View key={i} style={[styles.card, { backgroundColor: cardBg }]}>
+            <Text style={[styles.subHeader, { color: subHeaderColor }]}>{section.title}</Text>
+            <Text style={[styles.paragraph, { color: paragraphColor }]}>{section.text}</Text>
+          </View>
+        ))}
 
-      <Text style={styles.subHeader}>3. Prohibited Use</Text>
-      <Text style={styles.paragraph}>
-        You agree not to use the app for any unlawful purpose or in any way that may damage, disable, or impair the app.
-      </Text>
-
-      <Text style={styles.subHeader}>4. Modification of Terms</Text>
-      <Text style={styles.paragraph}>
-        We reserve the right to change these terms at any time. Continued use of the app implies acceptance of the updated terms.
-      </Text>
-
-      <Text style={styles.subHeader}>5. Contact Us</Text>
-      <Text style={styles.paragraph}>
-        For questions about these Terms and Conditions, please contact us at support@kindkart.app.
-      </Text>
-
-      <Text style={styles.footer}>Last updated: June 5, 2025</Text>
-    </ScrollView>
+        <Text style={[styles.footer, { color: paragraphColor }]}>
+          {t('terms.sections.lastUpdated')}
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    paddingBottom: 60,
-    backgroundColor: '#fff',
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 40 : 0,
+  },
+  scrollContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  backButton: {
+    padding: 10,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   header: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     marginBottom: 20,
-    color: '#333',
+    textAlign: 'center',
+  },
+  card: {
+    borderRadius: 12,
+    padding: 18,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   subHeader: {
     fontSize: 18,
     fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 6,
-    color: '#222',
+    marginBottom: 10,
   },
   paragraph: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#555',
+    fontSize: 16,
+    lineHeight: 24,
   },
   footer: {
-    marginTop: 40,
-    fontSize: 12,
-    color: '#999',
+    fontSize: 14,
+    marginTop: 30,
     textAlign: 'center',
   },
 });

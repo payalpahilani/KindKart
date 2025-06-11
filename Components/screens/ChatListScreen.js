@@ -11,8 +11,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
 import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 
 export default function ChatListScreen({ navigation }) {
+  const { t } = useTranslation();
+
   const [chatRooms, setChatRooms] = useState([]);
   const [contacts, setContacts] = useState([]);
   const currentUser = auth.currentUser;
@@ -39,7 +42,7 @@ export default function ChatListScreen({ navigation }) {
       setChatRooms(roomsData);
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser.uid, t]);
 
   // Fetch contacts
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function ChatListScreen({ navigation }) {
       setContacts(users);
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser.uid]);
 
   const openChat = (roomId, userName) => {
     navigation.navigate('ChatScreen', { roomId, userName });
@@ -96,16 +99,15 @@ export default function ChatListScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Messages</Text>
-        {/* Empty view for header alignment */}
+        <Text style={styles.headerTitle}>{t('chatList.messages')}</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
-          <Text style={styles.heading}>Active Chats</Text>
+          <Text style={styles.heading}>{t('chatList.activeChats')}</Text>
           {chatRooms.length === 0 ? (
-            <Text style={styles.emptyText}>No active chats</Text>
+            <Text style={styles.emptyText}>{t('chatList.noActiveChats')}</Text>
           ) : (
             <FlatList
               data={chatRooms}
@@ -117,9 +119,9 @@ export default function ChatListScreen({ navigation }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.heading}>Contacts</Text>
+          <Text style={styles.heading}>{t('chatList.contacts')}</Text>
           {contacts.length === 0 ? (
-            <Text style={styles.emptyText}>No contacts found</Text>
+            <Text style={styles.emptyText}>{t('chatList.noContacts')}</Text>
           ) : (
             <FlatList
               data={contacts}

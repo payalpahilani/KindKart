@@ -13,11 +13,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { ThemeContext } from "../Utilitis/ThemeContext"; // ← add
+import { ThemeContext } from "../Utilities/ThemeContext"; 
 
 const { width } = Dimensions.get("window");
 
-/* ─── dummy data ─── */
+
 const categories = [
   { label: "Jobs", icon: "briefcase-outline", color: "#FFE2E2" },
   { label: "Electronics", icon: "laptop", color: "#FFF6D4" },

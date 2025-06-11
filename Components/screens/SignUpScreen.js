@@ -1,4 +1,3 @@
-// Components/screens/SignUpScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -20,38 +19,50 @@ import {
   GoogleAuthProvider,
   signInWithCredential,
 } from 'firebase/auth';
-import { auth } from '../../firebaseConfig';
+import { auth, db } from '../../firebaseConfig';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignUpScreen({ navigation }) {
-  const [fullName, setFullName]               = useState('');
-  const [email, setEmail]                     = useState('');
-  const [phone, setPhone]                     = useState('');
-  const [password, setPassword]               = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [rememberMe, setRememberMe]           = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  // configure Google sign‐up
   const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId:  '731786242882-036vr75864aapuuvelh4i3ogoc88bpnk.apps.googleusercontent.com',   // from Firebase console → OAuth 2.0 Client IDs
-    webClientId:   '731786242882-036vr75864aapuuvelh4i3ogoc88bpnk.apps.googleusercontent.com',
-    iosClientId:   '731786242882-t76sffnd4rnqmpmocqquumn5spoa6ag7.apps.googleusercontent.com',    // only for standalone
+    expoClientId: '731786242882-036vr75864aapuuvelh4i3ogoc88bpnk.apps.googleusercontent.com',
+    webClientId: '731786242882-036vr75864aapuuvelh4i3ogoc88bpnk.apps.googleusercontent.com',
+    iosClientId: '731786242882-t76sffnd4rnqmpmocqquumn5spoa6ag7.apps.googleusercontent.com',
     scopes: ['profile', 'email'],
   });
 
-  // handle Google response
+  // Google sign-in response handler
   useEffect(() => {
     if (response?.type === 'success') {
       const { idToken, accessToken } = response.authentication;
       const credential = GoogleAuthProvider.credential(idToken, accessToken);
 
       signInWithCredential(auth, credential)
-        .then(userCred => {
-          Alert.alert('Welcome', `Logged in as ${userCred.user.displayName}`);
+        .then(async (userCred) => {
+          const user = userCred.user;
+
+          // ✅ Save user to Firestore
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            name: user.displayName || '',
+            email: user.email,
+            phone: '', // You can allow editing later
+            avatarUrl: user.photoURL || '',
+            createdAt: serverTimestamp(),
+          });
+
+          Alert.alert('Welcome', `Logged in as ${user.displayName}`);
           navigation.replace('Home');
         })
-        .catch(err => Alert.alert('Google Sign Up Error', err.message));
+        .catch((err) => Alert.alert('Google Sign Up Error', err.message));
     }
   }, [response]);
 
@@ -62,15 +73,27 @@ export default function SignUpScreen({ navigation }) {
     if (password !== confirmPassword) {
       return Alert.alert('Error', 'Passwords do not match.');
     }
+
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCred.user, { displayName: fullName });
+      const user = userCred.user;
+
+      await updateProfile(user, { displayName: fullName });
+
       if (rememberMe) {
-        await AsyncStorage.setItem(
-          'userCredentials',
-          JSON.stringify({ email, password })
-        );
+        await AsyncStorage.setItem('userCredentials', JSON.stringify({ email, password }));
       }
+
+      // ✅ Save user data to Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        name: fullName,
+        email: email,
+        phone: phone,
+        avatarUrl: '',
+        createdAt: serverTimestamp(),
+      });
+
       Alert.alert('Success', 'Account created!');
       navigation.replace('Home');
     } catch (err) {
@@ -140,10 +163,7 @@ export default function SignUpScreen({ navigation }) {
 
         <Text style={styles.orText}>or sign up with</Text>
         <View style={styles.socialContainer}>
-          <TouchableOpacity
-            onPress={() => promptAsync()}
-            style={styles.socialButton}
-          >
+          <TouchableOpacity onPress={() => promptAsync()} style={styles.socialButton}>
             <Image
               source={require('../../assets/Images/google.png')}
               style={styles.icon}
@@ -165,8 +185,7 @@ export default function SignUpScreen({ navigation }) {
 
         <TouchableOpacity onPress={() => navigation.replace('Login')}>
           <Text style={styles.loginText}>
-            Already have an account?{' '}
-            <Text style={styles.loginLink}>Log In</Text>
+            Already have an account? <Text style={styles.loginLink}>Log In</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -175,52 +194,56 @@ export default function SignUpScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:     { flex: 1, backgroundColor: '#fff' },
-  content:       { flex: 1, paddingHorizontal: 30, paddingTop: 80 },
-  title:         { fontSize: 26, fontWeight: '700', color: '#1F2E41', marginBottom: 30 },
-  input:         {
-                   width: '100%',
-                   height: 50,
-                   backgroundColor: '#F5F5F5',
-                   borderRadius: 25,
-                   paddingHorizontal: 20,
-                   marginBottom: 20,
-                   fontSize: 16,
-                 },
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { flex: 1, paddingHorizontal: 30, paddingTop: 80 },
+  title: { fontSize: 26, fontWeight: '700', color: '#1F2E41', marginBottom: 30 },
+  input: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    fontSize: 16,
+  },
   rememberMeContainer: {
-                   flexDirection: 'row',
-                   justifyContent: 'space-between',
-                   alignItems: 'center',
-                   marginBottom: 24,
-                 },
-  rememberMeText:      { fontSize: 16, color: '#333' },
-  signUpButton:        {
-                   width: '100%',
-                   height: 50,
-                   borderRadius: 25,
-                   backgroundColor: '#F3E8DD',
-                   justifyContent: 'center',
-                   alignItems: 'center',
-                   marginBottom: 16,
-                 },
-  signUpButtonText:    { fontSize: 16, fontWeight: '600', color: '#1F2E41' },
-  orText:              { textAlign: 'center', color: '#AAA', marginBottom: 16 },
-  socialContainer:     { flexDirection: 'row', justifyContent: 'center', marginBottom: 40 },
-  socialButton:        {
-                   width: 50,
-                   height: 50,
-                   borderRadius: 12,
-                   backgroundColor: '#fff',
-                   justifyContent: 'center',
-                   alignItems: 'center',
-                   marginHorizontal: 12,
-                   shadowColor: '#000',
-                   shadowOffset: { width: 0, height: 2 },
-                   shadowOpacity: 0.1,
-                   shadowRadius: 4,
-                   elevation: 3,
-                 },
-  icon:                { width: 30, height: 30, resizeMode: 'contain' },
-  loginText:           { textAlign: 'center', color: '#333', fontSize: 14 },
-  loginLink:           { color: '#EFAC3A', fontWeight: '600' },
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  rememberMeText: { fontSize: 16, color: '#333' },
+  signUpButton: {
+    width: '100%',
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F3E8DD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  signUpButtonText: { fontSize: 16, fontWeight: '600', color: '#1F2E41' },
+  orText: { textAlign: 'center', color: '#AAA', marginBottom: 16 },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 40,
+  },
+  socialButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  icon: { width: 30, height: 30, resizeMode: 'contain' },
+  loginText: { textAlign: 'center', color: '#333', fontSize: 14 },
+  loginLink: { color: '#EFAC3A', fontWeight: '600' },
 });
