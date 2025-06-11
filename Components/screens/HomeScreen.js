@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { ThemeContext } from "../Utilitis/ThemeContext";
+import { ThemeContext } from "../Utilities/ThemeContext";
 
 const categories = [
   { label: "Donation", icon: "hand-heart" },

@@ -18,7 +18,7 @@ import { signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ThemeContext } from "../Utilitis/ThemeContext";
+import { ThemeContext } from "../Utilities/ThemeContext";
 
 export default function ProfileScreen() {
   const navigation = useNavigation();

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { ThemeContext } from "../Utilitis/ThemeContext"; // ← add
+import { ThemeContext } from "../Utilities/ThemeContext"; // ← add
 
 const { width } = Dimensions.get("window");
 
