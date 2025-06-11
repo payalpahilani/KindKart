@@ -18,7 +18,6 @@ import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
-
 import { ThemeContext } from '../Utilities/ThemeContext';
 import { useTranslation } from 'react-i18next';
 

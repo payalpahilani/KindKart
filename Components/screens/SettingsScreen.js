@@ -13,14 +13,13 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { ThemeContext } from '../Utilities/ThemeContext';
 import i18n from '../../i18n';
+import { ThemeContext } from '../Utilities/ThemeContext';
 
 export default function SettingsScreen() {
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const { t } = useTranslation();
   const navigation = useNavigation();
-
   const bg = isDarkMode ? '#0B0B0B' : '#F9F9F9';
   const cardBg = isDarkMode ? '#1A1A1C' : '#FFFFFF';
   const cardBor = isDarkMode ? '#2B2B2B' : '#E3E3E3';
@@ -51,7 +50,6 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: bg }]}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Back Button */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={[styles.backBtn, { backgroundColor: isDarkMode ? '#1E1E1E80' : '#FFFFFFCC' }]}
@@ -59,7 +57,6 @@ export default function SettingsScreen() {
           <Icon name="arrow-left" size={22} color={text} />
         </TouchableOpacity>
 
-        {/* Header */}
         <Text style={[styles.headerText, { color: text }]}>{t('settings.settings')}</Text>
 
         {/* Appearance Card */}
@@ -68,7 +65,6 @@ export default function SettingsScreen() {
             <Icon name="palette-swatch" size={20} color={accent} />
             <Text style={[styles.cardTitle, { color: text }]}>{t('settings.appearance')}</Text>
           </View>
-
           <View style={styles.row}>
             <Text style={[styles.label, { color: muted }]}>{t('settings.dark_mode')}</Text>
             <Switch
@@ -86,7 +82,6 @@ export default function SettingsScreen() {
             <Icon name="translate" size={20} color={accent} />
             <Text style={[styles.cardTitle, { color: text }]}>{t('settings.select_language')}</Text>
           </View>
-
           <View style={styles.langRow}>
             <LangChip code="en" label="English" flag="🇬🇧" />
             <LangChip code="fr" label="Français" flag="🇫🇷" />
