@@ -132,7 +132,7 @@ export default function EditProfileScreen() {
         <TouchableOpacity onPress={pickImage} style={styles.avatarWrap} activeOpacity={0.8}>
           <Image
             source={
-              avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.png')
+              avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.jpg')
             }
             style={styles.avatar}
           />
