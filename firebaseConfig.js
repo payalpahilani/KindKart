@@ -1,11 +1,7 @@
 // firebaseConfig.js
 import "react-native-get-random-values";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import {
-  initializeAuth,
-  getReactNativePersistence,
-  getAuth,
-} from "firebase/auth";
+import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,15 +20,9 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Auth with persistence (Expo/React Native)
-let auth;
-try {
-  auth = getAuth(app);
-} catch (e) {
-  // If not already initialized, initialize with persistence
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-}
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
 
 // Initialize Firestore and Storage
 const db = getFirestore(app);
