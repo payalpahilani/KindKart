@@ -11,7 +11,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
-import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  getDoc,
+  doc,
+} from 'firebase/firestore';
 import { ThemeContext } from '../Utilities/ThemeContext';
 
 export default function ChatListScreen({ navigation }) {
@@ -20,44 +27,71 @@ export default function ChatListScreen({ navigation }) {
 
   const [chatRooms, setChatRooms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentUserAvatar, setCurrentUserAvatar] = useState(null);
+
   const currentUser = auth.currentUser;
 
+  // 🔄 Fetch current user avatar for the top-left profile icon
   useEffect(() => {
+    async function fetchAvatar() {
+      if (!currentUser?.uid) return;
+
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        setCurrentUserAvatar(userData.avatar || null);
+      }
+    }
+
+    fetchAvatar();
+  }, [currentUser]);
+
+  // 🔄 Fetch chat rooms and their corresponding user avatars
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
     const q = query(
       collection(db, 'chatRooms'),
       where('users', 'array-contains', currentUser.uid)
     );
+
     const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const roomsData = await Promise.all(
+      const rooms = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
-          const room = docSnap.data();
-          const otherUserId = room.users.find(id => id !== currentUser.uid);
+          const roomData = docSnap.data();
+          const otherUserId = roomData.users.find((uid) => uid !== currentUser.uid);
+
           const userDoc = await getDoc(doc(db, 'users', otherUserId));
-          const userData = userDoc.data();
+          const userData = userDoc.exists() ? userDoc.data() : {};
+
           return {
             id: docSnap.id,
-            name: userData?.name || 'Unknown',
-            avatar: userData?.avatar || null,
-            lastMessage: room.lastMessage || '',
-            lastMessageTime: room.lastMessageTime || '',
+            name: userData.name || 'Unknown',
+            avatar: userData.avatar || null,
+            lastMessage: roomData.lastMessage || '',
+            lastMessageTime: roomData.lastMessageTime || null,
           };
         })
       );
-      setChatRooms(roomsData);
+      setChatRooms(rooms);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
+  // 🔍 Filter rooms by search input
   const filteredRooms = chatRooms.filter((room) =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // 🧱 Render each chat item
   const renderItem = ({ item }) => {
     const timestamp = item.lastMessageTime?.toDate?.().toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
     }) || '';
+
     return (
       <TouchableOpacity
         style={styles.chatItem}
@@ -91,7 +125,11 @@ export default function ChatListScreen({ navigation }) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Image
-          source={require('../../assets/Images/avatar.jpg')}
+          source={
+            currentUserAvatar
+              ? { uri: currentUserAvatar }
+              : require('../../assets/Images/avatar.jpg')
+          }
           style={styles.profileIcon}
         />
         <Text style={styles.headerTitle}>Chats</Text>
@@ -121,11 +159,9 @@ export default function ChatListScreen({ navigation }) {
   );
 }
 
-// Shared base styles
+// Shared Base Styles
 const base = {
-  safe: {
-    flex: 1,
-  },
+  safe: { flex: 1 },
   header: {
     height: 60,
     flexDirection: 'row',
@@ -146,7 +182,6 @@ const base = {
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eee',
     borderRadius: 12,
     marginHorizontal: 16,
     marginVertical: 10,
@@ -192,7 +227,7 @@ const base = {
   },
 };
 
-// Light theme
+// Light Mode Styles
 const lightStyles = StyleSheet.create({
   ...base,
   safe: { ...base.safe, backgroundColor: '#fff' },
@@ -201,13 +236,10 @@ const lightStyles = StyleSheet.create({
   headerTitle: { ...base.headerTitle, color: '#000' },
   searchContainer: { ...base.searchContainer, backgroundColor: '#eee' },
   searchInput: { ...base.searchInput, color: '#000' },
-  chatItem: {
-    ...base.chatItem,
-    backgroundColor: '#f4f4f4',
-  },
+  chatItem: { ...base.chatItem, backgroundColor: '#f4f4f4' },
 });
 
-// Dark theme
+// Dark Mode Styles
 const darkStyles = StyleSheet.create({
   ...base,
   safe: { ...base.safe, backgroundColor: '#121212' },
@@ -216,10 +248,7 @@ const darkStyles = StyleSheet.create({
   headerTitle: { ...base.headerTitle, color: '#fff' },
   searchContainer: { ...base.searchContainer, backgroundColor: '#2a2a2a' },
   searchInput: { ...base.searchInput, color: '#fff' },
-  chatItem: {
-    ...base.chatItem,
-    backgroundColor: '#1e1e1e',
-  },
+  chatItem: { ...base.chatItem, backgroundColor: '#1e1e1e' },
   name: { ...base.name, color: '#fff' },
   message: { ...base.message, color: '#ccc' },
   timestamp: { ...base.timestamp, color: '#aaa' },

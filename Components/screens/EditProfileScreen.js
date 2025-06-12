@@ -14,11 +14,39 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '../../firebaseConfig';  // Your Firebase config file
+import { auth, db } from '../../firebaseConfig'; 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ThemeContext } from '../Utilities/ThemeContext';
+
+// Utility function to get mime type from file extension (basic)
+const getMimeType = (filename) => {
+  const ext = filename.split('.').pop().toLowerCase();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'bmp':
+      return 'image/bmp';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'image/png';
+  }
+};
+
+const backendUrl = 'http://10.0.0.116:4000';
+
+
+const generateItemId = () => {
+  return Math.random().toString(36).substring(2, 10);
+};
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
@@ -75,7 +103,7 @@ export default function EditProfileScreen() {
     }
   };
 
-  // Helper: Convert URI to Blob using XMLHttpRequest (fixes blob error in Expo)
+  // Convert URI to Blob (necessary for upload)
   const uriToBlob = (uri) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -91,24 +119,50 @@ export default function EditProfileScreen() {
     });
   };
 
-  const uploadImageAsync = async (uri, uid) => {
-    try {
-      const blob = await uriToBlob(uri);
+  // Get presigned URLs from your backend
+ async function getPresignedUrls(filename, fileType, userId, itemId) {
+  const url = `${backendUrl}/get-presigned-url?fileName=${encodeURIComponent(filename)}&fileType=${encodeURIComponent(fileType)}&userId=${encodeURIComponent(userId)}&itemId=${encodeURIComponent(itemId)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Failed to get pre-signed URLs');
+  }
+  return await res.json(); // expects { uploadUrl, downloadUrl }
+}
 
-      const timestamp = Date.now();
-      const storageRef = ref(storage, `avatars/${uid}/${timestamp}.jpg`);
-      await uploadBytes(storageRef, blob);
+ async function uploadImageAsync(uri, userId) {
+  try {
+    const blob = await uriToBlob(uri);
 
-      // After upload, close the blob to release memory (optional)
-      blob.close?.();
+    // Extract filename from uri or fallback
+    const filename = uri.split('/').pop().split('?')[0];
+    const fileType = getMimeType(filename);
+    const itemId = generateItemId();
 
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error("Upload failed:", error);
-      throw error;
+    const { uploadUrl, downloadUrl } = await getPresignedUrls(filename, fileType, userId, itemId);
+
+    // Upload to S3 using the pre-signed URL
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: blob,
+      headers: {
+        'Content-Type': fileType,
+        'x-amz-server-side-encryption': 'AES256', // if your backend requires this header
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('S3 upload failed:', errorText);
+      throw new Error('Upload to S3 failed');
     }
-  };
+    if (blob.close) blob.close();
+
+    return downloadUrl; 
+  } catch (error) {
+    console.error('Upload failed:', error);
+    throw error;
+  }
+}
 
   const handleSave = async () => {
     const uid = auth.currentUser?.uid;
@@ -130,8 +184,8 @@ export default function EditProfileScreen() {
     try {
       let avatarUrlToSave = avatarUri;
 
-      // Upload new image if changed and not already a URL
-      if (avatarUri && !avatarUri.startsWith('https://')) {
+      // Upload new image if user picked one and it's not already a URL
+      if (avatarUri && !avatarUri.startsWith('http')) {
         avatarUrlToSave = await uploadImageAsync(avatarUri, uid);
       }
 
@@ -233,6 +287,7 @@ export default function EditProfileScreen() {
   );
 }
 
+// Styles (unchanged)
 const base = {
   safe: {
     flex: 1,
