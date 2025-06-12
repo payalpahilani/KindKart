@@ -17,7 +17,7 @@ const s3 = new AWS.S3({
 });
 
 app.get("/get-presigned-url", async (req, res) => {
-  let { fileName, fileType, userId, itemId } = req.query;
+  let { fileName, fileType, userId, itemId, type } = req.query;
 
   // Validate required query params
   if (!fileName || !fileType || !userId || !itemId) {
@@ -49,7 +49,8 @@ app.get("/get-presigned-url", async (req, res) => {
     fileType = "image/png";
   }
 
-  const key = `items/${userId}/${itemId}/${fileName}`;
+  const folderPrefix = type === "ngo" ? "items/ngocampaign" : "items";
+  const key = `${folderPrefix}/${userId}/${itemId}/${fileName}`;
   console.log("Bucket name:", process.env.S3_BUCKET);
   console.log("Key:", key);
   console.log("fileType:", fileType);

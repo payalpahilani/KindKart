@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -7,38 +7,18 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth} from '../../firebaseConfig';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 
 const { width } = Dimensions.get('window');
-
-
-const activeCampaigns = [
-  {
-    id: '1',
-    title: 'Meal Kits for Kids',
-    image: require('../../assets/Images/campaign1.jpg'),
-    raised: 2800,
-    goal: 5000,
-  },
-  {
-    id: '2',
-    title: 'Winter Clothes Drive',
-    image: require('../../assets/Images/campaign2.jpg'),
-    raised: 1900,
-    goal: 3000,
-  },
-  {
-    id: '3',
-    title: 'Clean Water Project',
-    image: require('../../assets/Images/campaign3.jpg'),
-    raised: 4100,
-    goal: 7000,
-  },
-];
 
 const recentActivities = [
   { id: 'a1', title: 'Donation Received', detail: 'CAD $200 from Sarah' },
@@ -47,10 +27,40 @@ const recentActivities = [
 ];
 
 export default function NgoHomeScreen() {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+  
+        const q = query(collection(db, 'campaigns'), where('createdBy', '==', userId));
+        const snapshot = await getDocs(q);
+        const results = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.status !== 'closed') {
+            results.push({ id: doc.id, ...data });
+          }
+        });
+        setCampaigns(results);
+      } catch (err) {
+        console.error('Failed to fetch campaigns:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCampaigns();
+  }, [])
+);
+  
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-
         {/* Header */}
         <LinearGradient
           colors={['#F3E8DD', '#B8D6DF']}
@@ -62,8 +72,8 @@ export default function NgoHomeScreen() {
           <Text style={styles.subtext}>Empowering communities with your kindness</Text>
         </LinearGradient>
 
-         {/* Featured Campaign */}
-         <View style={styles.featuredCard}>
+        {/* Featured Campaign */}
+        <View style={styles.featuredCard}>
           <Image
             source={require('../../assets/Images/campaign1.jpg')}
             style={styles.featuredImage}
@@ -79,24 +89,31 @@ export default function NgoHomeScreen() {
 
         {/* Active Campaigns Carousel */}
         <Text style={styles.sectionTitle}>Active Campaigns</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ paddingLeft: 20 }}
-        >
-          {activeCampaigns.map((item) => (
-            <View key={item.id} style={styles.campaignCard}>
-              <Image source={item.image} style={styles.campaignImage} />
-              <Text style={styles.campaignTitle}>{item.title}</Text>
-              <Text style={styles.campaignProgress}>
-                Raised CAD ${item.raised.toLocaleString()} of ${item.goal.toLocaleString()}
-              </Text>
-              <TouchableOpacity style={styles.viewButton}>
-                <Text style={styles.viewButtonText}>View</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: 20 }} color="#007B55" />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ paddingLeft: 20 }}
+          >
+            {campaigns.map((item) => (
+              <View key={item.id} style={styles.campaignCard}>
+                <Image
+                  source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+                  style={styles.campaignImage}
+                />
+                <Text style={styles.campaignTitle}>{item.title}</Text>
+                <Text style={styles.campaignProgress}>
+                  Raised {item.currency} ${item.raisedAmount?.toLocaleString() || 0} of ${item.totalDonation?.toLocaleString()}
+                </Text>
+                <TouchableOpacity style={styles.viewButton}>
+                  <Text style={styles.viewButtonText}>View</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Recent Activity */}
         <Text style={styles.sectionTitle}>Recent Activity</Text>
@@ -106,7 +123,6 @@ export default function NgoHomeScreen() {
             <Text style={styles.activityDetail}>{item.detail}</Text>
           </View>
         ))}
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -158,8 +174,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   donateText: { color: '#1F2E41', fontWeight: '600' },
-
-  // Carousel
   campaignCard: {
     width: width * 0.7,
     backgroundColor: '#fff',
@@ -203,27 +217,6 @@ const styles = StyleSheet.create({
     color: '#1F2E41',
     fontWeight: '600',
   },
-
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 30,
-  },
-  actionButton: {
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 14,
-    backgroundColor: '#FFF8F1',
-    width: 130,
-    elevation: 2,
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2E41',
-    marginTop: 6,
-  },
-
   activityItem: {
     backgroundColor: '#F5F5F5',
     marginHorizontal: 20,

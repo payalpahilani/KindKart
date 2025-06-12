@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -15,14 +15,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-const BACKEND_URL = "http://10.0.0.43:4000";
+const BACKEND_URL = "http://192.168.68.60:4000"; // Update if needed
 const MAX_IMAGES = 5;
 
-// KindKart Colors
 const PRIMARY = "#0AB1E7";
 const BACKGROUND = "#F3E8DD";
 const ACCENT = "#DCE3E9";
@@ -34,14 +33,10 @@ function getMimeType(uri) {
   const ext = uri.split(".").pop().toLowerCase();
   switch (ext) {
     case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "png":
-      return "image/png";
-    case "gif":
-      return "image/gif";
-    default:
-      return "image/png";
+    case "jpeg": return "image/jpeg";
+    case "png": return "image/png";
+    case "gif": return "image/gif";
+    default: return "image/png";
   }
 }
 
@@ -57,15 +52,6 @@ export default function NgoCreateCampaignScreen() {
   const [story, setStory] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState(null);
-
-  useEffect(() => {
-    const auth = getAuth();
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) setUserId(user.uid);
-    });
-    return unsub;
-  }, []);
 
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -91,11 +77,17 @@ export default function NgoCreateCampaignScreen() {
   const uploadImageToS3 = async (img, userId, itemId) => {
     const fileName = img.fileName || img.uri.split("/").pop();
     const fileType = getMimeType(img.uri);
+
+    console.log("Uploading image:", { fileName, fileType, userId, itemId });
+
     const res = await fetch(
-      `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
-        fileName
-      )}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}`
-    );
+        `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}&type=ngo`
+      );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error("Presigned URL fetch failed: " + text);
+    }
+
     const { uploadUrl, downloadUrl } = await res.json();
     const imageBlob = await (await fetch(img.uri)).blob();
 
@@ -108,7 +100,12 @@ export default function NgoCreateCampaignScreen() {
       },
     });
 
-    if (!uploadRes.ok) throw new Error("S3 Upload failed");
+    if (!uploadRes.ok) {
+      const errorText = await uploadRes.text();
+      console.log("Upload error response:", errorText);
+      throw new Error("S3 upload failed: " + errorText);
+    }
+
     return downloadUrl;
   };
 
@@ -122,15 +119,16 @@ export default function NgoCreateCampaignScreen() {
   };
 
   const handleSubmit = async () => {
-    if (
-      !title ||
-      !campaignerName ||
-      !campaignDate ||
-      !totalDonation ||
-      !story ||
-      images.length === 0
-    ) {
-      Alert.alert("All fields and at least 1 image are required.");
+    const auth = getAuth();
+    const userId = auth.currentUser?.uid;
+
+    if (!userId) {
+      Alert.alert("User not authenticated.");
+      return;
+    }
+
+    if (!title || !campaignerName || !campaignDate || !totalDonation || !story || images.length === 0) {
+      Alert.alert("Please fill all required fields and add at least one image.");
       return;
     }
 
@@ -175,20 +173,27 @@ export default function NgoCreateCampaignScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Top Bar */}
         <View style={styles.navRow}>
           <TouchableOpacity onPress={handleCancel}>
             <Ionicons name="arrow-back" size={24} color={DARK_TEXT} />
           </TouchableOpacity>
           <Text style={styles.header}>Create Campaign</Text>
-          <View style={{ width: 24 }} /> {/* Spacer */}
+          <View style={{ width: 24 }} />
         </View>
 
         <Text style={styles.label}>Upload Images</Text>
         <FlatList
           data={[...images, ...(images.length < MAX_IMAGES ? [{}] : [])]}
-          renderItem={({ item, index }) =>
-            item.uri ? (
+          renderItem={({ item, index }) => {
+            if (!item || !item.uri) {
+              return (
+                <TouchableOpacity style={styles.imageBox} onPress={pickImages}>
+                  <Text style={{ fontSize: 30, color: "#999" }}>+</Text>
+                </TouchableOpacity>
+              );
+            }
+
+            return (
               <View style={styles.imageBox}>
                 <Image source={{ uri: item.uri }} style={styles.imageThumb} />
                 <TouchableOpacity
@@ -198,12 +203,8 @@ export default function NgoCreateCampaignScreen() {
                   <Text style={{ color: "#fff", fontWeight: "bold" }}>×</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <TouchableOpacity style={styles.imageBox} onPress={pickImages}>
-                <Text style={{ fontSize: 30, color: "#999" }}>+</Text>
-              </TouchableOpacity>
-            )
-          }
+            );
+          }}
           keyExtractor={(_, idx) => idx.toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
