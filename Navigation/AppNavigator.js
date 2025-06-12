@@ -4,6 +4,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+
+
 
 import LaunchScreen from "../Components/screens/LaunchScreen";
 import LoginScreen from "../Components/screens/LoginScreen";
@@ -18,10 +21,18 @@ import EditProfileScreen from "../Components/screens/EditProfileScreen";
 import SettingsScreen from "../Components/screens/SettingsScreen";
 import AboutUsScreen from "../Components/screens/AboutUsScreen";
 import TermsAndConditionsScreen from "../Components/screens/TermsAndConditionsScreen";
+import NgoHomeScreen from '../Components/screens/NgoHomeScreen'
+import CampaignsScreen from '../Components/screens/CampaignsScreen'
+import DonorsScreen from '../Components/screens/DonorsScreen';
+import NgoProfileScreen from '../Components/screens/NgoProfileScreen';
+import NgoLoginScreen from '../Components/screens/NgoLoginScreen';
+import NgoSignUpScreen from '../Components/screens/NgoSignUpScreen';
+
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const ChatStack = createNativeStackNavigator();
+const NgoTab = createBottomTabNavigator();
 
 function MyTabBar({ state, navigation }) {
   return (
@@ -93,6 +104,43 @@ function MainTabs() {
   );
 }
 
+function NgoTabNavigator() {
+  return (
+    <NgoTab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarActiveTintColor: '#EFAC3A',
+        tabBarInactiveTintColor: 'gray',
+        tabBarLabelStyle: { fontSize: 12 },
+        tabBarStyle: {
+          paddingBottom: 10,
+          height: 80,
+        },
+        headerShown: false,
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+
+          if (route.name === 'HomeNgo') {
+            iconName = <Ionicons name="home-outline" size={size} color={color} />;
+          } else if (route.name === 'Campaigns') {
+            iconName = <MaterialCommunityIcons name="bullhorn-outline" size={size} color={color} />;
+          } else if (route.name === 'Donors') {
+            iconName = <FontAwesome5 name="hand-holding-heart" size={size} color={color} />;
+          } else if (route.name === 'Profile') {
+            iconName = <Ionicons name="person-outline" size={size} color={color} />;
+          }
+
+          return iconName;
+        },
+      })}
+    >
+      <NgoTab.Screen name="HomeNgo" component={NgoHomeScreen} />
+      <NgoTab.Screen name="Campaigns" component={CampaignsScreen} />
+      <NgoTab.Screen name="Donors" component={DonorsScreen} />
+      <NgoTab.Screen name="Profile" component={NgoProfileScreen} />
+    </NgoTab.Navigator>
+  );
+}
+
 export default function AppNavigator() {
   return (
     <NavigationContainer>
@@ -104,6 +152,9 @@ export default function AppNavigator() {
         <RootStack.Screen name="Login" component={LoginScreen} />
         <RootStack.Screen name="SignUp" component={SignUpScreen} />
         <RootStack.Screen name="MainTabs" component={MainTabs} />
+        <RootStack.Screen name="NgoLogin" component={NgoLoginScreen} />
+        <RootStack.Screen name="NgoSignUp" component={NgoSignUpScreen} />
+        <RootStack.Screen name="NgoHome" component={NgoTabNavigator} />
         <RootStack.Screen
           name="EditProfileScreen"
           component={EditProfileScreen}
@@ -121,6 +172,7 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
 
 const styles = StyleSheet.create({
   tabBarContainer: {
