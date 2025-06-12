@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useLayoutEffect, useEffect, useState } from "react";
 import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +7,12 @@ import { auth, db } from "../../firebaseConfig";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, onSnapshot, query, where, getDocs } from "firebase/firestore";
 
 export default function ChatScreen({ route, navigation }) {
+
+  useLayoutEffect(() => {
+    navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
+    return () => navigation.getParent()?.setOptions({ tabBarStyle: undefined });
+  }, [navigation]);
+
   const { otherUserId, otherUserName, roomId: passedRoomId } = route.params || {};
   const currentUser = auth.currentUser;
   const [roomId, setRoomId] = useState(passedRoomId || null);
