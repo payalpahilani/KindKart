@@ -18,7 +18,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
 import CustomDropdown from "../Utilities/CustomDropdown"; // Adjust path as needed
-import { getAuth, onAuthStateChanged } from "firebase/auth"; // <-- ADDED
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const BACKEND_URL = "http://10.0.0.43:4000"; // Replace with your backend server address
 
@@ -34,7 +34,21 @@ const causeOptions = [
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
 const conditionOptions = ["New", "Used", "Refurbished"];
 
-// Helper to get MIME type from file extension
+// --- CATEGORY DROPDOWN DATA ---
+const categoryOptions = [
+  "Electronics",
+  "Jewellery",
+  "Fashion & Apparel",
+  "Home & Kitchen",
+  "Beauty & Personal Care",
+  "Sports & Outdoors",
+  "Books & Educational",
+  "Pet Supplies",
+  "Toys & Games",
+  "Health & Wellness",
+];
+const categoryData = categoryOptions.map((opt) => ({ label: opt, value: opt }));
+
 function getMimeType(uri) {
   const extension = uri.split(".").pop().toLowerCase();
   switch (extension) {
@@ -57,7 +71,7 @@ function getMimeType(uri) {
 }
 
 export default function ListItemScreen() {
-  const [userEmail, setUserEmail] = useState(null); // <-- ADDED
+  const [userEmail, setUserEmail] = useState(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -80,6 +94,9 @@ export default function ListItemScreen() {
   const [agree, setAgree] = useState(false);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // --- CATEGORY STATE ---
+  const [category, setCategory] = useState(categoryOptions[0]);
 
   // Dropdown data arrays
   const ngoData = ngoOptions.map((opt) => ({ label: opt, value: opt }));
@@ -126,7 +143,6 @@ export default function ListItemScreen() {
         ? img.type
         : getMimeType(img.uri);
 
-    // 1. Get pre-signed upload and download URLs from backend
     const res = await fetch(
       `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
         fileName
@@ -137,7 +153,6 @@ export default function ListItemScreen() {
     if (!res.ok) throw new Error("Failed to get S3 URL");
     const { uploadUrl, downloadUrl } = await res.json();
 
-    // 2. Upload image to S3
     const imgRes = await fetch(img.uri);
     const blob = await imgRes.blob();
     const uploadRes = await fetch(uploadUrl, {
@@ -153,7 +168,6 @@ export default function ListItemScreen() {
       console.log("S3 upload error response:", errorText);
       throw new Error("Failed to upload image to S3");
     }
-    // Return the downloadUrl for displaying the image
     return downloadUrl;
   };
 
@@ -179,10 +193,9 @@ export default function ListItemScreen() {
     }
     setLoading(true);
     try {
-      // const userId = "user123"; // Replace with actual user ID from auth
       const auth = getAuth();
-      const userId = auth.currentUser ? auth.currentUser.uid : "unknown"; // <-- UPDATED
-      const email = userEmail; // <-- Use the fetched email
+      const userId = auth.currentUser ? auth.currentUser.uid : "unknown";
+      const email = userEmail;
       const itemId = Math.random().toString(36).substring(2, 15);
       const imageUrls = await uploadAllImages(userId, itemId);
 
@@ -195,11 +208,12 @@ export default function ListItemScreen() {
         negotiable,
         currency,
         condition,
+        category, // --- SAVE CATEGORY ---
         description,
         useAddress,
         imageUrls,
         userId,
-        email, // <-- Save email to Firestore
+        email,
         createdAt: serverTimestamp(),
       });
 
@@ -212,6 +226,7 @@ export default function ListItemScreen() {
       setNegotiable(false);
       setCurrency(currencyOptions[0]);
       setCondition(conditionOptions[0]);
+      setCategory(categoryOptions[0]); // --- RESET CATEGORY ---
       setDescription("");
       setUseAddress(false);
       setImages([]);
@@ -222,12 +237,12 @@ export default function ListItemScreen() {
     setLoading(false);
   };
 
-  // Image grid render (show local preview before upload, downloadUrl after upload)
+  // Image grid render
   const renderImageItem = ({ item, index }) => (
     <View style={styles.imageBox}>
       <Image
         source={{
-          uri: item.downloadUrl || item.uri, // Use downloadUrl if available, else local uri
+          uri: item.downloadUrl || item.uri,
         }}
         style={styles.imageThumb}
       />
@@ -275,6 +290,16 @@ export default function ListItemScreen() {
               450px. Max number of images is 5. Max image size is 134MB.
             </Text>
           </View>
+
+          {/* --- CATEGORY DROPDOWN --- */}
+          <Text style={styles.inputLabel}>CATEGORY</Text>
+          <CustomDropdown
+            data={categoryData}
+            value={category}
+            onChange={setCategory}
+            placeholder="Select Category"
+            testID="categoryDropdown"
+          />
 
           <Text style={styles.sectionHeader}>Tell us about your item</Text>
           <Text style={styles.inputLabel}>TITLE</Text>
@@ -392,7 +417,6 @@ export default function ListItemScreen() {
               <Text style={{ color: "#F6B93B" }}>terms & conditions</Text>
             </Text>
           </View>
-
           <View
             style={{ flexDirection: "row", marginTop: 16, marginBottom: 32 }}
           >
@@ -410,6 +434,7 @@ export default function ListItemScreen() {
                 setNegotiable(false);
                 setCurrency(currencyOptions[0]);
                 setCondition(conditionOptions[0]);
+                setCategory(categoryOptions[0]); // --- RESET CATEGORY ---
                 setDescription("");
                 setUseAddress(false);
                 setImages([]);
