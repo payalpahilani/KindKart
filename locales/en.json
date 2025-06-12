@@ -1,0 +1,70 @@
+{
+  "settings": {
+    "settings": "Settings",
+    "appearance": "Appearance",
+    "dark_mode": "Dark Mode",
+    "select_language": "Language"
+  },
+  "profile": {
+    "userName": "User Name",
+    "verifiedAccount": "Verified account",
+    "regularDonation": "Regular donation",
+    "donationSubtitle": "For donation every day without forget",
+    "new": "New",
+    "newCampaignAlert": "New Campaign Alert",
+    "turnOnNotification": "Turn on notification",
+    "settings": "Settings",
+    "faq": "FAQ",
+    "aboutApp": "About the app",
+    "giveRating": "Give the rating",
+    "termsConditions": "Terms & Condition",
+    "exitApp": "Exit the app",
+    "noUser": "No user data found",
+    "reloadProfile": "Reload Profile",
+    "signOutError": "Failed to sign out. Please try again."
+  },
+   "chatList": {
+    "messages": "Messages",
+    "activeChats": "Active Chats",
+    "noActiveChats": "No active chats",
+    "contacts": "Contacts",
+    "noContacts": "No contacts found"
+  },
+  "aboutUs": {
+    "title": "About KindKart",
+    "intro": "KindKart is more than just a platform. It’s a movement—a bridge between generous hearts and genuine needs. Whether it's helping a family in need, supporting a local charity, or backing grassroots causes, we aim to make generosity easy and meaningful.",
+    "missionTitle": "Our Mission",
+    "missionBody": "To build a transparent and accessible platform where people can donate with confidence and see the real impact of their kindness.",
+    "howWeAchieve": "How We Achieve It",
+    "featuresList": "- Verified campaigns with full transparency\n- User-friendly donation process\n- Real-time updates and stories from beneficiaries\n- Data security and privacy-first design",
+    "joinUs": "Join Us",
+    "joinUsBody": "By using KindKart, you're not just giving—you’re becoming part of a compassionate community. Thank you for being here."
+  },
+   "terms": {
+    "title": "Terms and Conditions",
+    "intro": "Welcome to KindKart. By accessing or using this app, you agree to be bound by these Terms and Conditions. If you do not agree with any part, please do not use the app.",
+    "sections": {
+      "user": {
+        "title": "1. User Responsibilities",
+        "text": "You are responsible for maintaining the confidentiality of your account and password, and for restricting access to your device."
+      },
+      "content": {
+        "title": "2. Content",
+        "text": "Users are solely responsible for the content they post. Inappropriate, offensive, or illegal content is strictly prohibited."
+      },
+      "prohibited": {
+        "title": "3. Prohibited Use",
+        "text": "You agree not to use the app for any unlawful purpose or in any way that may damage, disable, or impair the app."
+      },
+      "modification": {
+        "title": "4. Modification of Terms",
+        "text": "We reserve the right to change these terms at any time. Continued use of the app implies acceptance of the updated terms."
+      },
+      "contact": {
+        "title": "5. Contact Us",
+        "text": "For questions about these Terms and Conditions, please contact us at support@kindkart.app."
+      },
+      "lastUpdated": "Last updated: June 5, 2025"
+    }
+  }
+}

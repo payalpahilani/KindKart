@@ -32,9 +32,9 @@ const LaunchScreen = ({ navigation }) => {
             <Text style={styles.buttonText}>Get Started</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity>
-            <Text style={styles.linkText}>
-              Want to raise campaign? <Text style={{ fontWeight: 'bold', color: '#1F2E41' }}>Click Here</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('NgoLogin')}>
+           <Text style={styles.linkText}>
+             Want to raise campaign? <Text style={{ fontWeight: 'bold', color: '#1F2E41' }}>Click Here</Text>
             </Text>
           </TouchableOpacity>
         </View>

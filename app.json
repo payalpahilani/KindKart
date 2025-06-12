@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.group7.kindkart",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -26,7 +27,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-localization"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4a6242f8-579b-4e14-a947-3292f2d9da11"
+      }
+    }
   }
 }

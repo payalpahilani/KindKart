@@ -1,5 +1,4 @@
-// HomeScreen.js
-import React from "react";
+import React, { useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +8,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { ThemeContext } from "../Utilities/ThemeContext";
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db } from "../../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
+import { auth } from "../../firebaseConfig";
 
+// Sample Data
 const categories = [
   { label: "Donation", icon: "hand-heart" },
   { label: "Charity", icon: "charity" },
@@ -39,34 +46,115 @@ const urgentDonations = [
   },
 ];
 
-const DonateButton = ({ onPress, title }) => (
-  <TouchableOpacity onPress={onPress} style={styles.donateButton}>
-    <Text style={styles.donateButtonText}>{title}</Text>
+const DonateButton = ({ onPress, title, isDarkMode }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[styles.donateButton, isDarkMode && styles.donateButtonDark]}
+  >
+    <Text
+      style={[
+        styles.donateButtonText,
+        isDarkMode && styles.donateButtonTextDark,
+      ]}
+    >
+      {title}
+    </Text>
   </TouchableOpacity>
 );
 
 export default function HomeScreen() {
+  const { isDarkMode } = useContext(ThemeContext);
+
+  useEffect(() => {
+    const requestAndStoreLocation = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn("No authenticated user found.");
+          return;
+        }
+  
+        const permissionKey = `locationPermission_${user.uid}`;
+        const storedPermission = await AsyncStorage.getItem(permissionKey);
+  
+        if (storedPermission === "granted" || storedPermission === "denied") return;
+  
+        Alert.alert(
+          "Location Permission",
+          "KindKart would like to access your location to show nearby donation opportunities. Do you want to allow access?",
+          [
+            {
+              text: "Don't Allow",
+              onPress: async () => {
+                await AsyncStorage.setItem(permissionKey, "denied");
+              },
+              style: "cancel",
+            },
+            {
+              text: "Allow",
+              onPress: async () => {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status === "granted") {
+                  const location = await Location.getCurrentPositionAsync({});
+                  await AsyncStorage.setItem(permissionKey, "granted");
+  
+                  await setDoc(doc(db, "locations", user.uid), {
+                    uid: user.uid,
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                    timestamp: new Date().toISOString(),
+                  });
+  
+                  console.log("Location saved for:", user.uid);
+                } else {
+                  await AsyncStorage.setItem(permissionKey, "denied");
+                }
+              },
+            },
+          ]
+        );
+      } catch (error) {
+        console.error("Error requesting location permission:", error);
+      }
+    };
+  
+    requestAndStoreLocation();
+  }, []);
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView
+      style={[styles.safeArea, isDarkMode ? styles.darkBg : styles.lightBg]}
+      edges={["top", "left", "right"]}
+    >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          isDarkMode ? styles.darkBg : styles.lightBg,
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Search Bar */}
-        <View style={styles.searchBarContainer}>
+        <View
+          style={[
+            styles.searchBarContainer,
+            { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F6FA" },
+            isDarkMode && { shadowOpacity: 0 },
+          ]}
+        >
           <Icon
             name="magnify"
             size={22}
-            color="#888"
+            color={isDarkMode ? "#bbb" : "#888"}
             style={{ marginLeft: 10 }}
           />
           <TextInput
-            style={styles.searchBar}
+            style={[styles.searchBar, { color: isDarkMode ? "#eee" : "#222" }]}
             placeholder="What do you want to help?"
-            placeholderTextColor="#888"
+            placeholderTextColor={isDarkMode ? "#999" : "#888"}
           />
         </View>
-        {/* Banner / Carousel */}
+
+        {/* Banner */}
         <View style={styles.banner}>
           <Image
             source={require("../../assets/Images/school.jpg")}
@@ -82,69 +170,137 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
         {/* Categories */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Sharing kindness</Text>
+          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
+            Sharing kindness
+          </Text>
           <TouchableOpacity>
-            <Text style={styles.seeAll}>See all</Text>
+            <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
+              See all
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.categoriesRow}>
           {categories.map((cat) => (
             <View key={cat.label} style={styles.categoryItem}>
-              <View style={styles.categoryIconWrap}>
+              <View
+                style={[
+                  styles.categoryIconWrap,
+                  { backgroundColor: isDarkMode ? "#444" : "#F5F6FA" },
+                ]}
+              >
                 <Icon name={cat.icon} size={28} color="#4A90E2" />
               </View>
-              <Text style={styles.categoryLabel}>{cat.label}</Text>
+              <Text
+                style={[styles.categoryLabel, isDarkMode && styles.darkText]}
+              >
+                {cat.label}
+              </Text>
             </View>
           ))}
         </View>
+
         {/* Urgent Donations */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Urgent donation</Text>
+          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
+            Urgent donation
+          </Text>
           <TouchableOpacity>
-            <Text style={styles.seeAll}>See all</Text>
+            <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
+              See all
+            </Text>
           </TouchableOpacity>
         </View>
         <FlatList
           data={urgentDonations}
           horizontal
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={styles.donationCard}>
+            <View
+              style={[
+                styles.donationCard,
+                { backgroundColor: isDarkMode ? "#222" : "#fff" },
+                isDarkMode && {
+                  shadowColor: "#000",
+                  shadowOpacity: 0.6,
+                },
+              ]}
+            >
               <Image source={item.image} style={styles.cardImage} />
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardDesc}>{item.description}</Text>
+                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>
+                  {item.title}
+                </Text>
+                <Text
+                  style={[styles.cardDesc, isDarkMode && styles.cardDescDark]}
+                >
+                  {item.description}
+                </Text>
                 <View style={styles.cardInfoRow}>
                   <View style={styles.cardInfoBox}>
-                    <Text style={styles.cardInfoLabel}>Raised</Text>
-                    <Text style={styles.cardInfoValue}>{item.raised}</Text>
+                    <Text
+                      style={[
+                        styles.cardInfoLabel,
+                        isDarkMode && styles.cardInfoLabelDark,
+                      ]}
+                    >
+                      Raised
+                    </Text>
+                    <Text
+                      style={[
+                        styles.cardInfoValue,
+                        isDarkMode && styles.darkText,
+                      ]}
+                    >
+                      {item.raised}
+                    </Text>
                   </View>
                   <View style={styles.cardInfoBox}>
-                    <Text style={styles.cardInfoLabel}>Days left</Text>
-                    <Text style={styles.cardInfoValue}>{item.daysLeft}</Text>
+                    <Text
+                      style={[
+                        styles.cardInfoLabel,
+                        isDarkMode && styles.cardInfoLabelDark,
+                      ]}
+                    >
+                      Days left
+                    </Text>
+                    <Text
+                      style={[
+                        styles.cardInfoValue,
+                        isDarkMode && styles.darkText,
+                      ]}
+                    >
+                      {item.daysLeft.toString()}
+                    </Text>
                   </View>
                 </View>
-                <DonateButton title="Donate" onPress={() => {}} />
+                <DonateButton
+                  title="Donate"
+                  onPress={() => {}}
+                  isDarkMode={isDarkMode}
+                />
               </View>
             </View>
           )}
         />
-        <View style={{ height: 32 }} /> {/* Spacer for bottom tab bar */}
+        <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#fff" },
-  container: { padding: 16, backgroundColor: "#fff" },
+  safeArea: { flex: 1 },
+  lightBg: { backgroundColor: "#fff" },
+  darkBg: { backgroundColor: "#121212" },
+  container: { padding: 16 },
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F6FA",
     borderRadius: 16,
     paddingHorizontal: 6,
     marginBottom: 20,
@@ -159,7 +315,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "transparent",
     marginLeft: 8,
-    color: "#222",
   },
   banner: { position: "relative", marginBottom: 10 },
   bannerImage: { width: "100%", height: 190, borderRadius: 18 },
@@ -203,14 +358,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#222",
     marginBottom: 16,
+    color: "#222",
   },
   seeAll: {
     color: "#F6B93B",
     fontWeight: "600",
     fontSize: 14,
     marginBottom: 16,
+  },
+  seeAllDark: {
+    color: "#F6B93B",
   },
   categoriesRow: {
     flexDirection: "row",
@@ -219,11 +377,11 @@ const styles = StyleSheet.create({
   },
   categoryItem: { alignItems: "center", width: 80, marginHorizontal: 10 },
   categoryIconWrap: {
-    backgroundColor: "#F5F6FA",
     borderRadius: 16,
     padding: 14,
     marginBottom: 8,
     elevation: 1,
+    backgroundColor: "#F5F6FA",
   },
   categoryLabel: {
     fontSize: 14,
@@ -231,9 +389,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: "500",
   },
+  darkText: {
+    color: "#eee",
+  },
+  cardDescDark: {
+    color: "#ccc",
+  },
+  cardInfoLabelDark: {
+    color: "#aaa",
+  },
   donationCard: {
     width: 220,
-    backgroundColor: "#fff",
     borderRadius: 18,
     marginRight: 16,
     shadowColor: "#000",
@@ -250,16 +416,31 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 18,
   },
   cardContent: { padding: 12 },
-  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 2 },
-  cardDesc: { color: "#777", fontSize: 13, marginBottom: 8 },
+  cardTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  cardDesc: {
+    color: "#777",
+    fontSize: 13,
+    marginBottom: 8,
+  },
   cardInfoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
   },
   cardInfoBox: { alignItems: "center" },
-  cardInfoLabel: { fontSize: 12, color: "#888" },
-  cardInfoValue: { fontSize: 14, color: "#222", fontWeight: "bold" },
+  cardInfoLabel: {
+    fontSize: 12,
+    color: "#888",
+  },
+  cardInfoValue: {
+    fontSize: 14,
+    color: "#222",
+    fontWeight: "bold",
+  },
   donateButton: {
     backgroundColor: "#F6B93B",
     borderRadius: 22,
@@ -271,10 +452,16 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
+  donateButtonDark: {
+    backgroundColor: "#D18E00",
+  },
   donateButtonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 15,
     letterSpacing: 0.5,
+  },
+  donateButtonTextDark: {
+    color: "#FFFDE7",
   },
 });
