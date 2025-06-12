@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useContext } from "react";
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,24 @@ import {
   ActivityIndicator,
   StatusBar,
   RefreshControl,
-} from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { useNavigation } from "@react-navigation/native";
-import { signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../../firebaseConfig";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ThemeContext } from "../Utilities/ThemeContext";
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../../firebaseConfig';
+import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { isDarkMode } = useContext(ThemeContext);
+
+  /* i18n hook */
+  const { t } = useTranslation();
+
+  /* local state */
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState(null);
@@ -31,20 +37,22 @@ export default function ProfileScreen() {
     notifications: false,
   });
 
+  /* ---------- Firestore helpers ---------- */
   const readProfile = async () => {
     try {
       setLoading(true);
       const uid = auth.currentUser?.uid;
       if (!uid) return;
-      const userSnap = await getDoc(doc(db, "users", uid));
+      const userSnap = await getDoc(doc(db, 'users', uid));
       if (userSnap.exists()) setUser(userSnap.data());
+
       const prefSnap = await getDoc(
-        doc(db, "users", uid, "preferences", "general")
+        doc(db, 'users', uid, 'preferences', 'general')
       );
       if (prefSnap.exists()) setPrefs(prefSnap.data());
-      else await setDoc(doc(db, "users", uid, "preferences", "general"), prefs);
+      else await setDoc(doc(db, 'users', uid, 'preferences', 'general'), prefs);
     } catch (e) {
-      console.warn("Error reading profile:", e);
+      console.warn('Error reading profile:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -65,64 +73,74 @@ export default function ProfileScreen() {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     try {
-      await updateDoc(doc(db, "users", uid, "preferences", "general"), {
+      await updateDoc(doc(db, 'users', uid, 'preferences', 'general'), {
         [key]: val,
       });
     } catch (e) {
-      console.warn("Error updating preference:", e);
+      console.warn('Error updating preference:', e);
     }
   };
 
-  const handleRowPress = (label) => {
-    if (label === "Settings") navigation.navigate("SettingsScreen");
-    else if (label === "About the app") navigation.navigate("AboutUsScreen");
-    else if (label === "Terms & Condition")
-      navigation.navigate("TermsAndConditions");
-    else if (label === "Exit the app") {
-      signOut(auth)
-        .then(() => {
-          navigation.replace("Login");
-        })
-        .catch((error) => {
-          console.error("Sign out error:", error);
-          Alert.alert("Error", "Failed to sign out. Please try again.");
-        });
+  /* ---------- Handlers ---------- */
+  const handleRowPress = (action) => {
+    switch (action) {
+      case 'settings':
+        navigation.navigate('SettingsScreen');
+        break;
+      case 'about':
+        navigation.navigate('AboutUsScreen');
+        break;
+      case 'terms':
+        navigation.navigate('TermsAndConditions');
+        break;
+      case 'exit':
+        signOut(auth)
+          .then(() =>
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
+          )
+          .catch(() =>
+            Alert.alert('Error', t('profile.signOutError'))
+          );
+        break;
+      default:
+        break;
     }
   };
 
+  /* ---------- Styles ---------- */
   const styles = isDarkMode ? darkStyles : lightStyles;
-  const statusBarStyle = isDarkMode ? "light-content" : "dark-content";
-  const statusBarBg = isDarkMode ? "#121212" : "#fff";
+  const statusBarStyle = isDarkMode ? 'light-content' : 'dark-content';
+  const statusBarBg = isDarkMode ? '#121212' : '#fff';
 
-  if (loading)
+  /* ---------- Loading & empty states ---------- */
+  if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
         <ActivityIndicator style={{ flex: 1 }} size="large" color="#F6B93B" />
       </SafeAreaView>
     );
+  }
 
-  if (!user)
+  if (!user) {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
-        <View
-          style={[
-            styles.safe,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
-          <Text style={[styles.noUserText]}>No user data found</Text>
+        <View style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={styles.noUserText}>{t('profile.noUser')}</Text>
           <TouchableOpacity style={styles.reloadButton} onPress={readProfile}>
-            <Text style={{ color: "#fff" }}>Reload Profile</Text>
+            <Text style={{ color: '#fff' }}>{t('profile.reloadProfile')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
+  }
 
+  /* ---------- Render ---------- */
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
+
       <ScrollView
         style={styles.body}
         showsVerticalScrollIndicator={false}
@@ -130,115 +148,86 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={isDarkMode ? "#fff" : "#000"}
+            tintColor={isDarkMode ? '#fff' : '#000'}
           />
         }
       >
+        {/* profile header */}
         <TouchableOpacity
           style={styles.profileHeader}
-          onPress={() => navigation.navigate("EditProfileScreen", { user })}
+          onPress={() => navigation.navigate('EditProfileScreen', { user })}
         >
           <Image
             source={
-              user?.avatarUrl
-                ? { uri: user.avatarUrl }
-                : require("../../assets/Images/avatar.jpg")
+              user?.avatarUrl ? { uri: user.avatarUrl } : require('../../assets/Images/avatar.png')
             }
             style={styles.avatar}
           />
           <View>
-            <Text style={styles.name}>{user?.name || "User Name"}</Text>
+            <Text style={styles.name}>{user?.name || t('profile.userName')}</Text>
             {user?.email && <Text style={styles.email}>{user.email}</Text>}
             <View style={styles.verifiedRow}>
-              <Text style={styles.verifiedText}>Verified account</Text>
-              <Icon
-                name="check-decagram"
-                size={18}
-                color="green"
-                style={{ marginLeft: 6 }}
-              />
+              <Text style={styles.verifiedText}>{t('profile.verifiedAccount')}</Text>
+              <Icon name="check-decagram" size={18} color="green" style={{ marginLeft: 6 }} />
             </View>
           </View>
         </TouchableOpacity>
 
+        {/* donation card */}
         <TouchableOpacity style={styles.card}>
           <View style={styles.cardLeft}>
-            <Icon
-              name="calendar-heart"
-              size={24}
-              color={isDarkMode ? "#fff" : "#000"}
-            />
+            <Icon name="calendar-heart" size={24} color={isDarkMode ? '#fff' : '#000'} />
             <View style={{ marginLeft: 14, flex: 1 }}>
               <View style={styles.row}>
-                <Text style={styles.cardTitle}>Regular donation</Text>
+                <Text style={styles.cardTitle}>{t('profile.regularDonation')}</Text>
                 <View style={styles.newTag}>
-                  <Text style={styles.newTagText}>New</Text>
+                  <Text style={styles.newTagText}>{t('profile.new')}</Text>
                 </View>
               </View>
-              <Text style={styles.cardSubtitle}>
-                For donation every day without forget
-              </Text>
+              <Text style={styles.cardSubtitle}>{t('profile.donationSubtitle')}</Text>
             </View>
           </View>
-          <Icon
-            name="chevron-right"
-            size={26}
-            color={isDarkMode ? "#ccc" : "#888"}
-          />
+          <Icon name="chevron-right" size={26} color={isDarkMode ? '#ccc' : '#888'} />
         </TouchableOpacity>
 
+        {/* preference switches */}
         {[
-          { icon: "alarm", label: "New Campaign Alert", key: "campaignAlert" },
-          {
-            icon: "bell-outline",
-            label: "Turn on notification",
-            key: "notifications",
-          },
+          { icon: 'alarm', label: t('profile.newCampaignAlert'), key: 'campaignAlert' },
+          { icon: 'bell-outline', label: t('profile.turnOnNotification'), key: 'notifications' },
         ].map((sw) => (
           <View style={styles.toggleCard} key={sw.key}>
             <View style={styles.cardLeft}>
-              <Icon
-                name={sw.icon}
-                size={24}
-                color={isDarkMode ? "#fff" : "#000"}
-              />
+              <Icon name={sw.icon} size={24} color={isDarkMode ? '#fff' : '#000'} />
               <Text style={styles.toggleText}>{sw.label}</Text>
             </View>
             <Switch
               value={prefs[sw.key]}
               onValueChange={(v) => updatePreference(sw.key, v)}
-              thumbColor={prefs[sw.key] ? "#fff" : "#ccc"}
-              trackColor={{ false: "#ccc", true: "#4CAF50" }}
+              thumbColor={prefs[sw.key] ? '#fff' : '#ccc'}
+              trackColor={{ false: '#ccc', true: '#4CAF50' }}
             />
           </View>
         ))}
 
+        {/* options list */}
         {[
-          { icon: "cog-outline", label: "Settings" },
-          { icon: "comment-question-outline", label: "FAQ" },
-          { icon: "information-outline", label: "About the app" },
-          { icon: "star-outline", label: "Give the rating" },
-          { icon: "file-document-outline", label: "Terms & Condition" },
-          { icon: "exit-to-app", label: "Exit the app" },
+          { icon: 'cog-outline', label: t('profile.settings'), action: 'settings' },
+          { icon: 'comment-question-outline', label: t('profile.faq'), action: 'faq' },
+          { icon: 'information-outline', label: t('profile.aboutApp'), action: 'about' },
+          { icon: 'star-outline', label: t('profile.giveRating'), action: 'rating' },
+          { icon: 'file-document-outline', label: t('profile.termsConditions'), action: 'terms' },
+          { icon: 'exit-to-app', label: t('profile.exitApp'), action: 'exit' },
         ].map((o) => (
           <TouchableOpacity
             style={styles.optionCard}
-            key={o.label}
-            onPress={() => handleRowPress(o.label)}
+            key={o.action}
+            onPress={() => handleRowPress(o.action)}
           >
             <View style={styles.cardLeft}>
-              <Icon
-                name={o.icon}
-                size={22}
-                color={isDarkMode ? "#fff" : "#000"}
-              />
+              <Icon name={o.icon} size={22} color={isDarkMode ? '#fff' : '#000'} />
               <Text style={styles.optionText}>{o.label}</Text>
             </View>
-            <Icon
-              name="chevron-right"
-              size={24}
-              color={isDarkMode ? "#ccc" : "#888"}
-            />
+            <Icon name="chevron-right" size={24} color={isDarkMode ? '#ccc' : '#888'} />
           </TouchableOpacity>
         ))}
 
@@ -247,6 +236,7 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
+
 
 const base = {
   safe: { flex: 1 },

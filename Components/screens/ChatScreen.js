@@ -1,65 +1,34 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  TextInput,
-  FlatList,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import socket from "../Utilities/Socket";
 import { auth, db } from "../../firebaseConfig";
-import {
-  collection,
-  addDoc,
-  query,
-  getDocs,
-  onSnapshot,
-  doc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, onSnapshot, query, where, getDocs } from "firebase/firestore";
 
 export default function ChatScreen({ route, navigation }) {
-  const {
-    otherUserId,
-    userName: otherUserName,
-    roomId: passedRoomId,
-  } = route.params || {};
+  const { otherUserId, otherUserName, roomId: passedRoomId } = route.params || {};
   const currentUser = auth.currentUser;
+  const [roomId, setRoomId] = useState(passedRoomId || null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [roomId, setRoomId] = useState(passedRoomId || null);
 
-  // If roomId is not passed, try to find or create the chat room
+  // Create/find room
   useEffect(() => {
     if (!roomId && otherUserId) {
-      const findOrCreateRoom = async () => {
+      (async () => {
         const roomsRef = collection(db, "chatRooms");
-        const q = query(
-          roomsRef,
-          where("users", "array-contains", currentUser.uid)
-        );
-
-        const snapshot = await getDocs(q);
-        let existingRoom = null;
-
-        snapshot.forEach((docSnap) => {
+        const q = query(roomsRef, where("users", "array-contains", currentUser.uid));
+        const snap = await getDocs(q);
+        let existing = null;
+        snap.forEach(docSnap => {
           const data = docSnap.data();
-          if (
-            data.users.includes(otherUserId) &&
-            data.users.includes(currentUser.uid) &&
-            data.users.length === 2
-          ) {
-            existingRoom = { id: docSnap.id, ...data };
+          if (data.users.includes(otherUserId) && data.users.length === 2) {
+            existing = { id: docSnap.id, ...data };
           }
         });
-
-        if (existingRoom) {
-          setRoomId(existingRoom.id);
+        if (existing) {
+          setRoomId(existing.id);
         } else {
           const newRoom = await addDoc(roomsRef, {
             users: [currentUser.uid, otherUserId],
@@ -73,47 +42,62 @@ export default function ChatScreen({ route, navigation }) {
           });
           setRoomId(newRoom.id);
         }
-      };
-
-      findOrCreateRoom();
+      })();
     }
-  }, [otherUserId, roomId]);
+  }, [currentUser.uid, otherUserId]);
 
-  // Listen to messages collection in the room
+  // Listen to Firestore messages
   useEffect(() => {
     if (!roomId) return;
-
     const messagesRef = collection(db, "chatRooms", roomId, "messages");
-    const q = query(messagesRef);
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
-      // Sort messages by createdAt ascending
+    const unsubFs = onSnapshot(messagesRef, snap => {
+      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       msgs.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds);
       setMessages(msgs);
     });
-
-    return () => unsubscribe();
+    return () => unsubFs();
   }, [roomId]);
 
+  // Socket.IO syncing
+  useEffect(() => {
+    if (!roomId) return;
+
+    socket.emit("joinRoom", roomId);
+
+    socket.on("receiveMessage", msg => {
+      setMessages(prev => [...prev, msg]);
+    });
+
+    return () => {
+      socket.emit("leaveRoom", roomId);
+      socket.off("receiveMessage");
+    };
+  }, [roomId]);
+
+  // Send message via Firestore + Socket
   const sendMessage = async () => {
     if (!input.trim() || !roomId) return;
 
-    const messagesRef = collection(db, "chatRooms", roomId, "messages");
-    await addDoc(messagesRef, {
-      text: input,
+    const messageData = {
+      text: input.trim(),
       senderId: currentUser.uid,
+      createdAt: new Date().toISOString(),
+      roomId,
+    };
+
+    // Save to Firestore
+    await addDoc(collection(db, "chatRooms", roomId, "messages"), {
+      text: messageData.text,
+      senderId: messageData.senderId,
       createdAt: serverTimestamp(),
     });
-
-    const roomDoc = doc(db, "chatRooms", roomId);
-    await updateDoc(roomDoc, {
-      lastMessage: input,
+    await updateDoc(doc(db, "chatRooms", roomId), {
+      lastMessage: messageData.text,
       lastUpdated: serverTimestamp(),
     });
+
+    // Send via Socket
+    socket.emit("sendMessage", messageData);
 
     setInput("");
   };
@@ -126,10 +110,7 @@ export default function ChatScreen({ route, navigation }) {
         keyboardVerticalOffset={90}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={navigation.goBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#007AFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{otherUserName || "Chat"}</Text>
@@ -138,17 +119,13 @@ export default function ChatScreen({ route, navigation }) {
 
         <FlatList
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           contentContainerStyle={styles.messageList}
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.messageBubble,
-                item.senderId === currentUser.uid
-                  ? styles.myMessage
-                  : styles.otherMessage,
-              ]}
-            >
+            <View style={[
+              styles.messageBubble,
+              item.senderId === currentUser.uid ? styles.myMessage : styles.otherMessage
+            ]}>
               <Text style={styles.messageText}>{item.text}</Text>
             </View>
           )}
@@ -161,10 +138,10 @@ export default function ChatScreen({ route, navigation }) {
             onChangeText={setInput}
             placeholder="Type a message"
             placeholderTextColor="#999"
-            multiline={true}
+            multiline
           />
           <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <Ionicons name="send" size={22} color="white" />
+            <Ionicons name="send" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -183,9 +160,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
     justifyContent: "space-between",
   },
-  backButton: {
-    padding: 6,
-  },
+  backButton: { padding: 6 },
   headerTitle: {
     fontSize: 22,
     fontWeight: "600",
@@ -193,11 +168,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#222",
   },
-  messageList: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    paddingBottom: 20,
-  },
+  messageList: { paddingHorizontal: 15, paddingVertical: 10, paddingBottom: 20 },
   messageBubble: {
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -209,18 +180,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  myMessage: {
-    backgroundColor: "#EFAC3A",
-    alignSelf: "flex-end",
-  },
-  otherMessage: {
-    backgroundColor: "#777",
-    alignSelf: "flex-start",
-  },
-  messageText: {
-    color: "#fff",
-    fontSize: 16,
-  },
+  myMessage: { backgroundColor: "#EFAC3A", alignSelf: "flex-end" },
+  otherMessage: { backgroundColor: "#777", alignSelf: "flex-start" },
+  messageText: { color: "#fff", fontSize: 16 },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -17,7 +17,7 @@ import { ThemeContext } from "../Utilities/ThemeContext"; // ← add
 
 const { width } = Dimensions.get("window");
 
-/* ─── dummy data ─── */
+
 const categories = [
   { label: "Jobs", icon: "briefcase-outline", color: "#FFE2E2" },
   { label: "Electronics", icon: "laptop", color: "#FFF6D4" },
