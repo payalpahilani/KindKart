@@ -1,0 +1,7 @@
+Components/screens/DonationInfoScreen.js
+Components/screens/PaymentScreen.js
+README.md
+assets/Images/avatar.png
+i18n.js
+locales/en.json
+locales/fr.json

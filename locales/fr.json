@@ -1,0 +1,70 @@
+{
+  "settings": {
+    "settings": "Paramètres",
+    "appearance": "Apparence",
+    "dark_mode": "Mode sombre",
+    "select_language": "Langue"
+  },
+  "profile": {
+    "userName": "Nom d'utilisateur",
+    "verifiedAccount": "Compte vérifié",
+    "regularDonation": "Don régulier",
+    "donationSubtitle": "Pour faire un don chaque jour sans oublier",
+    "new": "Nouveau",
+    "newCampaignAlert": "Alerte de nouvelle campagne",
+    "turnOnNotification": "Activer les notifications",
+    "settings": "Paramètres",
+    "faq": "FAQ",
+    "aboutApp": "À propos de l'application",
+    "giveRating": "Donner une note",
+    "termsConditions": "Conditions générales",
+    "exitApp": "Quitter l'application",
+    "noUser": "Aucune donnée utilisateur trouvée",
+    "reloadProfile": "Recharger le profil",
+    "signOutError": "Échec de la déconnexion. Veuillez réessayer."
+  },
+   "chatList": {
+    "messages": "Messages",
+    "activeChats": "Discussions actives",
+    "noActiveChats": "Aucune discussion active",
+    "contacts": "Contacts",
+    "noContacts": "Aucun contact trouvé"
+  },
+  "aboutUs": {
+    "title": "À propos de KindKart",
+    "intro": "KindKart est bien plus qu'une plateforme. C'est un mouvement — un pont entre les cœurs généreux et les besoins réels. Que ce soit pour aider une famille dans le besoin, soutenir une association locale ou appuyer des causes de terrain, nous visons à rendre la générosité facile et significative.",
+    "missionTitle": "Notre mission",
+    "missionBody": "Construire une plateforme transparente et accessible où les gens peuvent faire des dons en toute confiance et voir l'impact réel de leur générosité.",
+    "howWeAchieve": "Comment nous y parvenons",
+    "featuresList": "- Campagnes vérifiées avec une transparence totale\n- Processus de don facile à utiliser\n- Mises à jour en temps réel et histoires des bénéficiaires\n- Sécurité des données et conception axée sur la confidentialité",
+    "joinUs": "Rejoignez-nous",
+    "joinUsBody": "En utilisant KindKart, vous ne faites pas que donner — vous devenez membre d'une communauté compatissante. Merci d'être ici."
+  },
+   "terms": {
+    "title": "Conditions générales",
+    "intro": "Bienvenue sur KindKart. En accédant ou en utilisant cette application, vous acceptez d'être lié par ces conditions générales. Si vous n'êtes pas d'accord avec une partie, veuillez ne pas utiliser l'application.",
+    "sections": {
+      "user": {
+        "title": "1. Responsabilités de l'utilisateur",
+        "text": "Vous êtes responsable du maintien de la confidentialité de votre compte et de votre mot de passe, ainsi que de la restriction de l'accès à votre appareil."
+      },
+      "content": {
+        "title": "2. Contenu",
+        "text": "Les utilisateurs sont seuls responsables du contenu qu'ils publient. Le contenu inapproprié, offensant ou illégal est strictement interdit."
+      },
+      "prohibited": {
+        "title": "3. Utilisation interdite",
+        "text": "Vous acceptez de ne pas utiliser l'application à des fins illégales ou de toute manière susceptible de l'endommager, de la désactiver ou de la détériorer."
+      },
+      "modification": {
+        "title": "4. Modification des conditions",
+        "text": "Nous nous réservons le droit de modifier ces conditions à tout moment. L'utilisation continue de l'application implique l'acceptation des conditions mises à jour."
+      },
+      "contact": {
+        "title": "5. Nous contacter",
+        "text": "Pour toute question concernant ces conditions générales, veuillez nous contacter à support@kindkart.app."
+      },
+      "lastUpdated": "Dernière mise à jour : 5 juin 2025"
+    }
+  }
+}
