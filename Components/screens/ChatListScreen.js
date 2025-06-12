@@ -1,24 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
-  SectionList,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
+  Image,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
 import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
-import { useTranslation } from 'react-i18next';
+import { ThemeContext } from '../Utilities/ThemeContext';
 
 export default function ChatListScreen({ navigation }) {
-  const { t } = useTranslation();
+  const { isDarkMode } = useContext(ThemeContext);
+  const styles = isDarkMode ? darkStyles : lightStyles;
+
   const [chatRooms, setChatRooms] = useState([]);
-  const [contacts, setContacts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const currentUser = auth.currentUser;
 
-  // Fetch chat rooms
   useEffect(() => {
     const q = query(
       collection(db, 'chatRooms'),
@@ -30,178 +33,194 @@ export default function ChatListScreen({ navigation }) {
           const room = docSnap.data();
           const otherUserId = room.users.find(id => id !== currentUser.uid);
           const userDoc = await getDoc(doc(db, 'users', otherUserId));
+          const userData = userDoc.data();
           return {
             id: docSnap.id,
-            name: userDoc.exists() ? userDoc.data().name : 'Unknown',
+            name: userData?.name || 'Unknown',
+            avatar: userData?.avatar || null,
             lastMessage: room.lastMessage || '',
-            type: 'chat',
+            lastMessageTime: room.lastMessageTime || '',
           };
         })
       );
       setChatRooms(roomsData);
     });
+
     return () => unsubscribe();
-  }, [currentUser.uid]);
+  }, []);
 
-  // Fetch contacts
-  useEffect(() => {
-    const q = query(
-      collection(db, 'users'),
-      where('uid', '!=', currentUser.uid)
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        type: 'contact',
-      }));
-      setContacts(users);
-    });
-    return () => unsubscribe();
-  }, [currentUser.uid]);
-
-  const openChat = (roomId, userName) => {
-    navigation.navigate('ChatScreen', { roomId, userName });
-  };
-
-  const startChatWithUser = (user) => {
-    navigation.navigate('ChatScreen', {
-      otherUserId: user.uid,
-      otherUserName: user.name,
-    });
-  };
+  const filteredRooms = chatRooms.filter((room) =>
+    room.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const renderItem = ({ item }) => {
-    if (item.type === 'chat') {
-      return (
-        <TouchableOpacity
-          style={styles.chatItem}
-          onPress={() => openChat(item.id, item.name)}
-          activeOpacity={0.7}
-        >
+    const timestamp = item.lastMessageTime?.toDate?.().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }) || '';
+    return (
+      <TouchableOpacity
+        style={styles.chatItem}
+        onPress={() =>
+          navigation.navigate('ChatScreen', {
+            roomId: item.id,
+            userName: item.name,
+          })
+        }
+      >
+        <Image
+          source={
+            item.avatar
+              ? { uri: item.avatar }
+              : require('../../assets/Images/avatar.jpg')
+          }
+          style={styles.avatar}
+        />
+        <View style={styles.chatContent}>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.message} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={styles.message} numberOfLines={1}>
             {item.lastMessage}
           </Text>
-        </TouchableOpacity>
-      );
-    } else if (item.type === 'contact') {
-      return (
-        <TouchableOpacity
-          style={styles.contactItem}
-          onPress={() => startChatWithUser(item)}
-        >
-          <Text style={styles.name}>{item.name || item.email}</Text>
-        </TouchableOpacity>
-      );
-    }
-    return null;
+        </View>
+        <Text style={styles.timestamp}>{timestamp}</Text>
+      </TouchableOpacity>
+    );
   };
-
-  const sections = [
-    {
-      title: t('chatList.activeChats'),
-      data: chatRooms.length ? chatRooms : [{ id: 'empty-chat', name: t('chatList.noActiveChats'), type: 'empty' }],
-    },
-    {
-      title: t('chatList.contacts'),
-      data: contacts.length ? contacts : [{ id: 'empty-contacts', name: t('chatList.noContacts'), type: 'empty' }],
-    },
-  ];
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        <Image
+          source={require('../../assets/Images/avatar.jpg')}
+          style={styles.profileIcon}
+        />
+        <Text style={styles.headerTitle}>Chats</Text>
+        <TouchableOpacity>
+          <Ionicons name="create-outline" size={24} color={styles.icon.color} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('chatList.messages')}</Text>
-        <View style={{ width: 28 }} />
       </View>
 
-      <SectionList
-        sections={sections}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color="#aaa" style={{ marginHorizontal: 8 }} />
+        <TextInput
+          placeholder="Search"
+          placeholderTextColor="#aaa"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      <FlatList
+        data={filteredRooms}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) =>
-          item.type === 'empty' ? (
-            <Text style={styles.emptyText}>{item.name}</Text>
-          ) : (
-            renderItem({ item })
-          )
-        }
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.heading}>{title}</Text>
-        )}
-        contentContainerStyle={styles.container}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+// Shared base styles
+const base = {
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     height: 60,
-    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
     justifyContent: 'space-between',
-    borderBottomColor: '#eee',
-    borderBottomWidth: 1,
-    backgroundColor: '#fafafa',
   },
-  backButton: {
-    padding: 4,
+  profileIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-    flex: 1,
-    color: '#222',
-  },
-  container: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  heading: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
-    marginVertical: 12,
-    color: '#333',
   },
-  emptyText: {
+  icon: {},
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 10,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 16,
-    fontStyle: 'italic',
-    color: '#888',
-    marginBottom: 20,
+    color: '#000',
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   chatItem: {
-    backgroundColor: '#f4f4f4',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 12,
-    borderColor: '#ddd',
-    borderWidth: 1,
+    marginBottom: 8,
+    borderRadius: 12,
   },
-  contactItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderColor: '#ddd',
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 14,
+  },
+  chatContent: {
+    flex: 1,
   },
   name: {
-    fontSize: 18,
-    color: '#222',
+    fontSize: 16,
     fontWeight: '600',
   },
   message: {
     fontSize: 14,
     color: '#666',
-    marginTop: 4,
   },
+  timestamp: {
+    fontSize: 12,
+    color: '#999',
+  },
+};
+
+// Light theme
+const lightStyles = StyleSheet.create({
+  ...base,
+  safe: { ...base.safe, backgroundColor: '#fff' },
+  header: { ...base.header, backgroundColor: '#fff' },
+  icon: { color: '#000' },
+  headerTitle: { ...base.headerTitle, color: '#000' },
+  searchContainer: { ...base.searchContainer, backgroundColor: '#eee' },
+  searchInput: { ...base.searchInput, color: '#000' },
+  chatItem: {
+    ...base.chatItem,
+    backgroundColor: '#f4f4f4',
+  },
+});
+
+// Dark theme
+const darkStyles = StyleSheet.create({
+  ...base,
+  safe: { ...base.safe, backgroundColor: '#121212' },
+  header: { ...base.header, backgroundColor: '#1E1E1E' },
+  icon: { color: '#fff' },
+  headerTitle: { ...base.headerTitle, color: '#fff' },
+  searchContainer: { ...base.searchContainer, backgroundColor: '#2a2a2a' },
+  searchInput: { ...base.searchInput, color: '#fff' },
+  chatItem: {
+    ...base.chatItem,
+    backgroundColor: '#1e1e1e',
+  },
+  name: { ...base.name, color: '#fff' },
+  message: { ...base.message, color: '#ccc' },
+  timestamp: { ...base.timestamp, color: '#aaa' },
 });
