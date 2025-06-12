@@ -2,9 +2,8 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
-
 export default function CustomDropdown({
-  data,
+  data = [],
   value,
   onChange,
   placeholder,
@@ -17,7 +16,7 @@ export default function CustomDropdown({
       selectedTextStyle={styles.selectedTextStyle}
       itemTextStyle={styles.itemTextStyle}
       iconStyle={styles.iconStyle}
-      data={data}
+      data={Array.isArray(data) ? data : []} // Extra safety
       maxHeight={220}
       labelField="label"
       valueField="value"

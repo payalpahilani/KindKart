@@ -1,27 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   Image,
-  ScrollView,
   Alert,
   ActivityIndicator,
   StyleSheet,
   FlatList,
   Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
-import CustomDropdown from "../Utilities/CustomDropdown"; // Adjust path as needed
+import CustomDropdown from "../Utilities/CustomDropdown";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 
-const BACKEND_URL = "http://10.0.0.43:4000"; // Replace with your backend server address
-
+const BACKEND_URL = "http://10.0.0.43:4000";
 const MAX_IMAGES = 5;
 
 const ngoOptions = ["Orphan Foundation", "Food Relief", "Animal Care", "Other"];
@@ -33,8 +34,6 @@ const causeOptions = [
 ];
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
 const conditionOptions = ["New", "Used", "Refurbished"];
-
-// --- CATEGORY DROPDOWN DATA ---
 const categoryOptions = [
   "Electronics",
   "Jewellery",
@@ -47,6 +46,17 @@ const categoryOptions = [
   "Toys & Games",
   "Health & Wellness",
 ];
+
+const ngoData = ngoOptions.map((opt) => ({ label: opt, value: opt }));
+const causeData = causeOptions.map((opt) => ({ label: opt, value: opt }));
+const currencyData = currencyOptions.map((opt) => ({
+  label: opt,
+  value: opt,
+}));
+const conditionData = conditionOptions.map((opt) => ({
+  label: opt,
+  value: opt,
+}));
 const categoryData = categoryOptions.map((opt) => ({ label: opt, value: opt }));
 
 function getMimeType(uri) {
@@ -94,23 +104,9 @@ export default function ListItemScreen() {
   const [agree, setAgree] = useState(false);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // --- CATEGORY STATE ---
   const [category, setCategory] = useState(categoryOptions[0]);
+  const [pickupLocation, setPickupLocation] = useState(""); // controlled
 
-  // Dropdown data arrays
-  const ngoData = ngoOptions.map((opt) => ({ label: opt, value: opt }));
-  const causeData = causeOptions.map((opt) => ({ label: opt, value: opt }));
-  const currencyData = currencyOptions.map((opt) => ({
-    label: opt,
-    value: opt,
-  }));
-  const conditionData = conditionOptions.map((opt) => ({
-    label: opt,
-    value: opt,
-  }));
-
-  // Pick images
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) {
       Alert.alert(`Max number of images is ${MAX_IMAGES}.`);
@@ -130,12 +126,10 @@ export default function ListItemScreen() {
     }
   };
 
-  // Remove image
   const removeImage = (idx) => {
     setImages(images.filter((_, i) => i !== idx));
   };
 
-  // Upload a single image to S3 using pre-signed URL and store downloadUrl for display
   const uploadImageToS3 = async (img, userId, itemId) => {
     const fileName = img.fileName || img.uri.split("/").pop();
     const fileType =
@@ -171,7 +165,6 @@ export default function ListItemScreen() {
     return downloadUrl;
   };
 
-  // Upload all images and return their S3 download URLs
   const uploadAllImages = async (userId, itemId) => {
     const uploadedUrls = [];
     for (const img of images) {
@@ -181,7 +174,6 @@ export default function ListItemScreen() {
     return uploadedUrls;
   };
 
-  // Submit handler
   const handleSubmit = async () => {
     if (!agree) {
       Alert.alert("Please agree to the terms before submitting.");
@@ -208,8 +200,9 @@ export default function ListItemScreen() {
         negotiable,
         currency,
         condition,
-        category, // --- SAVE CATEGORY ---
+        category,
         description,
+        pickupLocation,
         useAddress,
         imageUrls,
         userId,
@@ -226,8 +219,9 @@ export default function ListItemScreen() {
       setNegotiable(false);
       setCurrency(currencyOptions[0]);
       setCondition(conditionOptions[0]);
-      setCategory(categoryOptions[0]); // --- RESET CATEGORY ---
+      setCategory(categoryOptions[0]);
       setDescription("");
+      setPickupLocation("");
       setUseAddress(false);
       setImages([]);
       setAgree(false);
@@ -237,7 +231,6 @@ export default function ListItemScreen() {
     setLoading(false);
   };
 
-  // Image grid render
   const renderImageItem = ({ item, index }) => (
     <View style={styles.imageBox}>
       <Image
@@ -255,7 +248,6 @@ export default function ListItemScreen() {
     </View>
   );
 
-  // Add image button for grid
   const renderAddImageBtn = () => (
     <TouchableOpacity
       style={styles.imageBox}
@@ -266,13 +258,27 @@ export default function ListItemScreen() {
     </TouchableOpacity>
   );
 
+  // For scrolling to autocomplete if needed
+  const scrollRef = useRef(null);
+
+  // --- Google Places Autocomplete Ref ---
+  const placesRef = useRef(null);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={100}
+      >
+        <ScrollView
+          ref={scrollRef}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ padding: 18, backgroundColor: "#fff" }}
+        >
           <Text style={styles.header}>List your Ad</Text>
           <Text style={styles.label}>Ad Images/Video</Text>
-          <View>
+          <View style={{ height: 90, marginBottom: 6 }}>
             <FlatList
               data={[...images, ...(images.length < MAX_IMAGES ? [{}] : [])]}
               renderItem={({ item, index }) =>
@@ -282,16 +288,14 @@ export default function ListItemScreen() {
               }
               keyExtractor={(_, idx) => idx.toString()}
               horizontal
-              contentContainerStyle={{ marginBottom: 6 }}
               showsHorizontalScrollIndicator={false}
             />
-            <Text style={styles.imageHint}>
-              Prepare images before uploading. Upload images larger than 750px ×
-              450px. Max number of images is 5. Max image size is 134MB.
-            </Text>
           </View>
+          <Text style={styles.imageHint}>
+            Prepare images before uploading. Upload images larger than 750px ×
+            450px. Max number of images is 5. Max image size is 134MB.
+          </Text>
 
-          {/* --- CATEGORY DROPDOWN --- */}
           <Text style={styles.inputLabel}>CATEGORY</Text>
           <CustomDropdown
             data={categoryData}
@@ -393,7 +397,57 @@ export default function ListItemScreen() {
             style={[styles.input, { minHeight: 60, textAlignVertical: "top" }]}
           />
 
-          <Text style={styles.sectionHeader}>Location & Contact</Text>
+          {/* --- PICKUP LOCATION AUTOCOMPLETE --- */}
+          <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
+          <GooglePlacesAutocomplete
+            ref={placesRef}
+            placeholder="Enter Pickup Location"
+            minLength={2}
+            fetchDetails={true}
+            onPress={(data, details = null) => {
+              setPickupLocation(data.description);
+              if (placesRef.current) {
+                placesRef.current.setAddressText(data.description);
+              }
+            }}
+            query={{
+              key: "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo",
+              language: "en",
+            }}
+            predefinedPlaces={[]}
+            currentLocation={false}
+            currentLocationLabel="Current location"
+            enablePoweredByContainer={false}
+            textInputProps={{
+              value: pickupLocation,
+              onChangeText: setPickupLocation,
+              autoCorrect: false,
+              autoCapitalize: "none",
+              placeholderTextColor: "gray",
+              returnKeyType: "done",
+            }}
+            onFail={(error) => console.log("Places API error:", error)}
+            onNotFound={() => console.log("No results found")}
+            styles={{
+              textInputContainer: {
+                width: "100%",
+                backgroundColor: "#f8fafb",
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: "#DCE3E9",
+                marginBottom: 8,
+              },
+              textInput: {
+                height: 40,
+                color: "#23253A",
+                fontSize: 15,
+              },
+              predefinedPlacesDescription: {
+                color: "#1faadb",
+              },
+            }}
+          />
+
           <View style={styles.checkboxRow}>
             <Checkbox
               value={useAddress}
@@ -434,8 +488,9 @@ export default function ListItemScreen() {
                 setNegotiable(false);
                 setCurrency(currencyOptions[0]);
                 setCondition(conditionOptions[0]);
-                setCategory(categoryOptions[0]); // --- RESET CATEGORY ---
+                setCategory(categoryOptions[0]);
                 setDescription("");
+                setPickupLocation("");
                 setUseAddress(false);
                 setImages([]);
                 setAgree(false);
@@ -464,15 +519,14 @@ export default function ListItemScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 18,
     backgroundColor: "#fff",
     flex: 1,
   },
