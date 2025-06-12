@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,12 +14,11 @@ import { useTranslation } from 'react-i18next';
 
 export default function ChatListScreen({ navigation }) {
   const { t } = useTranslation();
-
   const [chatRooms, setChatRooms] = useState([]);
   const [contacts, setContacts] = useState([]);
   const currentUser = auth.currentUser;
 
-  // Fetch active chat rooms
+  // Fetch chat rooms
   useEffect(() => {
     const q = query(
       collection(db, 'chatRooms'),
@@ -36,13 +34,14 @@ export default function ChatListScreen({ navigation }) {
             id: docSnap.id,
             name: userDoc.exists() ? userDoc.data().name : 'Unknown',
             lastMessage: room.lastMessage || '',
+            type: 'chat',
           };
         })
       );
       setChatRooms(roomsData);
     });
     return () => unsubscribe();
-  }, [currentUser.uid, t]);
+  }, [currentUser.uid]);
 
   // Fetch contacts
   useEffect(() => {
@@ -54,6 +53,7 @@ export default function ChatListScreen({ navigation }) {
       const users = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
+        type: 'contact',
       }));
       setContacts(users);
     });
@@ -71,27 +71,43 @@ export default function ChatListScreen({ navigation }) {
     });
   };
 
-  const renderChatRoomItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.chatItem}
-      onPress={() => openChat(item.id, item.name)}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.message} numberOfLines={1} ellipsizeMode="tail">
-        {item.lastMessage}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }) => {
+    if (item.type === 'chat') {
+      return (
+        <TouchableOpacity
+          style={styles.chatItem}
+          onPress={() => openChat(item.id, item.name)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.message} numberOfLines={1} ellipsizeMode="tail">
+            {item.lastMessage}
+          </Text>
+        </TouchableOpacity>
+      );
+    } else if (item.type === 'contact') {
+      return (
+        <TouchableOpacity
+          style={styles.contactItem}
+          onPress={() => startChatWithUser(item)}
+        >
+          <Text style={styles.name}>{item.name || item.email}</Text>
+        </TouchableOpacity>
+      );
+    }
+    return null;
+  };
 
-  const renderContactItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.contactItem}
-      onPress={() => startChatWithUser(item)}
-    >
-      <Text style={styles.name}>{item.name || item.email}</Text>
-    </TouchableOpacity>
-  );
+  const sections = [
+    {
+      title: t('chatList.activeChats'),
+      data: chatRooms.length ? chatRooms : [{ id: 'empty-chat', name: t('chatList.noActiveChats'), type: 'empty' }],
+    },
+    {
+      title: t('chatList.contacts'),
+      data: contacts.length ? contacts : [{ id: 'empty-contacts', name: t('chatList.noContacts'), type: 'empty' }],
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -103,35 +119,21 @@ export default function ChatListScreen({ navigation }) {
         <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.section}>
-          <Text style={styles.heading}>{t('chatList.activeChats')}</Text>
-          {chatRooms.length === 0 ? (
-            <Text style={styles.emptyText}>{t('chatList.noActiveChats')}</Text>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) =>
+          item.type === 'empty' ? (
+            <Text style={styles.emptyText}>{item.name}</Text>
           ) : (
-            <FlatList
-              data={chatRooms}
-              keyExtractor={item => item.id}
-              renderItem={renderChatRoomItem}
-              scrollEnabled={false}
-            />
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.heading}>{t('chatList.contacts')}</Text>
-          {contacts.length === 0 ? (
-            <Text style={styles.emptyText}>{t('chatList.noContacts')}</Text>
-          ) : (
-            <FlatList
-              data={contacts}
-              keyExtractor={item => item.id}
-              renderItem={renderContactItem}
-              scrollEnabled={false}
-            />
-          )}
-        </View>
-      </ScrollView>
+            renderItem({ item })
+          )
+        }
+        renderSectionHeader={({ section: { title } }) => (
+          <Text style={styles.heading}>{title}</Text>
+        )}
+        contentContainerStyle={styles.container}
+      />
     </SafeAreaView>
   );
 }
@@ -162,22 +164,20 @@ const styles = StyleSheet.create({
     color: '#222',
   },
   container: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   heading: {
     fontSize: 22,
     fontWeight: '700',
-    marginBottom: 12,
+    marginVertical: 12,
     color: '#333',
   },
   emptyText: {
     fontSize: 16,
     fontStyle: 'italic',
     color: '#888',
-    marginVertical: 10,
+    marginBottom: 20,
   },
   chatItem: {
     backgroundColor: '#f4f4f4',

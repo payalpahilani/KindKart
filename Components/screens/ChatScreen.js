@@ -1,55 +1,35 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  TextInput,
-  FlatList,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import socket from "../Utilities/Socket";
 import { auth, db } from "../../firebaseConfig";
-import {
-  collection,
-  addDoc,
-  query,
-  getDocs,
-  onSnapshot,
-  doc,
-  updateDoc,
-  serverTimestamp,
-  where,
-} from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, onSnapshot, query, where, getDocs } from "firebase/firestore";
 
 export default function ChatScreen({ route, navigation }) {
-  const { otherUserId, userName: otherUserName, roomId: passedRoomId } = route.params || {};
+  const { otherUserId, otherUserName, roomId: passedRoomId } = route.params || {};
   const currentUser = auth.currentUser;
+  const [roomId, setRoomId] = useState(passedRoomId || null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [roomId, setRoomId] = useState(passedRoomId || null);
 
-
-  /* --- create/find chat room --- */
+  // Create/find room
   useEffect(() => {
     if (!roomId && otherUserId) {
-      const findOrCreateRoom = async () => {
+      (async () => {
         const roomsRef = collection(db, "chatRooms");
         const q = query(roomsRef, where("users", "array-contains", currentUser.uid));
-        const snapshot = await getDocs(q);
-
-        let existingRoom = null;
-        snapshot.forEach((docSnap) => {
+        const snap = await getDocs(q);
+        let existing = null;
+        snap.forEach(docSnap => {
           const data = docSnap.data();
           if (data.users.includes(otherUserId) && data.users.length === 2) {
-            existingRoom = { id: docSnap.id, ...data };
+            existing = { id: docSnap.id, ...data };
           }
         });
-
-        if (existingRoom) setRoomId(existingRoom.id);
-        else {
+        if (existing) {
+          setRoomId(existing.id);
+        } else {
           const newRoom = await addDoc(roomsRef, {
             users: [currentUser.uid, otherUserId],
             lastMessage: "",
@@ -62,35 +42,63 @@ export default function ChatScreen({ route, navigation }) {
           });
           setRoomId(newRoom.id);
         }
-      };
-      findOrCreateRoom();
+      })();
     }
-  }, [otherUserId, roomId]);
+  }, [currentUser.uid, otherUserId]);
 
-  /* --- listen to messages --- */
+  // Listen to Firestore messages
   useEffect(() => {
     if (!roomId) return;
     const messagesRef = collection(db, "chatRooms", roomId, "messages");
-    const unsub = onSnapshot(messagesRef, (snap) => {
-      const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const unsubFs = onSnapshot(messagesRef, snap => {
+      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       msgs.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds);
       setMessages(msgs);
     });
-    return unsub;
+    return () => unsubFs();
   }, [roomId]);
 
+  // Socket.IO syncing
+  useEffect(() => {
+    if (!roomId) return;
+
+    socket.emit("joinRoom", roomId);
+
+    socket.on("receiveMessage", msg => {
+      setMessages(prev => [...prev, msg]);
+    });
+
+    return () => {
+      socket.emit("leaveRoom", roomId);
+      socket.off("receiveMessage");
+    };
+  }, [roomId]);
+
+  // Send message via Firestore + Socket
   const sendMessage = async () => {
     if (!input.trim() || !roomId) return;
-    const messagesRef = collection(db, "chatRooms", roomId, "messages");
-    await addDoc(messagesRef, {
-      text: input,
+
+    const messageData = {
+      text: input.trim(),
       senderId: currentUser.uid,
+      createdAt: new Date().toISOString(),
+      roomId,
+    };
+
+    // Save to Firestore
+    await addDoc(collection(db, "chatRooms", roomId, "messages"), {
+      text: messageData.text,
+      senderId: messageData.senderId,
       createdAt: serverTimestamp(),
     });
     await updateDoc(doc(db, "chatRooms", roomId), {
-      lastMessage: input,
+      lastMessage: messageData.text,
       lastUpdated: serverTimestamp(),
     });
+
+    // Send via Socket
+    socket.emit("sendMessage", messageData);
+
     setInput("");
   };
 
@@ -102,7 +110,7 @@ export default function ChatScreen({ route, navigation }) {
         keyboardVerticalOffset={90}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={navigation.goBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#007AFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{otherUserName || "Chat"}</Text>
@@ -111,15 +119,13 @@ export default function ChatScreen({ route, navigation }) {
 
         <FlatList
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           contentContainerStyle={styles.messageList}
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.messageBubble,
-                item.senderId === currentUser.uid ? styles.myMessage : styles.otherMessage,
-              ]}
-            >
+            <View style={[
+              styles.messageBubble,
+              item.senderId === currentUser.uid ? styles.myMessage : styles.otherMessage
+            ]}>
               <Text style={styles.messageText}>{item.text}</Text>
             </View>
           )}
