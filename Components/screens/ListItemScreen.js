@@ -25,7 +25,7 @@ import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 
-const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo"; // <-- Replace with your real API key
+const GOOGLE_API_KEY = "YOUR_GOOGLE_PLACES_API_KEY"; // <-- Replace with your real API key
 const BACKEND_URL = "http://10.0.0.43:4000"; // Replace with your backend server address
 const MAX_IMAGES = 5;
 
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     marginHorizontal: 0,
-    marginTop: 5,
+    marginTop: 18,
     marginBottom: 8,
     gap: 8,
   },

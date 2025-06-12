@@ -5,5 +5,10 @@ import { ThemeProvider } from "./Components/Utilities/ThemeContext";
 import './i18n';
 
 export default function App() {
-  return <AppNavigator />
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
+  
 }
