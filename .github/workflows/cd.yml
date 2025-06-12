@@ -4,23 +4,37 @@ on:
   push:
     branches:
       - main
+      - develop
 
 jobs:
-  build-and-submit:
+  build-main:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-      - name: Build and Submit with EAS
+      - run: npm ci
+      - run: npm install -g expo-cli eas-cli
+      - name: Build with EAS (Production)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          eas build --platform android --profile=production --auto-submit --non-interactive
+          eas build --platform android --profile=production --non-interactive
+
+  build-develop:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm install -g expo-cli eas-cli
+      - name: Build with EAS (Preview)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build --platform android --profile=preview --non-interactive
