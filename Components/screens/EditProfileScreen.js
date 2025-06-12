@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,25 +9,53 @@ import {
   Alert,
   ActivityIndicator,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '../../firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../../firebaseConfig';  // Your Firebase config file
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { ThemeContext } from '../Utilities/ThemeContext';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
-  const { params } = useRoute();
-  const initial = params?.user || {};
+  const { isDarkMode } = useContext(ThemeContext);
+  const styles = isDarkMode ? darkStyles : lightStyles;
 
-  const [name, setName] = useState(initial.name || '');
-  const [avatarUri, setAvatarUri] = useState(initial.avatarUrl || '');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [avatarUri, setAvatarUri] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Pick Image from library with permissions
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      try {
+        const docSnap = await getDoc(doc(db, 'users', uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setName(data.name || '');
+          setEmail(data.email || '');
+          setPhone(data.phone || '');
+          setAvatarUri(data.avatarUrl || '');
+        }
+      } catch (error) {
+        console.log('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -47,66 +75,69 @@ export default function EditProfileScreen() {
     }
   };
 
-  // Upload image using fetch to get blob, then uploadBytesResumable
+  // Helper: Convert URI to Blob using XMLHttpRequest (fixes blob error in Expo)
+  const uriToBlob = (uri) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function () {
+        reject(new Error('Failed to convert URI to Blob'));
+      };
+      xhr.responseType = 'blob';
+      xhr.open('GET', uri, true);
+      xhr.send(null);
+    });
+  };
+
   const uploadImageAsync = async (uri, uid) => {
     try {
-      const response = await fetch(uri);
-      if (!response.ok) throw new Error('Failed to fetch image for upload.');
-      const blob = await response.blob();
+      const blob = await uriToBlob(uri);
 
-      const path = `avatars/${uid}/${Date.now()}.jpg`;
-      const storRef = ref(storage, path);
+      const timestamp = Date.now();
+      const storageRef = ref(storage, `avatars/${uid}/${timestamp}.jpg`);
+      await uploadBytes(storageRef, blob);
 
-      const uploadTask = uploadBytesResumable(storRef, blob);
+      // After upload, close the blob to release memory (optional)
+      blob.close?.();
 
-      return new Promise((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          null,
-          (error) => {
-            console.log('Upload error:', error);
-            reject(error);
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(storRef);
-              resolve(downloadURL);
-            } catch (error) {
-              console.log('Get download URL error:', error);
-              reject(error);
-            }
-          }
-        );
-      });
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
     } catch (error) {
-      console.log('Upload image async error:', error);
+      console.error("Upload failed:", error);
       throw error;
     }
   };
 
-  // Save profile data including avatar upload if changed
   const handleSave = async () => {
     const uid = auth.currentUser?.uid;
     if (!uid) {
-      Alert.alert('Error', 'User not logged in.');
+      Alert.alert('Error', 'User not authenticated.');
       return;
     }
-    if (!name.trim()) {
-      Alert.alert('Invalid', 'Display name cannot be empty.');
+
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedName || !trimmedPhone) {
+      Alert.alert('Invalid Input', 'Name and phone number cannot be empty.');
       return;
     }
 
     setSaving(true);
+
     try {
       let avatarUrlToSave = avatarUri;
 
-      // Upload new local avatar image if uri is local file (not remote URL)
+      // Upload new image if changed and not already a URL
       if (avatarUri && !avatarUri.startsWith('https://')) {
         avatarUrlToSave = await uploadImageAsync(avatarUri, uid);
       }
 
       await updateDoc(doc(db, 'users', uid), {
-        name: name.trim(),
+        name: trimmedName,
+        phone: trimmedPhone,
         avatarUrl: avatarUrlToSave,
       });
 
@@ -120,71 +151,107 @@ export default function EditProfileScreen() {
     }
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color="#F6B93B" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={styles.safe.backgroundColor} />
 
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Icon name="arrow-left" size={24} color="#333" />
+        <Icon name="arrow-left" size={24} color={styles.backIcon.color} />
       </TouchableOpacity>
 
-      <View style={styles.container}>
-        <TouchableOpacity onPress={pickImage} style={styles.avatarWrap} activeOpacity={0.8}>
-          <Image
-            source={
-              avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.jpg')
-            }
-            style={styles.avatar}
-          />
-          <View style={styles.editIcon}>
-            <Icon name="camera-plus" size={20} color="#fff" />
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
+          <TouchableOpacity onPress={pickImage} style={styles.avatarWrap}>
+            <Image
+              source={avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.png')}
+              style={styles.avatar}
+            />
+            <View style={styles.editIcon}>
+              <Icon name="camera-plus" size={20} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+              placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
+              editable={!saving}
+              selectionColor={isDarkMode ? '#F6B93B' : '#222'}
+            />
           </View>
-        </TouchableOpacity>
 
-        <Text style={styles.label}>Display name</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter your name"
-          editable={!saving}
-        />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email (not editable)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f1f1f1' }]}
+              value={email}
+              editable={false}
+              placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
+            />
+          </View>
 
-        <TouchableOpacity
-          style={[styles.saveBtn, saving && { opacity: 0.6 }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveText}>Save changes</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone</Text>
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Your phone number"
+              placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
+              keyboardType="phone-pad"
+              editable={!saving}
+              selectionColor={isDarkMode ? '#F6B93B' : '#222'}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveText}>Save Changes</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const base = {
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  container: {
-    flex: 1,
-    padding: 24,
-    alignItems: 'center',
   },
   backBtn: {
     position: 'absolute',
-    top: 16,
+    top: 48,
     left: 16,
     zIndex: 10,
-    padding: 8,
+    padding: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   avatarWrap: {
-    marginTop: 60,
+    alignSelf: 'center',
     marginBottom: 32,
   },
   avatar: {
@@ -201,31 +268,106 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 6,
   },
+  inputGroup: {
+    marginBottom: 20,
+  },
   label: {
-    alignSelf: 'flex-start',
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 6,
-    color: '#444',
+    fontWeight: '500',
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    marginBottom: 32,
   },
   saveBtn: {
-    backgroundColor: '#F6B93B',
     borderRadius: 24,
-    paddingHorizontal: 40,
     paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 10,
   },
   saveText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  scrollContent: {
+    padding: 24,
+    paddingTop: 80,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  card: {
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+};
+
+const lightStyles = StyleSheet.create({
+  ...base,
+  safe: { ...base.safe, backgroundColor: '#fff' },
+  backBtn: { ...base.backBtn, backgroundColor: '#F2F2F7' },
+  backIcon: { color: '#000' },
+  avatar: { ...base.avatar, backgroundColor: '#eee' },
+  label: { ...base.label, color: '#444' },
+  input: {
+    ...base.input,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    color: '#222',
+  },
+  saveBtn: {
+    ...base.saveBtn,
+    backgroundColor: '#F6B93B',
+  },
+  saveText: {
+    ...base.saveText,
+    color: '#fff',
+  },
+  card: {
+    ...base.card,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E3E3E6',
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  ...base,
+  safe: { ...base.safe, backgroundColor: '#121212' },
+  backBtn: { ...base.backBtn, backgroundColor: '#1E1E1E' },
+  backIcon: { color: '#fff' },
+  avatar: { ...base.avatar, backgroundColor: '#333' },
+  label: { ...base.label, color: '#ccc' },
+  input: {
+    ...base.input,
+    borderColor: '#555',
+    backgroundColor: '#2a2a2a',
+    color: '#eee',
+  },
+  saveBtn: {
+    ...base.saveBtn,
+    backgroundColor: '#F6B93B',
+  },
+  saveText: {
+    ...base.saveText,
+    color: '#121212',
+  },
+  card: {
+    ...base.card,
+    backgroundColor: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: '#333',
   },
 });
