@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,11 +8,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemeContext } from "../Utilities/ThemeContext";
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db } from "../../firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
+import { auth } from "../../firebaseConfig";
 
+// Sample Data
 const categories = [
   { label: "Donation", icon: "hand-heart" },
   { label: "Charity", icon: "charity" },
@@ -57,6 +64,62 @@ const DonateButton = ({ onPress, title, isDarkMode }) => (
 
 export default function HomeScreen() {
   const { isDarkMode } = useContext(ThemeContext);
+
+  useEffect(() => {
+    const requestAndStoreLocation = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn("No authenticated user found.");
+          return;
+        }
+  
+        const permissionKey = `locationPermission_${user.uid}`;
+        const storedPermission = await AsyncStorage.getItem(permissionKey);
+  
+        if (storedPermission === "granted" || storedPermission === "denied") return;
+  
+        Alert.alert(
+          "Location Permission",
+          "KindKart would like to access your location to show nearby donation opportunities. Do you want to allow access?",
+          [
+            {
+              text: "Don't Allow",
+              onPress: async () => {
+                await AsyncStorage.setItem(permissionKey, "denied");
+              },
+              style: "cancel",
+            },
+            {
+              text: "Allow",
+              onPress: async () => {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status === "granted") {
+                  const location = await Location.getCurrentPositionAsync({});
+                  await AsyncStorage.setItem(permissionKey, "granted");
+  
+                  await setDoc(doc(db, "locations", user.uid), {
+                    uid: user.uid,
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                    timestamp: new Date().toISOString(),
+                  });
+  
+                  console.log("Location saved for:", user.uid);
+                } else {
+                  await AsyncStorage.setItem(permissionKey, "denied");
+                }
+              },
+            },
+          ]
+        );
+      } catch (error) {
+        console.error("Error requesting location permission:", error);
+      }
+    };
+  
+    requestAndStoreLocation();
+  }, []);
 
   return (
     <SafeAreaView
@@ -229,13 +292,12 @@ export default function HomeScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   lightBg: { backgroundColor: "#fff" },
   darkBg: { backgroundColor: "#121212" },
-
   container: { padding: 16 },
-
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -254,7 +316,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     marginLeft: 8,
   },
-
   banner: { position: "relative", marginBottom: 10 },
   bannerImage: { width: "100%", height: 190, borderRadius: 18 },
   bannerOverlay: {
@@ -287,7 +348,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 0.5,
   },
-
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -307,11 +367,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 16,
   },
-
   seeAllDark: {
     color: "#F6B93B",
   },
-
   categoriesRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -331,7 +389,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: "500",
   },
-
   darkText: {
     color: "#eee",
   },
@@ -341,7 +398,6 @@ const styles = StyleSheet.create({
   cardInfoLabelDark: {
     color: "#aaa",
   },
-
   donationCard: {
     width: 220,
     borderRadius: 18,
@@ -353,7 +409,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginVertical: 8,
   },
-
   cardImage: {
     width: "100%",
     height: 100,
@@ -386,7 +441,6 @@ const styles = StyleSheet.create({
     color: "#222",
     fontWeight: "bold",
   },
-
   donateButton: {
     backgroundColor: "#F6B93B",
     borderRadius: 22,

@@ -81,7 +81,7 @@ export default function ProfileScreen() {
     else if (label === "Exit the app") {
       signOut(auth)
         .then(() => {
-          navigation.replace("LoginScreen");
+          navigation.replace("Login");
         })
         .catch((error) => {
           console.error("Sign out error:", error);
