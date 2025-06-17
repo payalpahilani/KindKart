@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "731786242882",
+    "project_id": "kindkart-d5cc7",
+    "storage_bucket": "kindkart-d5cc7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731786242882:android:9b4e04cae831d0678536db",
+        "android_client_info": {
+          "package_name": "com.group7.kindkart"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "731786242882-308gdqeo3farh550lefur92a9fl4luuh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.group7.kindkart",
+            "certificate_hash": "a51e2564db621d7970634826433acdf880f1f7dc"
+          }
+        },
+        {
+          "client_id": "731786242882-ihm4qeedk5enkbdab6fqejqufk4f1kmd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhuhyEZel9rhIBIqHBAIMJnUkADn4Qxe8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "731786242882-ihm4qeedk5enkbdab6fqejqufk4f1kmd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "731786242882-c6et3oc638pt8mneilrna4lp118uu7r4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "host.exp.exponent"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

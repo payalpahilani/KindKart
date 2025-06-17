@@ -159,7 +159,7 @@ export default function ProfileScreen() {
         >
           <Image
             source={
-              user?.avatarUrl ? { uri: user.avatarUrl } : require('../../assets/Images/avatar.png')
+              user?.avatarUrl ? { uri: user.avatarUrl } : require('../../assets/Images/avatar.jpg')
             }
             style={styles.avatar}
           />

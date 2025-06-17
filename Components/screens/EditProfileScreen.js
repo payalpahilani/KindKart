@@ -171,7 +171,7 @@ export default function EditProfileScreen() {
         <View style={styles.card}>
           <TouchableOpacity onPress={pickImage} style={styles.avatarWrap}>
             <Image
-              source={avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.png')}
+              source={avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.jpg')}
               style={styles.avatar}
             />
             <View style={styles.editIcon}>
