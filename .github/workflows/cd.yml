@@ -13,15 +13,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
+
       - name: Install EAS CLI
         run: npm install -g eas-cli
-      - name: Build and Submit with EAS
+
+      - name: Build Android App with EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          eas build --platform android --profile=production --auto-submit --non-interactive
+          eas build --platform android --profile=production --non-interactive
+          # After build completes, get the download URL for the artifact
+          # This command outputs the latest build info as JSON
+          eas build:list --platform android --limit 1 --json > build-info.json
 
+      - name: Download APK from EAS
+        run: |
+          # Extract the artifact URL from the build-info.json
+          ARTIFACT_URL=$(cat build-info.json | jq -r '.[0].artifacts.buildUrl')
+          echo "Downloading APK from $ARTIFACT_URL"
+          curl -o app-release.apk "$ARTIFACT_URL"
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          file: app-release.apk
+          groups: testers
+          releaseNotes: "Automated build from GitHub Actions"
