@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "package": "com.group7.kindkart",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -28,7 +29,10 @@
     },
     "plugins": [
       "expo-web-browser",
-      "expo-localization"
+      "expo-localization",
+      "expo-build-properties",
+      "@react-native-firebase/app",
+      "expo-firebase-app-distribution"
     ],
     "extra": {
       "eas": {

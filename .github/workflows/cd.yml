@@ -1,27 +1,38 @@
-name: Build and Deploy
+name: EAS Build Android
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  build-and-submit:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-      - name: Build and Submit with EAS
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          node-version: 18.x
+          cache: npm
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Build on EAS (Android only)
+        run: eas build --platform android --non-interactive --no-wait
+      - name: Download EAS Build Artifact
         run: |
-          eas build --platform android --profile=production --auto-submit --non-interactive
-
+          npx eas-cli build:list --platform android --limit 1 --json > builds.json
+          BUILD_ID=$(cat builds.json | jq -r '.[0].id')
+          npx eas-cli build:download --platform android --id $BUILD_ID --output app.aab
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: testers
+          file: app.aab

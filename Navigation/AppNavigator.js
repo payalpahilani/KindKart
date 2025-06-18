@@ -24,12 +24,14 @@ import EditProfileScreen from "../Components/screens/EditProfileScreen";
 import SettingsScreen from "../Components/screens/SettingsScreen";
 import AboutUsScreen from "../Components/screens/AboutUsScreen";
 import TermsAndConditionsScreen from "../Components/screens/TermsAndConditionsScreen";
-import NgoHomeScreen from "../Components/screens/NgoHomeScreen";
-import CampaignsScreen from "../Components/screens/CampaignsScreen";
-import DonorsScreen from "../Components/screens/DonorsScreen";
-import NgoProfileScreen from "../Components/screens/NgoProfileScreen";
-import NgoLoginScreen from "../Components/screens/NgoLoginScreen";
-import NgoSignUpScreen from "../Components/screens/NgoSignUpScreen";
+import NgoHomeScreen from '../Components/screens/NgoHomeScreen'
+import CampaignsScreen from '../Components/screens/CampaignsScreen'
+import DonorsScreen from '../Components/screens/DonorsScreen';
+import NgoProfileScreen from '../Components/screens/NgoProfileScreen';
+import NgoLoginScreen from '../Components/screens/NgoLoginScreen';
+import NgoSignUpScreen from '../Components/screens/NgoSignUpScreen';
+import NgoCreateCampaignScreen from "../Components/screens/NgoCreateCampaign";
+import NgoEditCampaign from "../Components/screens/NgoEditCampaign";
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -184,6 +186,8 @@ export default function AppNavigator() {
         />
         {/* --- THIS IS THE KEY: ChatScreen is NOT in the tab navigator --- */}
         <RootStack.Screen name="ChatScreen" component={ChatScreen} />
+        <RootStack.Screen name="NgoCreateCampaign" component={NgoCreateCampaignScreen} />
+        <RootStack.Screen name="NgoEditCampaign" component={NgoEditCampaign} />
       </RootStack.Navigator>
     </NavigationContainer>
   );
