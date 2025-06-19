@@ -105,7 +105,7 @@ export default function SignUpScreen({ navigation }) {
       });
 
       Alert.alert("Success", "Account created!");
-      navigation.replace("Home");
+      navigation.replace("Login");
     } catch (err) {
       Alert.alert("Sign Up Error", err.message);
     }
