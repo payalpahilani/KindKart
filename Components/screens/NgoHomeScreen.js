@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,13 +11,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db, auth} from '../../firebaseConfig';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-
+import { db, auth } from '../../firebaseConfig';
 
 const { width } = Dimensions.get('window');
 
@@ -31,38 +28,37 @@ export default function NgoHomeScreen() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+
   useFocusEffect(
     useCallback(() => {
-    const fetchCampaigns = async () => {
-      try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) return;
-  
-        const q = query(collection(db, 'campaigns'), where('createdBy', '==', userId));
-        const snapshot = await getDocs(q);
-        const results = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.status !== 'closed') {
-            results.push({ id: doc.id, ...data });
-          }
-        });
-        setCampaigns(results);
-      } catch (err) {
-        console.error('Failed to fetch campaigns:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCampaigns();
-  }, [])
-);
-  
+      const fetchCampaigns = async () => {
+        try {
+          const userId = auth.currentUser?.uid;
+          if (!userId) return;
+
+          const q = query(collection(db, 'campaigns'), where('createdBy', '==', userId));
+          const snapshot = await getDocs(q);
+          const results = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.status !== 'closed') {
+              results.push({ id: doc.id, ...data });
+            }
+          });
+          setCampaigns(results);
+        } catch (err) {
+          console.error('Failed to fetch campaigns:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCampaigns();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <LinearGradient
           colors={['#F3E8DD', '#B8D6DF']}
           style={styles.header}
@@ -73,18 +69,34 @@ export default function NgoHomeScreen() {
           <Text style={styles.subtext}>Empowering communities with your kindness</Text>
         </LinearGradient>
 
-        {/* Featured Campaign */}
-        <View style={styles.featuredCard}>
-          <Image
-            source={require('../../assets/Images/campaign1.jpg')}
-            style={styles.featuredImage}
-          />
-          <View style={styles.featuredOverlay}>
-            <Text style={styles.featuredTitle}>Support Mid-Day Meals</Text>
-            <Text style={styles.featuredRaised}>Raised ₹12,500 of ₹20,000</Text>
-            <TouchableOpacity style={styles.donateButton}>
-              <Text style={styles.donateText}>View Campaign</Text>
-            </TouchableOpacity>
+        {/* Mission Card */}
+        <View style={styles.missionCard}>
+          <Text style={styles.missionTitle}>Fundraising on KindKart takes just a few minutes</Text>
+
+          <View style={styles.verticalMission}>
+            <View style={styles.verticalBlockRow}>
+              <Feather name="smile" size={18} color="#1F2E41" />
+              <Text style={styles.inlineHeading}> Give Happiness</Text>
+            </View>
+            <Text style={styles.missionText}>
+              Giving happiness to others is one of the most fulfilling things you can do in life.
+            </Text>
+
+            <View style={styles.verticalBlockRow}>
+              <Feather name="heart" size={18} color="#1F2E41" />
+              <Text style={styles.inlineHeading}> Share Love</Text>
+            </View>
+            <Text style={styles.missionText}>
+              Sharing love creates a ripple effect of kindness around you.
+            </Text>
+
+            <View style={styles.verticalBlockRow}>
+              <Feather name="users" size={18} color="#1F2E41" />
+              <Text style={styles.inlineHeading}> Build Socially</Text>
+            </View>
+            <Text style={styles.missionText}>
+              Building socially means not just connecting, but contributing.
+            </Text>
           </View>
         </View>
 
@@ -108,7 +120,9 @@ export default function NgoHomeScreen() {
                 <Text style={styles.campaignProgress}>
                   Raised {item.currency} ${item.raisedAmount?.toLocaleString() || 0} of ${item.totalDonation?.toLocaleString()}
                 </Text>
-                <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('NgoDonationInfoScreen', { campaignId: item.id })}
+                <TouchableOpacity
+                  style={styles.viewButton}
+                  onPress={() => navigation.navigate('NgoDonationInfoScreen', { campaignId: item.id })}
                 >
                   <Text style={styles.viewButtonText}>View</Text>
                 </TouchableOpacity>
@@ -147,35 +161,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 20,
   },
-  featuredCard: {
-    marginTop: 24,
-    marginHorizontal: 20,
-    borderRadius: 18,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  featuredImage: { width: '100%', height: 200 },
-  featuredOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(31,46,65,0.7)',
-    padding: 16,
-  },
-  featuredTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  featuredRaised: { color: '#ccc', fontSize: 14, marginVertical: 4 },
-  donateButton: {
-    backgroundColor: '#F3E8DD',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  donateText: { color: '#1F2E41', fontWeight: '600' },
   campaignCard: {
     width: width * 0.7,
     backgroundColor: '#fff',
@@ -228,4 +213,38 @@ const styles = StyleSheet.create({
   },
   activityTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
   activityDetail: { fontSize: 14, color: '#666', marginTop: 4 },
+  missionCard: {
+    backgroundColor: '#DDEDF4',
+    margin: 20,
+    marginBottom: 5,
+    borderRadius: 16,
+    padding: 16,
+  },
+  missionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#1F2E41',
+  },
+  verticalMission: {
+    marginTop: 12,
+  },
+  verticalBlockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  inlineHeading: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2E41',
+    marginLeft: 6,
+  },
+  missionText: {
+    fontSize: 12,
+    color: '#1F2E41',
+    lineHeight: 16,
+    marginBottom: 12,
+  },
 });

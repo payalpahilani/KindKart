@@ -23,6 +23,7 @@ export default function NgoDonationInfoScreen() {
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ngoDetails, setNgoDetails] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
 
   useEffect(() => {
@@ -33,7 +34,10 @@ export default function NgoDonationInfoScreen() {
           if (docSnap.exists()) {
             const campaignData = docSnap.data();
             setCampaign(campaignData);
-      
+          
+            if (campaignData.imageUrls && campaignData.imageUrls.length > 0) {
+              setSelectedImage({ uri: campaignData.imageUrls[0] });
+            }
            
             if (campaignData.createdBy) {
               const ngoRef = doc(db, 'ngo', campaignData.createdBy);
@@ -79,10 +83,14 @@ export default function NgoDonationInfoScreen() {
     startDate,
   } = campaign;
 
+ 
   const mainImage = imageUrls.length > 0 ? { uri: imageUrls[0] } : require('../../assets/Images/campaign1.jpg');
   const thumbnails = imageUrls.map((url, i) => (
-    <Image key={i} source={{ uri: url }} style={styles.thumb} />
+    <TouchableOpacity key={i} onPress={() => setSelectedImage({ uri: url })}>
+      <Image source={{ uri: url }} style={styles.thumb} />
+    </TouchableOpacity>
   ));
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,7 +106,10 @@ export default function NgoDonationInfoScreen() {
         <Text style={styles.pageTitle}>Detail Info</Text>
 
         {/* Main Image */}
-        <Image source={mainImage} style={styles.mainImage} />
+        <Image
+          source={selectedImage || require('../../assets/Images/campaign1.jpg')}
+          style={styles.mainImage}
+        />
 
         {/* Thumbnails */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbRow}>

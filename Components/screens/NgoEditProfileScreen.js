@@ -173,10 +173,22 @@ export default function NgoEditProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <TouchableOpacity onPress={pickImage} style={styles.logoWrap}>
-          <Image
-            source={avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.jpg')}
-            style={styles.logo}
-          />
+        {avatarUri && avatarUri.startsWith('http') ? (
+          <Image source={{ uri: avatarUri }} style={styles.logo} />
+        ) : (
+          <View style={styles.initialsAvatar}>
+            <Text style={styles.initialsText}>
+              {ngoName
+                ? ngoName
+                    .split(' ')
+                    .map((word) => word[0])
+                    .join('')
+                    .toUpperCase()
+                : 'NGO'}
+            </Text>
+          </View>
+        )}
+
           <View style={styles.editIcon}>
             <Icon name="camera-plus" size={20} color="#fff" />
           </View>
@@ -260,4 +272,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  initialsAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#B8D6DF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialsText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1F2E41',
+  },
+  
 });

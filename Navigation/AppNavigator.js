@@ -34,6 +34,8 @@ import NgoCreateCampaignScreen from "../Components/screens/NgoCreateCampaign";
 import NgoEditCampaign from "../Components/screens/NgoEditCampaign";
 import NgoEditProfileScreen from "../Components/screens/NgoEditProfileScreen"
 import NgoDonationInfoScreen from "../Components/screens/NgoDonationInfoScreen";
+import NgoDashboardScreen from '../Components/screens/NgoDashboardScreen';
+
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -145,6 +147,10 @@ function NgoTabNavigator() {
                 color={color}
               />
             );
+          } else if (route.name === "Dashboard") {
+            iconName = (
+              <Ionicons name="analytics-outline" size={size} color={color} />
+            );
           } else if (route.name === "Profile") {
             iconName = (
               <Ionicons name="person-outline" size={size} color={color} />
@@ -157,6 +163,7 @@ function NgoTabNavigator() {
       <NgoTab.Screen name="HomeNgo" component={NgoHomeScreen} />
       <NgoTab.Screen name="Campaigns" component={CampaignsScreen} />
       <NgoTab.Screen name="Donors" component={DonorsScreen} />
+      <NgoTab.Screen name="Dashboard" component={NgoDashboardScreen} />
       <NgoTab.Screen name="Profile" component={NgoProfileScreen} />
     </NgoTab.Navigator>
   );

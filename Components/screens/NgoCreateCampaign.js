@@ -88,17 +88,26 @@ export default function NgoCreateCampaignScreen() {
       Alert.alert("Max image limit reached.");
       return;
     }
+  
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== 'granted') {
+      Alert.alert("Permission denied", "Please allow access to your photo library.");
+      return;
+    }
+  
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.8,
       selectionLimit: MAX_IMAGES - images.length,
     });
+  
     if (!result.canceled) {
       const newImages = result.assets || [result];
       setImages([...images, ...newImages].slice(0, MAX_IMAGES));
     }
   };
+  
 
   const removeImage = (index) => {
     setImages(images.filter((_, i) => i !== index));

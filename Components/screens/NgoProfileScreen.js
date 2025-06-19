@@ -88,12 +88,17 @@ export default function NgoProfileScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatarWrapper}>
-            <Image
-              source={ngo?.avatarUrl ? { uri: ngo.avatarUrl } : require('../../assets/Images/avatar.jpg')}
-              style={styles.avatar}
-            />
-          </View>
+                <View style={styles.initialsAvatar}>
+          <Text style={styles.initialsText}>
+            {ngo?.ngoName
+              ? ngo.ngoName
+                  .split(' ')
+                  .map((word) => word[0])
+                  .join('')
+                  .toUpperCase()
+              : 'NGO'}
+          </Text>
+        </View>
           <Text style={styles.name}>{ngo?.ngoName || 'NGO Name'}</Text>
           <Text style={styles.email}>{ngo?.email}</Text>
         </View>
@@ -239,4 +244,19 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   optionText: { fontSize: 16, marginLeft: 12, color: '#333' },
+  initialsAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#EFAC3A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  initialsText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  
 });
