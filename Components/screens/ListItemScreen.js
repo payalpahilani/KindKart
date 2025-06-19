@@ -730,20 +730,6 @@ export default function ListItemScreen() {
                 </View>
               </View>
             </Modal>
-
-            <Text style={styles.sectionHeader}>Location & Contact</Text>
-
-            <View style={styles.checkboxRow}>
-              <Checkbox
-                value={useAddress}
-                onValueChange={setUseAddress}
-                color={useAddress ? "#F6B93B" : undefined}
-                style={styles.checkbox}
-              />
-              <Text style={styles.checkboxLabel}>
-                Use address set in profile section
-              </Text>
-            </View>
             <View style={styles.checkboxRow}>
               <Checkbox
                 value={agree}
