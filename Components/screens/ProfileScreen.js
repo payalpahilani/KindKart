@@ -24,11 +24,8 @@ import { useTranslation } from 'react-i18next';
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { isDarkMode } = useContext(ThemeContext);
-
-  /* i18n hook */
   const { t } = useTranslation();
 
-  /* local state */
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState(null);
@@ -37,7 +34,6 @@ export default function ProfileScreen() {
     notifications: false,
   });
 
-  /* ---------- Firestore helpers ---------- */
   const readProfile = async () => {
     try {
       setLoading(true);
@@ -81,38 +77,33 @@ export default function ProfileScreen() {
     }
   };
 
-  /* ---------- Handlers ---------- */
   const handleRowPress = (action) => {
     switch (action) {
       case 'settings':
         navigation.navigate('SettingsScreen');
         break;
-      case 'about':
-        navigation.navigate('AboutUsScreen');
-        break;
-      case 'terms':
-        navigation.navigate('TermsAndConditions');
+      case 'faq':
+        navigation.navigate('FAQScreen');
         break;
       case 'exit':
         signOut(auth)
           .then(() =>
             navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
           )
-          .catch(() =>
-            Alert.alert('Error', t('profile.signOutError'))
-          );
+          .catch(() => Alert.alert('Error', t('profile.signOutError')));
+        break;
+      case 'likedAds':
+        navigation.navigate('LikedAdsScreen');
         break;
       default:
         break;
     }
   };
 
-  /* ---------- Styles ---------- */
   const styles = isDarkMode ? darkStyles : lightStyles;
   const statusBarStyle = isDarkMode ? 'light-content' : 'dark-content';
   const statusBarBg = isDarkMode ? '#121212' : '#fff';
 
-  /* ---------- Loading & empty states ---------- */
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -126,7 +117,12 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
-        <View style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]}>
+        <View
+          style={[
+            styles.safe,
+            { justifyContent: 'center', alignItems: 'center' },
+          ]}
+        >
           <Text style={styles.noUserText}>{t('profile.noUser')}</Text>
           <TouchableOpacity style={styles.reloadButton} onPress={readProfile}>
             <Text style={{ color: '#fff' }}>{t('profile.reloadProfile')}</Text>
@@ -136,7 +132,6 @@ export default function ProfileScreen() {
     );
   }
 
-  /* ---------- Render ---------- */
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
@@ -159,7 +154,9 @@ export default function ProfileScreen() {
         >
           <Image
             source={
-              user?.avatarUrl ? { uri: user.avatarUrl } : require('../../assets/Images/avatar.jpg')
+              user?.avatarUrl
+                ? { uri: user.avatarUrl }
+                : require('../../assets/Images/avatar.jpg')
             }
             style={styles.avatar}
           />
@@ -212,10 +209,8 @@ export default function ProfileScreen() {
         {/* options list */}
         {[
           { icon: 'cog-outline', label: t('profile.settings'), action: 'settings' },
+          { icon: 'heart-outline', label: t('profile.yourLikedAds') || "Your Liked Ads", action: 'likedAds' }, // NEW ADDED BUTTON
           { icon: 'comment-question-outline', label: t('profile.faq'), action: 'faq' },
-          { icon: 'information-outline', label: t('profile.aboutApp'), action: 'about' },
-          { icon: 'star-outline', label: t('profile.giveRating'), action: 'rating' },
-          { icon: 'file-document-outline', label: t('profile.termsConditions'), action: 'terms' },
           { icon: 'exit-to-app', label: t('profile.exitApp'), action: 'exit' },
         ].map((o) => (
           <TouchableOpacity

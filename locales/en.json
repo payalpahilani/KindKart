@@ -3,7 +3,12 @@
     "settings": "Settings",
     "appearance": "Appearance",
     "dark_mode": "Dark Mode",
-    "select_language": "Language"
+    "select_language": "Language",
+    "aboutApp": "About the App",
+    "giveRating": "Give a Rating",
+    "termsConditions": "Terms and Conditions",
+    "rateAppPrompt": "Would you like to rate our app?",
+    "faq": "FAQ"
   },
   "profile": {
     "userName": "User Name",
@@ -19,11 +24,12 @@
     "giveRating": "Give the rating",
     "termsConditions": "Terms & Condition",
     "exitApp": "Exit the app",
+    "yourLikedAds": "your Liked Ads",
     "noUser": "No user data found",
     "reloadProfile": "Reload Profile",
     "signOutError": "Failed to sign out. Please try again."
   },
-   "chatList": {
+  "chatList": {
     "messages": "Messages",
     "activeChats": "Active Chats",
     "noActiveChats": "No active chats",
@@ -40,7 +46,7 @@
     "joinUs": "Join Us",
     "joinUsBody": "By using KindKart, you're not just giving—you’re becoming part of a compassionate community. Thank you for being here."
   },
-   "terms": {
+  "terms": {
     "title": "Terms and Conditions",
     "intro": "Welcome to KindKart. By accessing or using this app, you agree to be bound by these Terms and Conditions. If you do not agree with any part, please do not use the app.",
     "sections": {

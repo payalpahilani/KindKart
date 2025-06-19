@@ -9,6 +9,8 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Alert,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -47,9 +49,42 @@ export default function SettingsScreen() {
     );
   };
 
+  // Handlers for About, Rating, Terms:
+  const handleAbout = () => {
+    navigation.navigate('AboutUsScreen');
+  };
+  
+
+  const handleRating = () => {
+    Alert.alert(
+      t('settings.giveRating'),
+      t('settings.rateAppPrompt'),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('common.ok'),
+          onPress: () => {
+            Linking.openURL('https://appstore.com/yourapp'); // Replace with your app store URL
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleTerms = () => {
+    navigation.navigate('TermsAndConditions');
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: bg }]}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={[styles.backBtn, { backgroundColor: isDarkMode ? '#1E1E1E80' : '#FFFFFFCC' }]}
@@ -87,6 +122,46 @@ export default function SettingsScreen() {
             <LangChip code="fr" label="Français" flag="🇫🇷" />
           </View>
         </View>
+
+        {/* Separate Cards for About, Rating, Terms */}
+        <TouchableOpacity
+          style={[styles.optionCard, { backgroundColor: cardBg, borderColor: cardBor }]}
+          onPress={handleAbout}
+        >
+          <View style={styles.cardLeft}>
+            <Icon name="information-outline" size={22} color={text} />
+            <Text style={[styles.optionText, { color: text, marginLeft: 16 }]}>
+              {t('settings.aboutApp')}
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={24} color={muted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.optionCard, { backgroundColor: cardBg, borderColor: cardBor }]}
+          onPress={handleRating}
+        >
+          <View style={styles.cardLeft}>
+            <Icon name="star-outline" size={22} color={text} />
+            <Text style={[styles.optionText, { color: text, marginLeft: 16 }]}>
+              {t('settings.giveRating')}
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={24} color={muted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.optionCard, { backgroundColor: cardBg, borderColor: cardBor }]}
+          onPress={handleTerms}
+        >
+          <View style={styles.cardLeft}>
+            <Icon name="file-document-outline" size={22} color={text} />
+            <Text style={[styles.optionText, { color: text, marginLeft: 16 }]}>
+              {t('settings.termsConditions')}
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={24} color={muted} />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -163,5 +238,32 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 15,
     fontWeight: '600',
+  },
+
+  optionCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+
+    // shadow for iOS
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    // elevation for Android
+    elevation: 2,
+  },
+  cardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

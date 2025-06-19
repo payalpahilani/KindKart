@@ -31,7 +31,7 @@ export default function ChatListScreen({ navigation }) {
 
   const currentUser = auth.currentUser;
 
-  // 🔄 Fetch current user avatar for the top-left profile icon
+  // Fetch current user avatar for the top-left profile icon
   useEffect(() => {
     async function fetchAvatar() {
       if (!currentUser?.uid) return;

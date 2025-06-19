@@ -34,6 +34,7 @@ import NgoSignUpScreen from '../Components/screens/NgoSignUpScreen';
 import NgoCreateCampaignScreen from "../Components/screens/NgoCreateCampaign";
 import NgoEditCampaign from "../Components/screens/NgoEditCampaign";
 import AdDetailsScreen from "../Components/screens/AdDetailScreen";
+import LikedAdsScreen from "../Components/screens/LikedAdsScreen";
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -187,11 +188,11 @@ export default function AppNavigator() {
           name="TermsAndConditions"
           component={TermsAndConditionsScreen}
         />
-        {/* --- THIS IS THE KEY: ChatScreen is NOT in the tab navigator --- */}
         <RootStack.Screen name="ChatScreen" component={ChatScreen} />
         <RootStack.Screen name="NgoCreateCampaign" component={NgoCreateCampaignScreen} />
         <RootStack.Screen name="NgoEditCampaign" component={NgoEditCampaign} />
         <RootStack.Screen name="AdDetails" component={AdDetailsScreen} />
+        <RootStack.Screen name="LikedAdsScreen" component={LikedAdsScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );

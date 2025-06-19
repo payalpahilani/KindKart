@@ -3,7 +3,12 @@
     "settings": "Paramètres",
     "appearance": "Apparence",
     "dark_mode": "Mode sombre",
-    "select_language": "Langue"
+    "select_language": "Langue",
+    "aboutApp": "À propos de l'application",
+    "giveRating": "Donner une note",
+    "termsConditions": "Conditions générales",
+    "rateAppPrompt": "Voulez-vous noter notre application ?",
+    "faq": "FAQ"
   },
   "profile": {
     "userName": "Nom d'utilisateur",
@@ -19,11 +24,12 @@
     "giveRating": "Donner une note",
     "termsConditions": "Conditions générales",
     "exitApp": "Quitter l'application",
+    "yourLikedAds": "Vos annonces aimées",
     "noUser": "Aucune donnée utilisateur trouvée",
     "reloadProfile": "Recharger le profil",
     "signOutError": "Échec de la déconnexion. Veuillez réessayer."
   },
-   "chatList": {
+  "chatList": {
     "messages": "Messages",
     "activeChats": "Discussions actives",
     "noActiveChats": "Aucune discussion active",
@@ -40,7 +46,7 @@
     "joinUs": "Rejoignez-nous",
     "joinUsBody": "En utilisant KindKart, vous ne faites pas que donner — vous devenez membre d'une communauté compatissante. Merci d'être ici."
   },
-   "terms": {
+  "terms": {
     "title": "Conditions générales",
     "intro": "Bienvenue sur KindKart. En accédant ou en utilisant cette application, vous acceptez d'être lié par ces conditions générales. Si vous n'êtes pas d'accord avec une partie, veuillez ne pas utiliser l'application.",
     "sections": {
