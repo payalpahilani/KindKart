@@ -27,6 +27,7 @@ import TermsAndConditionsScreen from "../Components/screens/TermsAndConditionsSc
 import NgoHomeScreen from '../Components/screens/NgoHomeScreen'
 import CampaignsScreen from '../Components/screens/CampaignsScreen'
 import DonorsScreen from '../Components/screens/DonorsScreen';
+import DonationDetailScreen from "../Components/screens/DonationDetailScreen";
 import NgoProfileScreen from '../Components/screens/NgoProfileScreen';
 import NgoLoginScreen from '../Components/screens/NgoLoginScreen';
 import NgoSignUpScreen from '../Components/screens/NgoSignUpScreen';
@@ -179,6 +180,7 @@ export default function AppNavigator() {
           name="EditProfileScreen"
           component={EditProfileScreen}
         />
+        <RootStack.Screen name="DonationDetail" component={DonationDetailScreen} />
         <RootStack.Screen name="SettingsScreen" component={SettingsScreen} />
         <RootStack.Screen name="AboutUsScreen" component={AboutUsScreen} />
         <RootStack.Screen
