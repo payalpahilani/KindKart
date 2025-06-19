@@ -78,7 +78,7 @@ export default function ListItemScreen() {
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
-  const [ngo, setNgo] = useState("");
+  const [ngo, setNgo] = useState(null);
   const [cause, setCause] = useState("");
   const [ngoOptions, setNgoOptions] = useState([]);
   const [causeOptions, setCauseOptions] = useState([]);
@@ -189,33 +189,77 @@ export default function ListItemScreen() {
     return uploadedUrls;
   };
 
-  // Real-time fetch for NGO dropdown
+  // --- Fetch NGOs with uid ---
   useEffect(() => {
     setLoadingNgos(true);
     const unsubscribe = onSnapshot(collection(db, "ngo"), (snapshot) => {
       const ngos = snapshot.docs
-        .map((doc) => doc.data().ngoName)
-        .filter(Boolean)
-        .map((name) => ({ label: name, value: name }));
+        .map((doc) => ({
+          label: doc.data().ngoName,
+          value: doc.data().uid, // Use uid as value
+        }))
+        .filter((ngo) => ngo.label && ngo.value);
       setNgoOptions(ngos);
       setLoadingNgos(false);
+      console.log("NGO options loaded:", ngos); // <--- LOG
     });
     return () => unsubscribe();
   }, []);
 
-  // Real-time fetch for Cause dropdown
+  // --- Fetch causes for selected NGO ---
   useEffect(() => {
-    setLoadingCauses(true);
-    const unsubscribe = onSnapshot(collection(db, "campaigns"), (snapshot) => {
-      const causes = snapshot.docs
-        .map((doc) => doc.data().title)
-        .filter(Boolean)
-        .map((title) => ({ label: title, value: title }));
-      setCauseOptions(causes);
+    console.log("useEffect ngo value:", ngo); // <--- LOG
+    if (!ngo) {
+      setCauseOptions([]);
+      setCause("");
       setLoadingCauses(false);
-    });
+      console.log("No NGO selected, causeOptions cleared."); // <--- LOG
+      return;
+    }
+    setLoadingCauses(true);
+    const unsubscribe = onSnapshot(
+      collection(db, "campaigns"),
+      (snapshot) => {
+        console.log(
+          "All campaigns:",
+          snapshot.docs.map((doc) => doc.data())
+        );
+        const causes = snapshot.docs
+          .filter((doc) => {
+            // --- DEBUG LOG START ---
+            const createdBy = doc.data().createdBy;
+            // ngo might be an object or a string depending on your code
+            // If ngo is an object, use ngo.value; if it's a string, use ngo
+            const ngoValue =
+              typeof ngo === "object" && ngo !== null ? ngo.value : ngo;
+            const isMatch = createdBy === ngoValue;
+            console.log(
+              "Comparing createdBy:",
+              JSON.stringify(createdBy),
+              "with ngo:",
+              JSON.stringify(ngoValue),
+              "Result:",
+              isMatch
+            );
+            return isMatch;
+            // --- DEBUG LOG END ---
+          })
+          .map((doc) => ({
+            label: doc.data().title,
+            value: doc.id,
+          }))
+          .filter((cause) => cause.label && cause.value);
+        setCauseOptions(causes);
+        setLoadingCauses(false);
+        console.log("Cause options set:", causes); // <--- LOG
+      },
+      (error) => {
+        setLoadingCauses(false);
+        console.error("onSnapshot error:", error);
+      }
+    );
     return () => unsubscribe();
-  }, []);
+  }, [ngo]);
 
   // Submit handler
   const handleSubmit = async () => {
@@ -223,7 +267,14 @@ export default function ListItemScreen() {
       Alert.alert("Please agree to the terms before submitting.");
       return;
     }
-    if (!title || !price || !description || !ngo || !cause || (images || []).length === 0) {
+    if (
+      !title ||
+      !price ||
+      !description ||
+      !ngo ||
+      !cause ||
+      (images || []).length === 0
+    ) {
       Alert.alert("Please fill all fields and select at least one image.");
       return;
     }
@@ -491,7 +542,11 @@ export default function ListItemScreen() {
               <CustomDropdown
                 data={ngoOptions}
                 value={ngo}
-                onChange={setNgo}
+                onChange={(item) => {
+                  setNgo(item);
+                  setCause(""); 
+                  console.log("NGO selected (onChange):", item);// Reset cause when NGO changes
+                }}
                 placeholder="Select NGO"
                 testID="ngoDropdown"
               />
@@ -505,9 +560,16 @@ export default function ListItemScreen() {
               <CustomDropdown
                 data={causeOptions}
                 value={cause}
-                onChange={setCause}
-                placeholder="Select Cause"
+                onChange={(item) => setCause(item.value)}
+                placeholder={
+                  ngo
+                    ? loadingCauses
+                      ? "Loading causes..."
+                      : "Select Cause"
+                    : "Select NGO first"
+                }
                 testID="causeDropdown"
+                disabled={!ngo}
               />
             )}
 
@@ -927,7 +989,7 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 18, 
     letterSpacing: 0.5,
   },
   suggestion: {

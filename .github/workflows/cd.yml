@@ -11,28 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18.x
           cache: npm
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+
       - name: Install dependencies
         run: npm ci
-      - name: Build on EAS (Android only)
-        run: eas build --platform android --non-interactive 
+
+      - name: Build APK on EAS (Android only)
+        run: eas build --platform android --profile apk --non-interactive
+
       - name: Download EAS Build Artifact
         run: |
-          npx eas-cli build:list --platform android --limit 1 --json > builds.json
-          BUILD_ID=$(cat builds.json | jq -r '.[0].id')
-          npx eas-cli build:download --platform android --id $BUILD_ID --output app.aab
+          npx eas-cli build:list --platform android --status finished --build-profile apk --limit 1 --json > builds.json
+          BUILD_ID=$(cat builds.json | jq -r '..id')
+          npx eas-cli build:download --platform android --id $BUILD_ID --output app.apk
+
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           token: ${{ secrets.FIREBASE_TOKEN }}
           groups: testers
-          file: app.aab
+          file: app.apk
