@@ -63,7 +63,7 @@ export default function NgoProfileScreen() {
 
   const handleLogout = () => {
     signOut(auth)
-      .then(() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }))
+      .then(() => navigation.reset({ index: 0, routes: [{ name: 'Launch' }] }))
       .catch(() => Alert.alert('Error', 'Failed to sign out.'));
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,9 @@ import { useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Platform } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
+import { KeyboardAvoidingView } from 'react-native';
+import { doc, getDoc } from "firebase/firestore";
+
 
 
 
@@ -62,6 +65,23 @@ export default function NgoCreateCampaignScreen() {
   const [daysLeft, setDaysLeft] = useState(null);
 
 
+  useEffect(() => {
+    const fetchNgoInfo = async () => {
+      const uid = getAuth().currentUser?.uid;
+      if (!uid) return;
+      try {
+        const docSnap = await getDoc(doc(db, "ngo", uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setCampaignerName(data.ngoName); // auto-fills campaigner
+        }
+      } catch (err) {
+        console.log("Failed to fetch NGO data", err);
+      }
+    };
+    fetchNgoInfo();
+  }, []);
+  
 
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -184,6 +204,11 @@ export default function NgoCreateCampaignScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : undefined}
+    keyboardVerticalOffset={100}
+  >
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.navRow}>
           <TouchableOpacity onPress={handleCancel}>
@@ -240,7 +265,10 @@ export default function NgoCreateCampaignScreen() {
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
-                const formatted = selectedDate.toISOString().split("T")[0];
+                const formatted = selectedDate.getFullYear() + '-' + 
+                String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(selectedDate.getDate()).padStart(2, '0');
+
                 setCampaignDate(formatted);
             
                 const today = new Date();
@@ -293,10 +321,11 @@ export default function NgoCreateCampaignScreen() {
     { label: "Events", value: "events" },
   ]}
   style={{
-    inputIOS: styles.input,
-    inputAndroid: styles.input,
+    inputIOS: { ...styles.input, color: '#000' },
+    inputAndroid: { ...styles.input, color: '#000' },
     iconContainer: { top: 20, right: 15 },
   }}
+  
   useNativeAndroidPickerStyle={false}
   Icon={() => <Ionicons name="chevron-down" size={10} color="gray" />}
 />
@@ -306,7 +335,7 @@ export default function NgoCreateCampaignScreen() {
   value={campaignCategory}
   placeholder={{ label: "Select Campaign Category", value: null }}
   items={[
-    { label: "Medical Aid", value: "medical_aid" },
+  { label: "Medical Aid", value: "medical_aid" },
   { label: "Disaster Relief", value: "disaster_relief" },
   { label: "Child Welfare", value: "child_welfare" },
   { label: "Women Empowerment", value: "women_empowerment" },
@@ -318,10 +347,11 @@ export default function NgoCreateCampaignScreen() {
   { label: "Livelihood Support", value: "livelihood_support" },
   ]}
   style={{
-    inputIOS: styles.input,
-    inputAndroid: styles.input,
+    inputIOS: { ...styles.input, color: '#000' },
+    inputAndroid: { ...styles.input, color: '#000' },
     iconContainer: { top: 20, right: 15 },
   }}
+  
   useNativeAndroidPickerStyle={false}
   Icon={() => <Ionicons name="chevron-down" size={10} color="gray" />}
 />
@@ -329,8 +359,8 @@ export default function NgoCreateCampaignScreen() {
 
 
           {/* <TextInput placeholder="Category (e.g. Campaign)" value={category} onChangeText={setCategory} style={styles.input} />
-          <TextInput placeholder="Campaign Category (e.g. Personal)" value={campaignCategory} onChangeText={setCampaignCategory} style={styles.input} />
-          <TextInput placeholder="Total Donation (e.g. 1000000)" value={totalDonation} onChangeText={setTotalDonation} keyboardType="numeric" style={styles.input} /> */}
+          <TextInput placeholder="Campaign Category (e.g. Personal)" value={campaignCategory} onChangeText={setCampaignCategory} style={styles.input} /> */}
+          <TextInput placeholder="Total Donation (e.g. 1000000)" value={totalDonation} onChangeText={setTotalDonation} keyboardType="numeric" style={styles.input} />
           <RNPickerSelect
                 onValueChange={(value) => setCurrency(value)}
                 value={currency}
@@ -381,6 +411,7 @@ export default function NgoCreateCampaignScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
