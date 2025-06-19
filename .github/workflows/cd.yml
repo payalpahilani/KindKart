@@ -31,7 +31,7 @@ jobs:
 
       - name: Download EAS Build Artifact
         run: |
-          npx eas-cli build:list --platform android --status finished --profile apk --limit 1 --json > builds.json
+          npx eas-cli build:list --platform android --status finished --build-profile apk --limit 1 --json > builds.json
           BUILD_ID=$(cat builds.json | jq -r '..id')
           npx eas-cli build:download --platform android --id $BUILD_ID --output app.apk
 
