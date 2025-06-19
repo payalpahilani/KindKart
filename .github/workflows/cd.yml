@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build on EAS (Android only)
-        run: eas build --platform android --non-interactive --no-wait
+        run: eas build --platform android --non-interactive 
       - name: Download EAS Build Artifact
         run: |
           npx eas-cli build:list --platform android --limit 1 --json > builds.json
