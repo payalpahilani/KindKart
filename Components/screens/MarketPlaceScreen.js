@@ -20,6 +20,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemeContext } from "../Utilities/ThemeContext";
 import { db } from "../../firebaseConfig";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import CategoryAdsScreen from "./CategoryAdsScreen";
 
 const { width } = Dimensions.get("window");
 
@@ -30,17 +31,22 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// --- UPDATED: Consistent, trimmed, and database-matching category labels ---
 const categories = [
   { label: "Electronics", icon: "laptop", color: "#FFF6D4" },
-  { label: "Jewelry", icon: "diamond-stone", color: "#FFE2E2" },
-  { label: "Fashion", icon: "tshirt-crew", color: "#E9E2FF" },
-  { label: "Home", icon: "sofa", color: "#E2F6FF" },
-  { label: "Beauty", icon: "face-woman", color: "#ECF5EC" },
-  { label: "Sports", icon: "basketball", color: "#FFF6D4" },
-  { label: "Books", icon: "book-open-page-variant", color: "#E2FFE9" },
-  { label: "Pets", icon: "dog", color: "#FFE2E2" },
-  { label: "Toys", icon: "puzzle", color: "#E9E2FF" },
-  { label: "Health", icon: "heart", color: "#E2F6FF" },
+  { label: "Jewellery", icon: "diamond-stone", color: "#FFE2E2" },
+  { label: "Fashion & Apparel", icon: "tshirt-crew", color: "#E9E2FF" },
+  { label: "Home & Kitchen", icon: "sofa", color: "#E2F6FF" },
+  { label: "Beauty & Personal Care", icon: "face-woman", color: "#ECF5EC" },
+  { label: "Sports & Outdoors", icon: "basketball", color: "#FFF6D4" },
+  {
+    label: "Books & Educational",
+    icon: "book-open-page-variant",
+    color: "#E2FFE9",
+  },
+  { label: "Pet Supplies", icon: "dog", color: "#FFE2E2" }, // corrected label
+  { label: "Toys & Games", icon: "puzzle", color: "#E9E2FF" },
+  { label: "Health & Wellness", icon: "heart", color: "#E2F6FF" },
 ];
 
 const NUM_COLUMNS = 5;
@@ -127,24 +133,68 @@ export default function MarketplaceScreen({ navigation }) {
     setter(!value);
   };
 
+  // --- UPDATED: Consistent category labels and even grid spacing ---
+  const CATEGORY_ITEM_WIDTH = 70; // or adjust to fit your screen and number of items
+
   const renderCategory = ({ item }) => (
-    <View style={st.categoryColumn}>
-      <View style={[st.categoryCircle, { backgroundColor: item.color }]}>
+    <TouchableOpacity
+      style={{
+        width: CATEGORY_ITEM_WIDTH,
+        alignItems: "center",
+        justifyContent: "flex-start",
+        marginHorizontal: 4,
+      }}
+      activeOpacity={0.85}
+      onPress={() =>
+        navigation.navigate("CategoryAdsScreen", { category: item.label })
+      }
+    >
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: item.color,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 4,
+        }}
+      >
         <Icon name={item.icon} size={24} color="#555" />
       </View>
-      <Text style={st.categoryLabel}>{item.label}</Text>
-    </View>
+      <Text
+        style={{
+          fontSize: 12,
+          color: "#23253A",
+          textAlign: "center",
+          height: 32, // enough for two lines
+        }}
+        numberOfLines={2}
+        ellipsizeMode="tail"
+      >
+        {item.label}
+      </Text>
+    </TouchableOpacity>
   );
 
   const renderCategoriesGrid = () => (
     <View style={st.categoriesGrid}>
       {categories.map((cat) => (
-        <View key={cat.label} style={st.categoryColumn}>
+        <TouchableOpacity
+          key={cat.label}
+          style={st.categoryColumn}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate("CategoryAdsScreen", { category: cat.label })
+          }
+        >
           <View style={[st.categoryCircle, { backgroundColor: cat.color }]}>
             <Icon name={cat.icon} size={24} color="#555" />
           </View>
-          <Text style={st.categoryLabel}>{cat.label}</Text>
-        </View>
+          <Text style={st.categoryLabel} numberOfLines={2} ellipsizeMode="tail">
+            {cat.label}
+          </Text>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -210,14 +260,17 @@ export default function MarketplaceScreen({ navigation }) {
           renderCategoriesGrid()
         ) : (
           <FlatList
-            data={categories.slice(0, 5)}
-            horizontal
-            keyExtractor={(item) => item.label}
-            renderItem={renderCategory}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={st.categoriesRow}
-            ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
-          />
+  data={categories.slice(0, 5)}
+  horizontal
+  keyExtractor={(item) => item.label}
+  renderItem={renderCategory}
+  showsHorizontalScrollIndicator={false}
+  contentContainerStyle={{
+    paddingHorizontal: 4,
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  }}
+/>
         )}
 
         {/* Latest Ads */}
@@ -378,6 +431,7 @@ const common = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 16,
+    marginHorizontal: 0,
   },
   categoryColumn: {
     alignItems: "center",
@@ -392,6 +446,15 @@ const common = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 6,
+  },
+  categoryLabel: {
+    fontSize: 12,
+    color: "#333",
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 4,
+    marginHorizontal: 2,
+    flexShrink: 1,
   },
   adCard: {
     width: width * 0.5,
@@ -459,7 +522,7 @@ const light = StyleSheet.create({
   filterButton: { ...common.filterButton, backgroundColor: "#23253A" },
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#23253A" },
   seeAll: { color: "#2CB67D", fontWeight: "600", fontSize: 14 },
-  categoryLabel: { fontSize: 13, color: "#333", fontWeight: "500" },
+  categoryLabel: { ...common.categoryLabel, color: "#333" },
   adCard: {
     ...common.adCard,
     backgroundColor: "#fff",
@@ -503,7 +566,7 @@ const dark = StyleSheet.create({
   filterButton: { ...common.filterButton, backgroundColor: "#2CB67D" },
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#eee" },
   seeAll: { color: "#2CB67D", fontWeight: "600", fontSize: 14 },
-  categoryLabel: { fontSize: 13, color: "#ddd", fontWeight: "500" },
+  categoryLabel: { ...common.categoryLabel, color: "#ddd" },
   adCard: {
     ...common.adCard,
     backgroundColor: "#1E1E1E",
