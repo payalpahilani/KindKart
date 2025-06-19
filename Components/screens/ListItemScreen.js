@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
 import CustomDropdown from "../Utilities/CustomDropdown";
@@ -25,17 +25,9 @@ import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 
-const GOOGLE_API_KEY = "YOUR_GOOGLE_PLACES_API_KEY"; // <-- Replace with your real API key
+const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo"; // <-- Replace with your real API key
 const BACKEND_URL = "http://10.0.0.43:4000"; // Replace with your backend server address
 const MAX_IMAGES = 5;
-
-const ngoOptions = ["Orphan Foundation", "Food Relief", "Animal Care", "Other"];
-const causeOptions = [
-  "Help children for orphanage scholarship",
-  "Feed the hungry",
-  "Support animal shelters",
-  "Other",
-];
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
 const conditionOptions = ["New", "Used", "Refurbished"];
 const categoryOptions = [
@@ -85,9 +77,13 @@ export default function ListItemScreen() {
   }, []);
 
   const [title, setTitle] = useState("");
-  const [ngo, setNgo] = useState(ngoOptions[0]);
-  const [cause, setCause] = useState(causeOptions[0]);
   const [price, setPrice] = useState("");
+  const [ngo, setNgo] = useState("");
+  const [cause, setCause] = useState("");
+  const [ngoOptions, setNgoOptions] = useState([]);
+  const [causeOptions, setCauseOptions] = useState([]);
+  const [loadingNgos, setLoadingNgos] = useState(true);
+  const [loadingCauses, setLoadingCauses] = useState(true);
   const [salePrice, setSalePrice] = useState("");
   const [negotiable, setNegotiable] = useState(false);
   const [currency, setCurrency] = useState(currencyOptions[0]);
@@ -111,8 +107,6 @@ export default function ListItemScreen() {
   const [selected, setSelected] = useState(null);
 
   const [category, setCategory] = useState(categoryOptions[0]);
-  const ngoData = ngoOptions.map((opt) => ({ label: opt, value: opt }));
-  const causeData = causeOptions.map((opt) => ({ label: opt, value: opt }));
   const currencyData = currencyOptions.map((opt) => ({
     label: opt,
     value: opt,
@@ -195,13 +189,41 @@ export default function ListItemScreen() {
     return uploadedUrls;
   };
 
+  // Real-time fetch for NGO dropdown
+  useEffect(() => {
+    setLoadingNgos(true);
+    const unsubscribe = onSnapshot(collection(db, "ngo"), (snapshot) => {
+      const ngos = snapshot.docs
+        .map((doc) => doc.data().ngoName)
+        .filter(Boolean)
+        .map((name) => ({ label: name, value: name }));
+      setNgoOptions(ngos);
+      setLoadingNgos(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time fetch for Cause dropdown
+  useEffect(() => {
+    setLoadingCauses(true);
+    const unsubscribe = onSnapshot(collection(db, "campaigns"), (snapshot) => {
+      const causes = snapshot.docs
+        .map((doc) => doc.data().title)
+        .filter(Boolean)
+        .map((title) => ({ label: title, value: title }));
+      setCauseOptions(causes);
+      setLoadingCauses(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Submit handler
   const handleSubmit = async () => {
     if (!agree) {
       Alert.alert("Please agree to the terms before submitting.");
       return;
     }
-    if (!title || !price || !description || (images || []).length === 0) {
+    if (!title || !price || !description || !ngo || !cause || (images || []).length === 0) {
       Alert.alert("Please fill all fields and select at least one image.");
       return;
     }
@@ -239,8 +261,8 @@ export default function ListItemScreen() {
 
       Alert.alert("Ad listed successfully!");
       setTitle("");
-      setNgo(ngoOptions[0]);
-      setCause(causeOptions[0]);
+      setNgo("");
+      setCause("");
       setPrice("");
       setSalePrice("");
       setNegotiable(false);
@@ -461,23 +483,33 @@ export default function ListItemScreen() {
               style={styles.input}
             />
 
-            <Text style={styles.inputLabel}>SELECT NGO</Text>
-            <CustomDropdown
-              data={ngoData}
-              value={ngo}
-              onChange={setNgo}
-              placeholder="Select NGO"
-              testID="ngoDropdown"
-            />
+            {/* NGO Dropdown (real-time) */}
+            <Text style={styles.inputLabel}>Select NGO</Text>
+            {loadingNgos ? (
+              <ActivityIndicator size="small" color="#2CB67D" />
+            ) : (
+              <CustomDropdown
+                data={ngoOptions}
+                value={ngo}
+                onChange={setNgo}
+                placeholder="Select NGO"
+                testID="ngoDropdown"
+              />
+            )}
 
-            <Text style={styles.inputLabel}>SELECT CAUSE</Text>
-            <CustomDropdown
-              data={causeData}
-              value={cause}
-              onChange={setCause}
-              placeholder="Select Cause"
-              testID="causeDropdown"
-            />
+            {/* Cause Dropdown (real-time) */}
+            <Text style={styles.inputLabel}>Select Cause</Text>
+            {loadingCauses ? (
+              <ActivityIndicator size="small" color="#2CB67D" />
+            ) : (
+              <CustomDropdown
+                data={causeOptions}
+                value={cause}
+                onChange={setCause}
+                placeholder="Select Cause"
+                testID="causeDropdown"
+              />
+            )}
 
             <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1 }}>
@@ -672,8 +704,8 @@ export default function ListItemScreen() {
                 ]}
                 onPress={() => {
                   setTitle("");
-                  setNgo(ngoOptions[0]);
-                  setCause(causeOptions[0]);
+                  setNgo("");
+                  setCause("");
                   setPrice("");
                   setSalePrice("");
                   setNegotiable(false);

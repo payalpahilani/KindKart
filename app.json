@@ -30,9 +30,7 @@
     "plugins": [
       "expo-web-browser",
       "expo-localization",
-      "expo-build-properties",
-      "@react-native-firebase/app",
-      "expo-firebase-app-distribution"
+      "expo-build-properties"
     ],
     "extra": {
       "eas": {

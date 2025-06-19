@@ -1,5 +1,4 @@
-// Components/screens/MarketplaceScreen.js
-import React, { useContext } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,73 +9,161 @@ import {
   FlatList,
   Image,
   Dimensions,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  ActivityIndicator,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { ThemeContext } from "../Utilities/ThemeContext"; // ← add
+import { ThemeContext } from "../Utilities/ThemeContext";
+import { db } from "../../firebaseConfig";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 
 const { width } = Dimensions.get("window");
 
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const categories = [
-  { label: "Jobs", icon: "briefcase-outline", color: "#FFE2E2" },
   { label: "Electronics", icon: "laptop", color: "#FFF6D4" },
-  { label: "Vehicles", icon: "car-outline", color: "#E2F6FF" },
-  { label: "Docs", icon: "file-document-outline", color: "#E9E2FF" },
+  { label: "Jewelry", icon: "diamond-stone", color: "#FFE2E2" },
+  { label: "Fashion", icon: "tshirt-crew", color: "#E9E2FF" },
+  { label: "Home", icon: "sofa", color: "#E2F6FF" },
+  { label: "Beauty", icon: "face-woman", color: "#ECF5EC" },
+  { label: "Sports", icon: "basketball", color: "#FFF6D4" },
   { label: "Books", icon: "book-open-page-variant", color: "#E2FFE9" },
+  { label: "Pets", icon: "dog", color: "#FFE2E2" },
+  { label: "Toys", icon: "puzzle", color: "#E9E2FF" },
+  { label: "Health", icon: "heart", color: "#E2F6FF" },
 ];
 
-const latestAds = [
-  {
-    id: "1",
-    image: require("../../assets/Images/headphones.jpg"),
-    title: "Product title....",
-    category: "CATEGORY",
-    location: "LOCATION",
-    price: "00.000 CAD",
-  },
-  {
-    id: "2",
-    image: require("../../assets/Images/car.jpg"),
-    title: "Product title....",
-    category: "CATEGORY",
-    location: "LOCATION",
-    price: "00.000 CAD",
-  },
-];
+const NUM_COLUMNS = 5;
 
-const otherAds = [
-  {
-    id: "3",
-    image: require("../../assets/Images/nike-shoes.jpg"),
-    title: "Product title....",
-    price: "00.000 CAD",
-  },
-  {
-    id: "4",
-    image: require("../../assets/Images/bag.jpg"),
-    title: "Product title....",
-    price: "00.000 CAD",
-  },
-  {
-    id: "5",
-    image: require("../../assets/Images/tv.jpg"),
-    title: "Product title....",
-    price: "00.000 CAD",
-  },
-  {
-    id: "6",
-    image: require("../../assets/Images/shoes.jpg"),
-    title: "Product title....",
-    price: "00.000 CAD",
-  },
-];
+// --- SHARE FUNCTIONALITY ---
+const handleShare = async (ad) => {
+  try {
+    await Share.share({
+      message: `Check out this ad!\n\n${ad.title}\nPrice: ${ad.currency}-${ad.price}\nLocation: ${ad.pickupLocation}\n${ad.firstImage}`,
+      url: ad.firstImage,
+      title: ad.title,
+    });
+  } catch (error) {
+    alert("Error sharing: " + error.message);
+  }
+};
 
-/* ─────────────────────────────────────────────── */
-
-export default function MarketplaceScreen() {
+export default function MarketplaceScreen({ navigation }) {
   const { isDarkMode } = useContext(ThemeContext);
-  const st = isDarkMode ? dark : light; // pick style set
+  const st = isDarkMode ? dark : light;
+
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllLatest, setShowAllLatest] = useState(false);
+  const [showAllOthers, setShowAllOthers] = useState(false);
+
+  const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Real-time fetch from 'items' collection and transform data!
+  useEffect(() => {
+    const q = query(collection(db, "items"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const fetchedItems = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          const firstImage =
+            Array.isArray(data.imageUrls) && data.imageUrls.length > 0
+              ? data.imageUrls[0]
+              : "https://via.placeholder.com/150";
+          const categoryShort =
+            typeof data.category === "string"
+              ? data.category.split(" ")[0]
+              : "";
+          return {
+            id: doc.id,
+            ...data,
+            firstImage,
+            categoryShort,
+          };
+        });
+        setAds(fetchedItems);
+        setLoading(false);
+      },
+      (error) => {
+        console.error(error);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const now = Date.now();
+  const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+
+  const latestAds = ads.filter((ad) => {
+    if (!ad.createdAt) return false;
+    const adTime =
+      ad.createdAt.seconds * 1000 +
+      Math.floor(ad.createdAt.nanoseconds / 1000000);
+    return adTime >= twentyFourHoursAgo;
+  });
+
+  const otherAds = ads.filter((ad) => {
+    if (!ad.createdAt) return true;
+    const adTime =
+      ad.createdAt.seconds * 1000 +
+      Math.floor(ad.createdAt.nanoseconds / 1000000);
+    return adTime < twentyFourHoursAgo;
+  });
+
+  const handleToggle = (setter, value) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setter(!value);
+  };
+
+  const renderCategory = ({ item }) => (
+    <View style={st.categoryColumn}>
+      <View style={[st.categoryCircle, { backgroundColor: item.color }]}>
+        <Icon name={item.icon} size={24} color="#555" />
+      </View>
+      <Text style={st.categoryLabel}>{item.label}</Text>
+    </View>
+  );
+
+  const renderCategoriesGrid = () => (
+    <View style={st.categoriesGrid}>
+      {categories.map((cat) => (
+        <View key={cat.label} style={st.categoryColumn}>
+          <View style={[st.categoryCircle, { backgroundColor: cat.color }]}>
+            <Icon name={cat.icon} size={24} color="#555" />
+          </View>
+          <Text style={st.categoryLabel}>{cat.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderAdsGrid = (data) => (
+    <View style={st.gridWrap}>
+      {data.map((item) => (
+        <AdGridCard key={item.id} ad={item} st={st} navigation={navigation} />
+      ))}
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={st.centered}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={st.safe} edges={["top", "left", "right"]}>
@@ -109,87 +196,145 @@ export default function MarketplaceScreen() {
         {/* Categories */}
         <View style={st.sectionHeader}>
           <Text style={st.sectionTitle}>Categories</Text>
-          <TouchableOpacity>
-            <Text style={st.seeAll}>See all</Text>
+          <TouchableOpacity
+            onPress={() =>
+              handleToggle(setShowAllCategories, showAllCategories)
+            }
+          >
+            <Text style={st.seeAll}>
+              {showAllCategories ? "Show less" : "See all"}
+            </Text>
           </TouchableOpacity>
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={st.categoriesRow}
-        >
-          {categories.map((cat, i) => (
-            <View key={i} style={st.categoryColumn}>
-              <View style={[st.categoryCircle, { backgroundColor: cat.color }]}>
-                <Icon name={cat.icon} size={24} color="#555" />
-              </View>
-              <Text style={st.categoryLabel}>{cat.label}</Text>
-            </View>
-          ))}
-        </ScrollView>
+        {showAllCategories ? (
+          renderCategoriesGrid()
+        ) : (
+          <FlatList
+            data={categories.slice(0, 5)}
+            horizontal
+            keyExtractor={(item) => item.label}
+            renderItem={renderCategory}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={st.categoriesRow}
+            ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
+          />
+        )}
 
         {/* Latest Ads */}
         <View style={st.sectionHeader}>
           <Text style={st.sectionTitle}>Latest Ads</Text>
-          <TouchableOpacity>
-            <Text style={st.seeAll}>See all</Text>
+          <TouchableOpacity
+            onPress={() => handleToggle(setShowAllLatest, showAllLatest)}
+          >
+            <Text style={st.seeAll}>
+              {showAllLatest ? "Show less" : "See all"}
+            </Text>
           </TouchableOpacity>
         </View>
-
-        <FlatList
-          data={latestAds}
-          horizontal
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 10 }}
-          renderItem={({ item }) => (
-            <View style={st.adCard}>
-              <Image source={item.image} style={st.adImage} />
-              <View style={st.adInfoRow}>
-                <Text style={st.adCategory}>{item.category}</Text>
-                <Text style={st.adLocation}>{item.location}</Text>
-              </View>
-              <Text style={st.adTitle}>{item.title}</Text>
-              <Text style={st.adPrice}>{item.price}</Text>
-              <View style={st.adActionsRow}>
-                <Icon
-                  name="share-variant"
-                  size={20}
-                  color={isDarkMode ? "#bbb" : "#A0A0A0"}
-                />
-                <Icon
-                  name="bookmark-outline"
-                  size={20}
-                  color={isDarkMode ? "#bbb" : "#A0A0A0"}
-                  style={{ marginLeft: 16 }}
-                />
-              </View>
-            </View>
-          )}
-        />
+        {latestAds.length === 0 ? (
+          <Text style={st.emptyText}>No new ads in the last 24 hours.</Text>
+        ) : showAllLatest ? (
+          renderAdsGrid(latestAds)
+        ) : (
+          <FlatList
+            data={latestAds.slice(0, 5)}
+            horizontal
+            keyExtractor={(item) => item.id}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 10 }}
+            renderItem={({ item }) => (
+              <AdCard ad={item} st={st} navigation={navigation} />
+            )}
+            ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
+          />
+        )}
 
         {/* Others */}
         <View style={st.sectionHeader}>
           <Text style={st.sectionTitle}>Others</Text>
-          <TouchableOpacity>
-            <Text style={st.seeAll}>See all</Text>
+          <TouchableOpacity
+            onPress={() => handleToggle(setShowAllOthers, showAllOthers)}
+          >
+            <Text style={st.seeAll}>
+              {showAllOthers ? "Show less" : "See all"}
+            </Text>
           </TouchableOpacity>
         </View>
-
-        <View style={st.gridWrap}>
-          {otherAds.map((item) => (
-            <View key={item.id} style={st.gridCard}>
-              <Image source={item.image} style={st.gridImage} />
-              <Text style={st.gridTitle}>{item.title}</Text>
-              <Text style={st.gridPrice}>{item.price}</Text>
-            </View>
-          ))}
-        </View>
-
+        {otherAds.length === 0 ? (
+          <Text style={st.emptyText}>No other ads available.</Text>
+        ) : showAllOthers ? (
+          renderAdsGrid(otherAds)
+        ) : (
+          <View style={st.gridWrap}>
+            {otherAds.slice(0, 4).map((item) => (
+              <AdGridCard
+                key={item.id}
+                ad={item}
+                st={st}
+                navigation={navigation}
+              />
+            ))}
+          </View>
+        )}
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// --- UPDATED AdCard: now navigates to AdDetails ---
+function AdCard({ ad, st, navigation }) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate("AdDetails", { ad })}
+    >
+      <View style={st.adCard}>
+        <Image source={{ uri: ad.firstImage }} style={st.adImage} />
+        <Text style={[st.adCategory, { color: "#FF0000", marginTop: 4 }]}>
+          {ad.categoryShort}
+        </Text>
+        <Text style={[st.adLocation, { color: "#2CB67D", marginBottom: 2 }]}>
+          {ad.pickupLocation}
+        </Text>
+        <Text style={st.adTitle}>{ad.title}</Text>
+        <Text style={st.adPrice}>{ad.price ? `${ad.price}` : ""}</Text>
+        <View style={st.adActionsRow}>
+          <TouchableOpacity onPress={() => handleShare(ad)}>
+            <Icon name="share-variant" size={20} color="#A0A0A0" />
+          </TouchableOpacity>
+          <Icon
+            name="bookmark-outline"
+            size={20}
+            color="#A0A0A0"
+            style={{ marginLeft: 16 }}
+          />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// --- UPDATED AdGridCard: now navigates to AdDetails ---
+function AdGridCard({ ad, st, navigation }) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => navigation.navigate("AdDetails", { ad })}
+      style={{ flex: 1 }}
+    >
+      <View style={st.gridCard}>
+        <Image source={{ uri: ad.firstImage }} style={st.gridImage} />
+        <Text style={st.gridTitle}>{ad.title}</Text>
+        <Text style={st.gridPrice}>{ad.price ? `${ad.price}` : ""}</Text>
+        <TouchableOpacity
+          onPress={() => handleShare(ad)}
+          style={{ position: "absolute", top: 8, right: 8 }}
+        >
+          <Icon name="share-variant" size={18} color="#A0A0A0" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -224,23 +369,37 @@ const common = StyleSheet.create({
     marginTop: 12,
     marginBottom: 12,
   },
-  categoriesRow: { flexDirection: "row", marginHorizontal: 4 },
-  categoryColumn: { alignItems: "center", marginRight: 20 },
+  categoriesRow: {
+    paddingHorizontal: 4,
+    marginBottom: 16,
+  },
+  categoriesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  categoryColumn: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    width: (width - 32 - 16 * (NUM_COLUMNS - 1)) / NUM_COLUMNS,
+  },
   categoryCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   adCard: {
     width: width * 0.5,
     borderRadius: 12,
-    marginRight: 18,
     padding: 10,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+    backgroundColor: "#fff",
   },
   adImage: { width: "100%", height: 90, borderRadius: 10, marginBottom: 8 },
   adInfoRow: {
@@ -248,9 +407,9 @@ const common = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 2,
   },
-  adCategory: { fontSize: 12, fontWeight: "bold" },
-  adLocation: { fontSize: 12, fontWeight: "bold" },
-  adTitle: { fontSize: 14, fontWeight: "600", marginBottom: 2 },
+  adCategory: { fontSize: 14, fontWeight: "bold" },
+  adLocation: { fontSize: 14, fontWeight: "bold" },
+  adTitle: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
   adPrice: { fontSize: 15, fontWeight: "bold", marginBottom: 4 },
   adActionsRow: { flexDirection: "row", marginTop: 4 },
   gridWrap: {
@@ -258,16 +417,30 @@ const common = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginTop: 4,
+    marginBottom: 16,
   },
   gridCard: {
     width: (width - 48) / 2,
     borderRadius: 12,
     marginBottom: 18,
     padding: 8,
+    marginHorizontal: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+    backgroundColor: "#fff",
   },
   gridImage: { width: "100%", height: 90, borderRadius: 10, marginBottom: 8 },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#888",
+    fontSize: 15,
+    marginVertical: 10,
+    textAlign: "center",
+  },
 });
 
 const light = StyleSheet.create({
@@ -286,7 +459,7 @@ const light = StyleSheet.create({
   filterButton: { ...common.filterButton, backgroundColor: "#23253A" },
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#23253A" },
   seeAll: { color: "#2CB67D", fontWeight: "600", fontSize: 14 },
-  categoryLabel: { fontSize: 14, color: "#333", fontWeight: "500" },
+  categoryLabel: { fontSize: 13, color: "#333", fontWeight: "500" },
   adCard: {
     ...common.adCard,
     backgroundColor: "#fff",
@@ -330,7 +503,7 @@ const dark = StyleSheet.create({
   filterButton: { ...common.filterButton, backgroundColor: "#2CB67D" },
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#eee" },
   seeAll: { color: "#2CB67D", fontWeight: "600", fontSize: 14 },
-  categoryLabel: { fontSize: 14, color: "#ddd", fontWeight: "500" },
+  categoryLabel: { fontSize: 13, color: "#ddd", fontWeight: "500" },
   adCard: {
     ...common.adCard,
     backgroundColor: "#1E1E1E",
