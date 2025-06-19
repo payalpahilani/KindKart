@@ -26,7 +26,7 @@ jobs:
         run: eas build --platform android --non-interactive 
       - name: Download EAS Build Artifact
         run: |
-          npx eas-cli build:list --platform android --limit 1 --json > builds.json
+          npx eas-cli build:list --platform android --status finished --limit 1 --json > builds.json
           BUILD_ID=$(cat builds.json | jq -r '.[0].id')
           npx eas-cli build:download --platform android --id $BUILD_ID --output app.aab
       - name: Upload to Firebase App Distribution
