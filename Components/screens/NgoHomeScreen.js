@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db, auth} from '../../firebaseConfig';
@@ -29,7 +30,7 @@ const recentActivities = [
 export default function NgoHomeScreen() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const navigation = useNavigation();
   useFocusEffect(
     useCallback(() => {
     const fetchCampaigns = async () => {
@@ -107,7 +108,8 @@ export default function NgoHomeScreen() {
                 <Text style={styles.campaignProgress}>
                   Raised {item.currency} ${item.raisedAmount?.toLocaleString() || 0} of ${item.totalDonation?.toLocaleString()}
                 </Text>
-                <TouchableOpacity style={styles.viewButton}>
+                <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('NgoDonationInfoScreen', { campaignId: item.id })}
+                >
                   <Text style={styles.viewButtonText}>View</Text>
                 </TouchableOpacity>
               </View>

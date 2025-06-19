@@ -18,6 +18,11 @@ import { db } from "../../firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Platform } from "react-native";
+import RNPickerSelect from "react-native-picker-select";
+
+
 
 const BACKEND_URL = "http://192.168.68.60:4000"; // Update if needed
 const MAX_IMAGES = 5;
@@ -45,13 +50,18 @@ export default function NgoCreateCampaignScreen() {
   const [title, setTitle] = useState("");
   const [campaignerName, setCampaignerName] = useState("");
   const [campaignDate, setCampaignDate] = useState("");
-  const [category, setCategory] = useState("Campaign");
-  const [campaignCategory, setCampaignCategory] = useState("Personal");
+  const [category, setCategory] = useState("");
+  const [campaignCategory, setCampaignCategory] = useState("");
   const [totalDonation, setTotalDonation] = useState("");
   const [currency, setCurrency] = useState("CAD");
   const [story, setStory] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [urgent, setUrgent] = useState(false);
+  const [daysLeft, setDaysLeft] = useState(null);
+
+
 
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) {
@@ -147,6 +157,8 @@ export default function NgoCreateCampaignScreen() {
         currency,
         story,
         imageUrls,
+        urgent,
+        daysLeft,
         createdBy: userId,
         createdAt: serverTimestamp(),
       });
@@ -213,12 +225,137 @@ export default function NgoCreateCampaignScreen() {
         <View style={styles.section}>
           <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} />
           <TextInput placeholder="Campaigner Name" value={campaignerName} onChangeText={setCampaignerName} style={styles.input} />
-          <TextInput placeholder="Campaign Date (e.g. 06/03/2025)" value={campaignDate} onChangeText={setCampaignDate} style={styles.input} />
-          <TextInput placeholder="Category (e.g. Campaign)" value={category} onChangeText={setCategory} style={styles.input} />
+          {/* <TextInput placeholder="Campaign Date (e.g. 06/03/2025)" value={campaignDate} onChangeText={setCampaignDate} style={styles.input} /> */}
+          
+          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
+            <Text style={{ color: campaignDate ? DARK_TEXT : "#aaa" }}>
+            {campaignDate || "Select Campaign End Date"}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+        <DateTimePicker
+            value={campaignDate ? new Date(campaignDate) : new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "default"}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                const formatted = selectedDate.toISOString().split("T")[0];
+                setCampaignDate(formatted);
+            
+                const today = new Date();
+                const diffTime = new Date(formatted) - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                setDaysLeft(diffDays);
+              }
+            }}
+            
+            
+        />
+        )}
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ flex: 1, fontSize: 15 }}>Mark as Urgent Donation</Text>
+        <TouchableOpacity
+          onPress={() => setUrgent(!urgent)}
+          style={{
+            backgroundColor: urgent ? '#0AB1E7' : '#ccc',
+            width: 50,
+            height: 28,
+            borderRadius: 14,
+            justifyContent: 'center',
+            paddingHorizontal: 5,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#fff',
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              alignSelf: urgent ? 'flex-end' : 'flex-start',
+            }}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <RNPickerSelect
+  onValueChange={(value) => setCategory(value)}
+  value={category}
+  placeholder={{ label: "Select Category", value: null }}
+  items={[
+    { label: "Donation", value: "donation" },
+    { label: "Charity", value: "charity" },
+    { label: "Campaign", value: "campaign" },
+    { label: "Support", value: "support" },
+    { label: "Fundraiser", value: "Fundraiser" },
+    { label: "Awareness", value: "awareness" },
+    { label: "Events", value: "events" },
+  ]}
+  style={{
+    inputIOS: styles.input,
+    inputAndroid: styles.input,
+    iconContainer: { top: 20, right: 15 },
+  }}
+  useNativeAndroidPickerStyle={false}
+  Icon={() => <Ionicons name="chevron-down" size={10} color="gray" />}
+/>
+
+<RNPickerSelect
+  onValueChange={(value) => setCampaignCategory(value)}
+  value={campaignCategory}
+  placeholder={{ label: "Select Campaign Category", value: null }}
+  items={[
+    { label: "Medical Aid", value: "medical_aid" },
+  { label: "Disaster Relief", value: "disaster_relief" },
+  { label: "Child Welfare", value: "child_welfare" },
+  { label: "Women Empowerment", value: "women_empowerment" },
+  { label: "Education", value: "education" },
+  { label: "Environment", value: "environment" },
+  { label: "Animal Welfare", value: "animal_welfare" },
+  { label: "Community Development", value: "community_development" },
+  { label: "Elderly Support", value: "elderly_support" },
+  { label: "Livelihood Support", value: "livelihood_support" },
+  ]}
+  style={{
+    inputIOS: styles.input,
+    inputAndroid: styles.input,
+    iconContainer: { top: 20, right: 15 },
+  }}
+  useNativeAndroidPickerStyle={false}
+  Icon={() => <Ionicons name="chevron-down" size={10} color="gray" />}
+/>
+
+
+
+          {/* <TextInput placeholder="Category (e.g. Campaign)" value={category} onChangeText={setCategory} style={styles.input} />
           <TextInput placeholder="Campaign Category (e.g. Personal)" value={campaignCategory} onChangeText={setCampaignCategory} style={styles.input} />
-          <TextInput placeholder="Total Donation (e.g. 1000000)" value={totalDonation} onChangeText={setTotalDonation} keyboardType="numeric" style={styles.input} />
-          <TextInput placeholder="Currency (e.g. CAD)" value={currency} onChangeText={setCurrency} style={styles.input} />
-        </View>
+          <TextInput placeholder="Total Donation (e.g. 1000000)" value={totalDonation} onChangeText={setTotalDonation} keyboardType="numeric" style={styles.input} /> */}
+          <RNPickerSelect
+                onValueChange={(value) => setCurrency(value)}
+                value={currency}
+                placeholder={{}}
+                items={[
+                    { label: "CAD", value: "CAD" },
+                    { label: "USD", value: "USD" },
+                ]}
+                style={{
+                    inputIOS: styles.input,     
+                    inputAndroid: styles.input,
+                    iconContainer: {
+                    top: 20,
+                    right: 15,
+                    },
+                }}
+                useNativeAndroidPickerStyle={false}
+                Icon={() => {
+                    return <Ionicons name="chevron-down" size={10} color="gray" />;
+                }}
+                />
+
+
+
+          </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Story / Campaign Details</Text>
@@ -249,93 +386,130 @@ export default function NgoCreateCampaignScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: BACKGROUND,
-  },
-  navRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: PRIMARY,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: DARK_TEXT,
-    marginBottom: 8,
-  },
-  section: {
-    marginTop: 12,
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderColor: ACCENT,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    fontSize: 15,
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-  imageBox: {
-    width: 80,
-    height: 80,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: ACCENT,
-    marginRight: 10,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  imageThumb: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-  },
-  removeBtn: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-    backgroundColor: ERROR,
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#DCE3E9",
-    marginRight: 8,
-  },
-  submitButton: {
-    backgroundColor: BUTTON,
-    marginLeft: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-});
+    container: {
+      padding: 20,
+    },
+    navRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: PRIMARY,
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: DARK_TEXT,
+      marginBottom: 8,
+    },
+    section: {
+      marginTop: 16,
+    },
+    input: {
+      backgroundColor: "#fff",
+      borderColor: "#ccc",
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 12,
+      fontSize: 15,
+      shadowColor: "#000",
+      shadowOpacity: 0.05,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    textArea: {
+      minHeight: 100,
+      textAlignVertical: "top",
+    },
+    imageBox: {
+      width: 80,
+      height: 80,
+      backgroundColor: "#fff",
+      borderWidth: 1,
+      borderColor: "#ccc",
+      marginRight: 10,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      position: "relative",
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowOffset: { width: 0, height: 1 },
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    imageThumb: {
+      width: 80,
+      height: 80,
+      borderRadius: 12,
+    },
+    removeBtn: {
+      position: "absolute",
+      top: -8,
+      right: -8,
+      backgroundColor: ERROR,
+      borderRadius: 12,
+      width: 24,
+      height: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: 1 },
+      shadowRadius: 2,
+    },
+    actionRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 28,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 12,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    cancelButton: {
+      backgroundColor: "#DCE3E9",
+      marginRight: 10,
+    },
+    submitButton: {
+      backgroundColor: BUTTON,
+      marginLeft: 10,
+    },
+    buttonText: {
+      color: "#000",
+      fontWeight: "600",
+      fontSize: 16,
+    },
+    inputIOS: {
+        backgroundColor: "#fff",
+        borderColor: "#ccc",
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 12,
+        fontSize: 15,
+      },
+      inputAndroid: {
+        backgroundColor: "#fff",
+        borderColor: "#ccc",
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 12,
+        fontSize: 15,
+      },
+  });
+  
