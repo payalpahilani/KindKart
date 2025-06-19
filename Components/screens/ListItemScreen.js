@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 18, 
     letterSpacing: 0.5,
   },
   suggestion: {

@@ -55,30 +55,9 @@ export default function AdDetailsScreen({ route, navigation }) {
       setLoading(false);
     });
 
-    let unsubscribeUser = () => {};
-    const userId = ad.userId || (adData && adData.userId);
-    if (userId) {
-      unsubscribeUser = onSnapshot(doc(db, "users", userId), (userSnap) => {
-        if (userSnap.exists()) {
-          setUserContact(
-            userSnap.data().contactNumber ||
-              userSnap.data().phone ||
-              "Not specified"
-          );
-        } else {
-          setUserContact("Not specified");
-        }
-      });
-    } else {
-      setUserContact("Not specified");
-    }
-
-    return () => {
-      unsubscribeAd();
-      unsubscribeUser();
-    };
+    return () => unsubscribeAd();
     // eslint-disable-next-line
-  }, [ad.id, ad.userId]);
+  }, ad.id);
 
   const handleShare = async () => {
     try {
@@ -266,13 +245,6 @@ export default function AdDetailsScreen({ route, navigation }) {
           <Text style={styles.mapLabel}>
             {adData.pickupLocation || "No location"}
           </Text>
-        </View>
-
-        {/* Contact and Meta */}
-        <View style={styles.detailsCard}>
-          <Text style={styles.detailsTitle}>Contact & Meta</Text>
-          <InfoRow label="Email" value={adData.email || "Not specified"} />
-          <InfoRow label="Contact Number" value={userContact} />
         </View>
       </ScrollView>
 
