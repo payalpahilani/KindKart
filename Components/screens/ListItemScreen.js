@@ -26,7 +26,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 
 const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo"; // <-- Replace with your real API key
-const BACKEND_URL = "http://10.0.0.43:4000"; // Replace with your backend server address
+const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run"; // Replace with your backend server address
 const MAX_IMAGES = 5;
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
 const conditionOptions = ["New", "Used", "Refurbished"];
@@ -347,7 +347,7 @@ export default function ListItemScreen() {
     <View style={styles.imageBox}>
       <Image
         source={{
-          uri: item.publicUrl || item.downloadUrl || item.uri,
+          uri:  item.publicUrl || item.downloadUrl || item.uri,
         }}
         style={styles.imageThumb}
       />
