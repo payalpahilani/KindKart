@@ -143,7 +143,7 @@ export default function ListItemScreen() {
     );
   };
 
-  // Upload a single image to S3 using pre-signed URL and store downloadUrl for display
+  // Upload a single image to S3 using pre-signed URL and store the public S3 URL for display
   const uploadImageToS3 = async (img, userId, itemId) => {
     const fileName = img.fileName || img.uri.split("/").pop();
     const fileType =
@@ -151,6 +151,7 @@ export default function ListItemScreen() {
         ? img.type
         : getMimeType(img.uri);
 
+    // Fetch uploadUrl and publicUrl from backend
     const res = await fetch(
       `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
         fileName
@@ -159,7 +160,7 @@ export default function ListItemScreen() {
       )}&userId=${userId}&itemId=${itemId}`
     );
     if (!res.ok) throw new Error("Failed to get S3 URL");
-    const { uploadUrl, downloadUrl } = await res.json();
+    const { uploadUrl, publicUrl } = await res.json();
 
     const imgRes = await fetch(img.uri);
     const blob = await imgRes.blob();
@@ -176,10 +177,10 @@ export default function ListItemScreen() {
       console.log("S3 upload error response:", errorText);
       throw new Error("Failed to upload image to S3");
     }
-    return downloadUrl;
+    return publicUrl; // Use the permanent public URL
   };
 
-  // Upload all images and return their S3 download URLs
+  // Upload all images and return their S3 public URLs
   const uploadAllImages = async (userId, itemId) => {
     const uploadedUrls = [];
     for (const img of images || []) {
@@ -346,7 +347,7 @@ export default function ListItemScreen() {
     <View style={styles.imageBox}>
       <Image
         source={{
-          uri: item.downloadUrl || item.uri,
+          uri: item.publicUrl || item.downloadUrl || item.uri,
         }}
         style={styles.imageThumb}
       />
@@ -553,8 +554,8 @@ export default function ListItemScreen() {
                 value={ngo}
                 onChange={(item) => {
                   setNgo(item);
-                  setCause(""); 
-                  console.log("NGO selected (onChange):", item);// Reset cause when NGO changes
+                  setCause("");
+                  console.log("NGO selected (onChange):", item); // Reset cause when NGO changes
                 }}
                 placeholder="Select NGO"
                 testID="ngoDropdown"

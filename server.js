@@ -63,19 +63,10 @@ app.get("/get-presigned-url", async (req, res) => {
     ServerSideEncryption: "AES256",
   };
 
-  const downloadParams = {
-    Bucket: process.env.S3_BUCKET,
-    Key: key,
-    Expires: 60 * 60 * 24, // 24 hours
-  };
-
   try {
     const uploadUrl = await s3.getSignedUrlPromise("putObject", uploadParams);
-    const downloadUrl = await s3.getSignedUrlPromise(
-      "getObject",
-      downloadParams
-    );
-    res.json({ uploadUrl, downloadUrl });
+    const publicUrl = `https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`;
+    res.json({ uploadUrl, publicUrl });
   } catch (err) {
     console.log("S3 error:", err);
     res.status(500).json({ error: err.message, details: err });
