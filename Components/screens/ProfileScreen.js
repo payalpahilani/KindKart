@@ -88,7 +88,7 @@ export default function ProfileScreen() {
       case 'exit':
         signOut(auth)
           .then(() =>
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
+            navigation.reset({ index: 0, routes: [{ name: 'Launch' }] })
           )
           .catch(() => Alert.alert('Error', t('profile.signOutError')));
         break;
