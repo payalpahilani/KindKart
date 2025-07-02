@@ -26,7 +26,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 
 const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo"; // <-- Replace with your real API key
-const BACKEND_URL = "http://10.0.0.43:4000"; // Replace with your backend server address
+const BACKEND_URL = "https://kindkart-backend.b4a.app"; // Replace with your backend server address
 const MAX_IMAGES = 5;
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
 const conditionOptions = ["New", "Used", "Refurbished"];
