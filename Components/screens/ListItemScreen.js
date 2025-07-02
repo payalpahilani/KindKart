@@ -263,14 +263,23 @@ export default function ListItemScreen() {
 
   // Submit handler
   const handleSubmit = async () => {
+    console.log("Validation about to fail with values:", {
+      title,
+      price,
+      description,
+      ngo,
+      cause,
+      images,
+      pickupLocation,
+    });
     if (!agree) {
       Alert.alert("Please agree to the terms before submitting.");
       return;
     }
     if (
-      !title ||
-      !price ||
-      !description ||
+      !title.trim() ||
+      !price.trim() ||
+      !description.trim() ||
       !ngo ||
       !cause ||
       (images || []).length === 0
@@ -560,7 +569,7 @@ export default function ListItemScreen() {
               <CustomDropdown
                 data={causeOptions}
                 value={cause}
-                onChange={(item) => setCause(item.value)}
+                onChange={setCause}
                 placeholder={
                   ngo
                     ? loadingCauses

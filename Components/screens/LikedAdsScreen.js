@@ -55,7 +55,7 @@ export default function LikedAdsScreen() {
     <TouchableOpacity
       style={styles.card}
       onPress={() =>
-        navigation.navigate("AdDetailsScreen", {
+        navigation.navigate("AdDetails", {
           ad: {
             id: item.adId,
             title: item.title,
