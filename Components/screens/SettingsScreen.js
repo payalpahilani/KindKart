@@ -34,6 +34,7 @@ export default function SettingsScreen() {
 
   const userId = auth.currentUser?.uid;
 
+  // Notification settings state & Firestore persistence
   const [notificationSettings, setNotificationSettings] = useState({
     turnOnNotifications: true,
     newCampaignAlert: true,
@@ -75,20 +76,39 @@ export default function SettingsScreen() {
     try {
       if (!userId) throw new Error('User not logged in');
       const docRef = doc(db, 'users', userId);
-      await setDoc(
-        docRef,
-        { notificationSettings: newSettings },
-        { merge: true }
-      );
+      await setDoc(docRef, { notificationSettings: newSettings }, { merge: true });
     } catch (err) {
       Alert.alert('Error', 'Failed to update notification settings.');
       console.log(err);
     }
   };
 
+  // Language chip component
+  const LangChip = ({ code, label, flag }) => {
+    const active = i18n.language === code;
+    return (
+      <Pressable
+        onPress={() => i18n.changeLanguage(code)}
+        style={[
+          styles.chip,
+          {
+            backgroundColor: active ? accent : 'transparent',
+            borderColor: active ? accent : muted,
+          },
+        ]}
+      >
+        <Text style={[styles.chipText, { color: active ? '#fff' : text }]}>
+          {flag} {label}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  // Handlers for About, Rating, Terms:
   const handleAbout = () => {
     navigation.navigate('AboutUsScreen');
   };
+
   const handleRating = () => {
     Alert.alert(
       t('settings.giveRating'),
@@ -98,17 +118,17 @@ export default function SettingsScreen() {
         {
           text: t('common.ok'),
           onPress: () => {
-            Linking.openURL('https://appstore.com/yourapp');
+            Linking.openURL('https://appstore.com/yourapp'); // Replace with your app store URL
           },
         },
       ],
       { cancelable: true }
     );
   };
+
   const handleTerms = () => {
     navigation.navigate('TermsAndConditions');
   };
-
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: bg }]}>
@@ -143,6 +163,16 @@ export default function SettingsScreen() {
         </View>
 
         {/* Language Card */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBor }]}>
+          <View style={styles.cardHeader}>
+            <Icon name="translate" size={20} color={accent} />
+            <Text style={[styles.cardTitle, { color: text }]}>{t('settings.select_language')}</Text>
+          </View>
+          <View style={styles.langRow}>
+            <LangChip code="en" label="English" flag="🇬🇧" />
+            <LangChip code="fr" label="Français" flag="🇫🇷" />
+          </View>
+        </View>
 
         {/* Notifications Card */}
         <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBor }]}>
@@ -327,6 +357,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  langRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+  },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flex: 1,
+    alignItems: 'center',
+  },
+  chipText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
   optionCard: {
     borderWidth: 1,
     borderRadius: 16,
