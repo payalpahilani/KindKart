@@ -164,9 +164,9 @@ exports.notifyNewNgoPartner = functions.firestore
     return messaging.sendMulticast(message);
   });
 
-// Message from user notification trigger
+// ✅ UPDATED: Chat message notification trigger
 exports.notifyMessageFromUser = functions.firestore
-  .document('messages/{messageId}')
+  .document('chatRooms/{roomId}/messages/{messageId}')
   .onCreate(async (snap, context) => {
     const message = snap.data();
 
@@ -192,6 +192,7 @@ exports.notifyMessageFromUser = functions.firestore
       data: {
         messageId: context.params.messageId,
         type: 'newMessage',
+        roomId: context.params.roomId,
       },
     };
 
