@@ -1,4 +1,46 @@
 {
+   "launchScreen": {
+    "title": "KindKart",
+    "subtitle": "Transformez les choses du quotidien en un impact réel",
+    "getStarted": "Commencer",
+    "wantToRaiseCampaign": "Vous souhaitez lancer une campagne ?",
+    "clickHere": "Cliquez ici"
+  },
+   "login": {
+    "back": "Retour",
+    "welcome": "Bienvenue ! Connectez-vous à KindKart.",
+    "emailPlaceholder": "Entrez votre e-mail",
+    "passwordPlaceholder": "Entrez votre mot de passe",
+    "rememberMe": "Se souvenir de moi",
+    "forgotPassword": "Mot de passe oublié ?",
+    "forgotPasswordAlert": "Réinitialiser via e-mail",
+    "loginButton": "Connexion",
+    "noAccount": "Vous n’avez pas de compte ?",
+    "registerNow": "Inscrivez-vous maintenant",
+    "errorTitle": "Erreur",
+    "errorMessage": "Veuillez saisir l'e-mail et le mot de passe.",
+    "loginFailedTitle": "Échec de la connexion"
+  },
+  "signUp": {
+    "welcome": "Bienvenue",
+    "loggedInAs": "Connecté en tant que",
+    "googleErrorTitle": "Erreur lors de l'inscription Google",
+    "errorTitle": "Erreur",
+    "fillAllFields": "Veuillez remplir tous les champs.",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "successTitle": "Succès",
+    "accountCreated": "Compte créé !",
+    "createAccount": "Créez votre compte",
+    "fullNamePlaceholder": "Nom complet",
+    "emailPlaceholder": "Adresse e-mail",
+    "phonePlaceholder": "Numéro de téléphone",
+    "passwordPlaceholder": "Mot de passe",
+    "confirmPasswordPlaceholder": "Confirmer le mot de passe",
+    "rememberMe": "Se souvenir de moi",
+    "signUpButton": "S'INSCRIRE",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "logIn": "Se connecter"
+  },
   "settings": {
     "settings": "Paramètres",
     "appearance": "Apparence",

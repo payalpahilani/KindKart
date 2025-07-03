@@ -9,8 +9,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
-
-// Import your screens
+// Import screens
 import LaunchScreen from "../Components/screens/LaunchScreen";
 import LoginScreen from "../Components/screens/LoginScreen";
 import SignUpScreen from "../Components/screens/SignUpScreen";
@@ -38,6 +37,7 @@ import LikedAdsScreen from "../Components/screens/LikedAdsScreen";
 import NgoEditProfileScreen from "../Components/screens/NgoEditProfileScreen"
 import NgoDonationInfoScreen from "../Components/screens/NgoDonationInfoScreen";
 import NgoDashboardScreen from '../Components/screens/NgoDashboardScreen';
+import ForgotPasswordScreen from "../Components/screens/ForgotPasswordScreen";
 
 
 const RootStack = createNativeStackNavigator();
@@ -181,6 +181,7 @@ export default function AppNavigator() {
       >
         <RootStack.Screen name="Launch" component={LaunchScreen} />
         <RootStack.Screen name="Login" component={LoginScreen} />
+        <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} /> 
         <RootStack.Screen name="SignUp" component={SignUpScreen} />
         <RootStack.Screen name="MainTabs" component={MainTabs} />
         <RootStack.Screen name="NgoLogin" component={NgoLoginScreen} />

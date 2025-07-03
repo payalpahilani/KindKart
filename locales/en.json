@@ -1,4 +1,46 @@
 {
+   "launchScreen": {
+    "title": "KindKart",
+    "subtitle": "Turn everyday stuff into real world impact",
+    "getStarted": "Get Started",
+    "wantToRaiseCampaign": "Want to raise campaign?",
+    "clickHere": "Click Here"
+  },
+   "login": {
+    "back": "Back",
+    "welcome": "Welcome! Login to KindKart.",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "rememberMe": "Remember Me",
+    "forgotPassword": "Forgot Password?",
+    "forgotPasswordAlert": "Reset via email",
+    "loginButton": "Login",
+    "noAccount": "Don’t have an account?",
+    "registerNow": "Register Now",
+    "errorTitle": "Error",
+    "errorMessage": "Please enter both email and password.",
+    "loginFailedTitle": "Login failed"
+  },
+   "signUp": {
+    "welcome": "Welcome",
+    "loggedInAs": "Logged in as",
+    "googleErrorTitle": "Google Sign Up Error",
+    "errorTitle": "Error",
+    "fillAllFields": "Please fill in all fields.",
+    "passwordMismatch": "Passwords do not match.",
+    "successTitle": "Success",
+    "accountCreated": "Account created!",
+    "createAccount": "Create your account",
+    "fullNamePlaceholder": "Full Name",
+    "emailPlaceholder": "Email Address",
+    "phonePlaceholder": "Phone Number",
+    "passwordPlaceholder": "Password",
+    "confirmPasswordPlaceholder": "Confirm Password",
+    "rememberMe": "Remember Me",
+    "signUpButton": "SIGN UP",
+    "alreadyHaveAccount": "Already have an account?",
+    "logIn": "Log In"
+  },
   "settings": {
     "settings": "Settings",
     "appearance": "Appearance",
