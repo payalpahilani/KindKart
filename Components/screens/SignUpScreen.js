@@ -15,6 +15,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
+import { LinearGradient } from "expo-linear-gradient";
 import { auth, db } from "../../firebaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ThemeContext } from "../Utilities/ThemeContext";
@@ -133,8 +134,15 @@ export default function SignUpScreen({ navigation }) {
           />
         </View>
 
-        <TouchableOpacity onPress={handleSignUp} style={styles.signUpButton}>
+        <TouchableOpacity onPress={handleSignUp}> 
+        <LinearGradient
+                    colors={isDarkMode ? ['#EFAC3A', '#FFC107'] : ['#F3E8DD', '#B8D6DF']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.signUpButton}
+                  >
           <Text style={styles.signUpButtonText}>SIGN UP</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.replace("Login")}>

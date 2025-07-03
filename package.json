@@ -60,6 +60,7 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@react-native-community/cli": "^18.0.0",
+    "eslint": "^9.30.1",
     "expo-module-scripts": "^4.1.7"
   },
   "private": true

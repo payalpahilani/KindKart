@@ -42,7 +42,13 @@ export default function ForgotPasswordScreen({ navigation }) {
         barStyle={isDarkMode ? "light-content" : "dark-content"}
         backgroundColor={styles.container.backgroundColor}
       />
+
       <View style={styles.content}>
+        {/* Back Button */}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+
         <Text style={styles.title}>Reset Your Password</Text>
 
         <TextInput
@@ -55,10 +61,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           onChangeText={setEmail}
         />
 
-        <TouchableOpacity
-          onPress={handleResetPassword}
-          style={styles.resetButton}
-        >
+        <TouchableOpacity onPress={handleResetPassword} style={styles.resetButton}>
           <Text style={styles.resetButtonText}>Send Reset Email</Text>
         </TouchableOpacity>
       </View>
@@ -69,23 +72,30 @@ export default function ForgotPasswordScreen({ navigation }) {
 const baseStyles = {
   container: {
     flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 80,
   },
   content: {
     flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+  },
+  backButton: {
+    marginBottom: 24,
+  },
+  backText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   title: {
     fontSize: 26,
     fontWeight: "700",
-    marginBottom: 30,
+    marginBottom: 32,
   },
   input: {
     width: "100%",
     height: 50,
     borderRadius: 25,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 24,
     fontSize: 16,
   },
   resetButton: {
@@ -94,7 +104,7 @@ const baseStyles = {
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginTop: 12,
   },
   resetButtonText: {
     fontSize: 16,
@@ -108,6 +118,10 @@ const lightStyles = StyleSheet.create({
     ...baseStyles.container,
     backgroundColor: "#fff",
   },
+  backText: {
+    ...baseStyles.backText,
+    color: "#EFAC3A",
+  },
   title: {
     ...baseStyles.title,
     color: "#1F2E41",
@@ -119,11 +133,11 @@ const lightStyles = StyleSheet.create({
   },
   resetButton: {
     ...baseStyles.resetButton,
-    backgroundColor: "#F3E8DD",
+    backgroundColor: "#EFAC3A",
   },
   resetButtonText: {
     ...baseStyles.resetButtonText,
-    color: "#1F2E41",
+    color: "#fff",
   },
 });
 
@@ -133,9 +147,13 @@ const darkStyles = StyleSheet.create({
     ...baseStyles.container,
     backgroundColor: "#121212",
   },
+  backText: {
+    ...baseStyles.backText,
+    color: "#FFC107",
+  },
   title: {
     ...baseStyles.title,
-    color: "#ddd",
+    color: "#fff",
   },
   input: {
     ...baseStyles.input,
@@ -144,7 +162,7 @@ const darkStyles = StyleSheet.create({
   },
   resetButton: {
     ...baseStyles.resetButton,
-    backgroundColor: "#F6B93B",
+    backgroundColor: "#EFAC3A",
   },
   resetButtonText: {
     ...baseStyles.resetButtonText,
