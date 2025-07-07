@@ -216,16 +216,6 @@ export default function SettingsScreen() {
               </View>
 
               <View style={styles.row}>
-                <Text style={[styles.label, { color: muted }]}>Thank You Message</Text>
-                <Switch
-                  value={notificationSettings.thankYouMessage}
-                  onValueChange={() => toggleSetting('thankYouMessage')}
-                  trackColor={{ false: '#767577', true: '#2CB67D' }}
-                  thumbColor={notificationSettings.thankYouMessage ? '#fff' : '#f4f3f4'}
-                />
-              </View>
-
-              <View style={styles.row}>
                 <Text style={[styles.label, { color: muted }]}>Milestone Update</Text>
                 <Switch
                   value={notificationSettings.milestoneUpdate}
@@ -246,7 +236,7 @@ export default function SettingsScreen() {
               </View>
 
               <View style={styles.row}>
-                <Text style={[styles.label, { color: muted }]}>Messages from Buyer/Seller</Text>
+                <Text style={[styles.label, { color: muted }]}>Chat Message</Text>
                 <Switch
                   value={notificationSettings.buyerSellerMessages}
                   onValueChange={() => toggleSetting('buyerSellerMessages')}
