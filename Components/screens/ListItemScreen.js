@@ -29,8 +29,8 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
+import { GOOGLE_API_KEY } from "@env";
 
-const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo";
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];

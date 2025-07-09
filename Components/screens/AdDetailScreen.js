@@ -32,6 +32,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db, auth } from "../../firebaseConfig";
 import { ThemeContext } from "../Utilities/ThemeContext";
+import { useStripe } from "@stripe/stripe-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -68,6 +69,8 @@ export default function AdDetailsScreen({ route, navigation }) {
   const [userName, setUserName] = useState("Seller");
   const [userAvatar, setUserAvatar] = useState(null);
   const [liked, setLiked] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -231,6 +234,44 @@ export default function AdDetailsScreen({ route, navigation }) {
       </View>
     );
   }
+
+  // PAYMENT GATEWAY
+
+  const handlePurchase = async () => {
+    setPaymentLoading(true);
+    try {
+      // Call your backend to create a PaymentIntent
+      const response = await fetch(
+        "https://kindkart-0l245p6y.b4a.run/create-payment-intent",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: adData.price * 100, // Stripe uses cents
+            currency: adData.currency?.value || adData.currency || "usd",
+          }),
+        }
+      );
+      const { clientSecret } = await response.json();
+
+      // Initialize the payment sheet
+      const initSheet = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: "Kindkart",
+      });
+      if (initSheet.error) throw initSheet.error;
+
+      // Present the payment sheet
+      const paymentResult = await presentPaymentSheet();
+      if (paymentResult.error) throw paymentResult.error;
+
+      alert("Payment successful!");
+      // Optionally update your app state or Firestore here
+    } catch (error) {
+      alert(`Payment failed: ${error.message}`);
+    }
+    setPaymentLoading(false);
+  };
 
   return (
     <SafeAreaView
@@ -502,6 +543,24 @@ export default function AdDetailsScreen({ route, navigation }) {
           <Text style={isDarkMode ? darkStyles.mapLabel : lightStyles.mapLabel}>
             {adData.pickupLocation || "No location"}
           </Text>
+        </View>
+
+        <View style={{ padding: 18 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#2CB67D",
+              borderRadius: 10,
+              padding: 16,
+              alignItems: "center",
+              opacity: paymentLoading ? 0.6 : 1,
+            }}
+            onPress={handlePurchase}
+            disabled={paymentLoading}
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
+              {paymentLoading ? "Processing..." : "Purchase"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

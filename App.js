@@ -4,9 +4,11 @@ import AppNavigator from "./Navigation/AppNavigator";
 import { ThemeProvider } from "./Components/Utilities/ThemeContext";
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';1
 import { auth, db } from './firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
+import { STRIPE_PUBLISHABLE_KEY } from '@env';
+import { StripeProvider } from "@stripe/stripe-react-native";
 
 import './i18n';
 
@@ -85,10 +87,12 @@ function NotificationHandler() {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <NotificationHandler />
-        <AppNavigator />
-      </ThemeProvider>
+      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+        <ThemeProvider>
+          <NotificationHandler />
+          <AppNavigator />
+        </ThemeProvider>
+      </StripeProvider>
     </GestureHandlerRootView>
   );
 }

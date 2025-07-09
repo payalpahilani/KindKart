@@ -176,12 +176,15 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <RootStack.Navigator
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, gestureEnabled: false }}
         initialRouteName="Launch"
       >
         <RootStack.Screen name="Launch" component={LaunchScreen} />
         <RootStack.Screen name="Login" component={LoginScreen} />
-        <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} /> 
+        <RootStack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+        />
         <RootStack.Screen name="SignUp" component={SignUpScreen} />
         <RootStack.Screen name="MainTabs" component={MainTabs} />
         <RootStack.Screen name="NgoLogin" component={NgoLoginScreen} />
@@ -191,7 +194,10 @@ export default function AppNavigator() {
           name="EditProfileScreen"
           component={EditProfileScreen}
         />
-        <RootStack.Screen name="DonationDetail" component={DonationDetailScreen} />
+        <RootStack.Screen
+          name="DonationDetail"
+          component={DonationDetailScreen}
+        />
         <RootStack.Screen name="SettingsScreen" component={SettingsScreen} />
         <RootStack.Screen name="AboutUsScreen" component={AboutUsScreen} />
         <RootStack.Screen
@@ -199,12 +205,21 @@ export default function AppNavigator() {
           component={TermsAndConditionsScreen}
         />
         <RootStack.Screen name="ChatScreen" component={ChatScreen} />
-        <RootStack.Screen name="NgoCreateCampaign" component={NgoCreateCampaignScreen} />
+        <RootStack.Screen
+          name="NgoCreateCampaign"
+          component={NgoCreateCampaignScreen}
+        />
         <RootStack.Screen name="NgoEditCampaign" component={NgoEditCampaign} />
         <RootStack.Screen name="AdDetails" component={AdDetailsScreen} />
         <RootStack.Screen name="LikedAdsScreen" component={LikedAdsScreen} />
-        <RootStack.Screen name="NgoEditProfile" component={NgoEditProfileScreen} />
-        <RootStack.Screen name= "NgoDonationInfoScreen" component={NgoDonationInfoScreen} /> 
+        <RootStack.Screen
+          name="NgoEditProfile"
+          component={NgoEditProfileScreen}
+        />
+        <RootStack.Screen
+          name="NgoDonationInfoScreen"
+          component={NgoDonationInfoScreen}
+        />
       </RootStack.Navigator>
     </NavigationContainer>
   );
