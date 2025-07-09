@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { ThemeContext } from '../Utilities/ThemeContext';
+import { auth, db } from '../../firebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function SettingsScreen() {
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const { t } = useTranslation();
   const navigation = useNavigation();
+
   const bg = isDarkMode ? '#0B0B0B' : '#F9F9F9';
   const cardBg = isDarkMode ? '#1A1A1C' : '#FFFFFF';
   const cardBor = isDarkMode ? '#2B2B2B' : '#E3E3E3';
@@ -29,6 +32,58 @@ export default function SettingsScreen() {
   const muted = isDarkMode ? '#A7A7A7' : '#757575';
   const accent = '#F6B93B';
 
+  const userId = auth.currentUser?.uid;
+
+  // Notification settings state & Firestore persistence
+  const [notificationSettings, setNotificationSettings] = useState({
+    turnOnNotifications: true,
+    newCampaignAlert: true,
+    donationReminder: true,
+    thankYouMessage: true,
+    milestoneUpdate: true,
+    newNgoPartner: true,
+    buyerSellerMessages: true,
+  });
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadSettings = async () => {
+      try {
+        const docRef = doc(db, 'users', userId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.notificationSettings) {
+            setNotificationSettings(data.notificationSettings);
+          }
+        }
+      } catch (err) {
+        console.log('Error loading notification settings:', err);
+      }
+    };
+
+    loadSettings();
+  }, [userId]);
+
+  const toggleSetting = async (key) => {
+    const newSettings = {
+      ...notificationSettings,
+      [key]: !notificationSettings[key],
+    };
+    setNotificationSettings(newSettings);
+
+    try {
+      if (!userId) throw new Error('User not logged in');
+      const docRef = doc(db, 'users', userId);
+      await setDoc(docRef, { notificationSettings: newSettings }, { merge: true });
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update notification settings.');
+      console.log(err);
+    }
+  };
+
+  // Language chip component
   const LangChip = ({ code, label, flag }) => {
     const active = i18n.language === code;
     return (
@@ -53,17 +108,13 @@ export default function SettingsScreen() {
   const handleAbout = () => {
     navigation.navigate('AboutUsScreen');
   };
-  
 
   const handleRating = () => {
     Alert.alert(
       t('settings.giveRating'),
       t('settings.rateAppPrompt'),
       [
-        {
-          text: t('common.cancel'),
-          style: 'cancel',
-        },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('common.ok'),
           onPress: () => {
@@ -123,7 +174,81 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Separate Cards for About, Rating, Terms */}
+        {/* Notifications Card */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBor }]}>
+          <View style={styles.cardHeader}>
+            <Icon name="bell-outline" size={20} color={accent} />
+            <Text style={[styles.cardTitle, { color: text }]}>Notifications</Text>
+          </View>
+
+          {/* Master toggle */}
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: muted }]}>Turn On Notifications</Text>
+            <Switch
+              value={notificationSettings.turnOnNotifications}
+              onValueChange={() => toggleSetting('turnOnNotifications')}
+              trackColor={{ false: '#767577', true: '#2CB67D' }}
+              thumbColor={notificationSettings.turnOnNotifications ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+
+          {/* Individual toggles */}
+          {notificationSettings.turnOnNotifications && (
+            <>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: muted }]}>New Campaign Alert</Text>
+                <Switch
+                  value={notificationSettings.newCampaignAlert}
+                  onValueChange={() => toggleSetting('newCampaignAlert')}
+                  trackColor={{ false: '#767577', true: '#2CB67D' }}
+                  thumbColor={notificationSettings.newCampaignAlert ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: muted }]}>Donation Reminder</Text>
+                <Switch
+                  value={notificationSettings.donationReminder}
+                  onValueChange={() => toggleSetting('donationReminder')}
+                  trackColor={{ false: '#767577', true: '#2CB67D' }}
+                  thumbColor={notificationSettings.donationReminder ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: muted }]}>Milestone Update</Text>
+                <Switch
+                  value={notificationSettings.milestoneUpdate}
+                  onValueChange={() => toggleSetting('milestoneUpdate')}
+                  trackColor={{ false: '#767577', true: '#2CB67D' }}
+                  thumbColor={notificationSettings.milestoneUpdate ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: muted }]}>New NGO Partner</Text>
+                <Switch
+                  value={notificationSettings.newNgoPartner}
+                  onValueChange={() => toggleSetting('newNgoPartner')}
+                  trackColor={{ false: '#767577', true: '#2CB67D' }}
+                  thumbColor={notificationSettings.newNgoPartner ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: muted }]}>Chat Message</Text>
+                <Switch
+                  value={notificationSettings.buyerSellerMessages}
+                  onValueChange={() => toggleSetting('buyerSellerMessages')}
+                  trackColor={{ false: '#767577', true: '#2CB67D' }}
+                  thumbColor={notificationSettings.buyerSellerMessages ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* About, Rating, Terms Cards */}
         <TouchableOpacity
           style={[styles.optionCard, { backgroundColor: cardBg, borderColor: cardBor }]}
           onPress={handleAbout}
@@ -216,6 +341,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
   label: {
     fontSize: 16,
@@ -250,12 +376,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
 
-    // shadow for iOS
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    // elevation for Android
     elevation: 2,
   },
   cardLeft: {
