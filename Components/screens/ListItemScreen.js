@@ -197,7 +197,7 @@ export default function ListItemScreen() {
       const ngos = snapshot.docs
         .map((doc) => ({
           label: doc.data().ngoName,
-          value: doc.data().uid, // Use uid as value
+          value: doc.data().uid, 
         }))
         .filter((ngo) => ngo.label && ngo.value);
       setNgoOptions(ngos);
@@ -229,8 +229,6 @@ export default function ListItemScreen() {
           .filter((doc) => {
             // --- DEBUG LOG START ---
             const createdBy = doc.data().createdBy;
-            // ngo might be an object or a string depending on your code
-            // If ngo is an object, use ngo.value; if it's a string, use ngo
             const ngoValue =
               typeof ngo === "object" && ngo !== null ? ngo.value : ngo;
             const isMatch = createdBy === ngoValue;

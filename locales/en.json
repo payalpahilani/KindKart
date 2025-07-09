@@ -52,6 +52,27 @@
     "rateAppPrompt": "Would you like to rate our app?",
     "faq": "FAQ"
   },
+  "listings":{
+  "list_ad": "List your Ad",
+  "ad_images": "Ad Images/Video",
+  "upload_hint": "Upload images larger than 750px × 450px. Max 5 images. Max size 134MB.",
+  "category": "Category",
+  "title": "Title",
+  "select_ngo": "Select NGO",
+  "select_cause": "Select Cause",
+  "price": "Price",
+  "sale_price": "Sale Price",
+  "negotiable": "Is price negotiable?",
+  "currency": "Currency",
+  "condition": "Condition",
+  "description": "Description",
+  "pickup_location": "Pickup Location",
+  "terms": "I agree to ",
+  "terms_conditions": "terms & conditions",
+  "cancel": "Cancel",
+  "submit": "Submit",
+  "apply": "Apply"
+},
   "profile": {
     "userName": "User Name",
     "verifiedAccount": "Verified account",
