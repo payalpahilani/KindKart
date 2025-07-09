@@ -33,7 +33,11 @@ import { GOOGLE_API_KEY } from "@env";
 
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
-const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
+const currencyOptions = [
+  { label: "CAD ($)", value: "cad" },
+  { label: "USD ($)", value: "usd" },
+  { label: "INR (₹)", value: "inr" },
+];
 const conditionOptions = ["New", "Used", "Refurbished"];
 const categoryOptions = [
   "Electronics",
@@ -93,7 +97,7 @@ export default function ListItemScreen() {
   const [loadingCauses, setLoadingCauses] = useState(true);
   const [salePrice, setSalePrice] = useState("");
   const [negotiable, setNegotiable] = useState(false);
-  const [currency, setCurrency] = useState(currencyOptions[0]);
+  const [currency, setCurrency] = useState(currencyOptions[0].value);
   const [condition, setCondition] = useState(conditionOptions[0]);
   const [description, setDescription] = useState("");
   const [useAddress, setUseAddress] = useState(false);
@@ -111,11 +115,8 @@ export default function ListItemScreen() {
   const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  const [category, setCategory] = useState(categoryOptions[0]);
-  const currencyData = currencyOptions.map((opt) => ({
-    label: opt,
-    value: opt,
-  }));
+  const [category, setCategory] = useState(categoryOptions[0].value);
+  const currencyData = currencyOptions
   const conditionData = conditionOptions.map((opt) => ({
     label: opt,
     value: opt,

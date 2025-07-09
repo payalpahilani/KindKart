@@ -23,7 +23,7 @@ export default function CustomDropdown({
       valueField="value"
       placeholder={placeholder}
       value={value}
-      onChange={(item) => onChange(item.value)}
+      onChange={(item) => onChange(item)}
       testID={testID}
     />
   );
