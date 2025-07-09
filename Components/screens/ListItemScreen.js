@@ -133,9 +133,11 @@ export default function ListItemScreen() {
       selectionLimit: MAX_IMAGES - (images || []).length,
     });
     if (!result.canceled) {
-      const newImages = result.assets
+      const newImages = Array.isArray(result.assets)
         ? result.assets.slice(0, MAX_IMAGES - (images || []).length)
-        : [result];
+        : result.assets
+        ? [result.assets]
+        : [];
       setImages([...(images || []), ...newImages].slice(0, MAX_IMAGES));
     }
   };
