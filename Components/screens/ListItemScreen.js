@@ -16,7 +16,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import { collection, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
 import CustomDropdown from "../Utilities/CustomDropdown";
@@ -25,8 +30,8 @@ import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 
-const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo"; // <-- Replace with your real API key
-const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run"; // Replace with your backend server address
+const GOOGLE_API_KEY = "AIzaSyCizoPsk9qs6UJrwUmqagh-zLNFLSwLKmo";
+const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
 const currencyOptions = ["CAD($)", "USD($)", "INR(₹)"];
 const conditionOptions = ["New", "Used", "Refurbished"];
@@ -79,7 +84,9 @@ export default function ListItemScreen() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [ngo, setNgo] = useState(null);
+  const [ngoLabel, setNgoLabel] = useState("");
   const [cause, setCause] = useState("");
+  const [causeLabel, setCauseLabel] = useState("");
   const [ngoOptions, setNgoOptions] = useState([]);
   const [causeOptions, setCauseOptions] = useState([]);
   const [loadingNgos, setLoadingNgos] = useState(true);
@@ -94,13 +101,11 @@ export default function ListItemScreen() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Pickup location modal state
   const [pickupLocation, setPickupLocation] = useState("");
   const [pickupCoords, setPickupCoords] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [region, setRegion] = useState(null);
 
-  // Custom autocomplete state
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [autocompleteLoading, setAutocompleteLoading] = useState(false);
@@ -116,7 +121,6 @@ export default function ListItemScreen() {
     value: opt,
   }));
 
-  // Pick images
   const pickImages = async () => {
     if ((images || []).length >= MAX_IMAGES) {
       Alert.alert(`Max number of images is ${MAX_IMAGES}.`);
@@ -136,14 +140,12 @@ export default function ListItemScreen() {
     }
   };
 
-  // Remove image
   const removeImage = (idx) => {
     setImages((imgs) =>
       Array.isArray(imgs) ? imgs.filter((_, i) => i !== idx) : []
     );
   };
 
-  // Upload a single image to S3 using pre-signed URL and store the public S3 URL for display
   const uploadImageToS3 = async (img, userId, itemId) => {
     const fileName = img.fileName || img.uri.split("/").pop();
     const fileType =
@@ -151,7 +153,6 @@ export default function ListItemScreen() {
         ? img.type
         : getMimeType(img.uri);
 
-    // Fetch uploadUrl and publicUrl from backend
     const res = await fetch(
       `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
         fileName
@@ -177,10 +178,9 @@ export default function ListItemScreen() {
       console.log("S3 upload error response:", errorText);
       throw new Error("Failed to upload image to S3");
     }
-    return publicUrl; // Use the permanent public URL
+    return publicUrl;
   };
 
-  // Upload all images and return their S3 public URLs
   const uploadAllImages = async (userId, itemId) => {
     const uploadedUrls = [];
     for (const img of images || []) {
@@ -190,60 +190,39 @@ export default function ListItemScreen() {
     return uploadedUrls;
   };
 
-  // --- Fetch NGOs with uid ---
   useEffect(() => {
     setLoadingNgos(true);
     const unsubscribe = onSnapshot(collection(db, "ngo"), (snapshot) => {
       const ngos = snapshot.docs
         .map((doc) => ({
           label: doc.data().ngoName,
-          value: doc.data().uid, // Use uid as value
+          value: doc.data().uid,
         }))
         .filter((ngo) => ngo.label && ngo.value);
       setNgoOptions(ngos);
       setLoadingNgos(false);
-      console.log("NGO options loaded:", ngos); // <--- LOG
     });
     return () => unsubscribe();
   }, []);
 
-  // --- Fetch causes for selected NGO ---
   useEffect(() => {
-    console.log("useEffect ngo value:", ngo); // <--- LOG
     if (!ngo) {
       setCauseOptions([]);
       setCause("");
+      setCauseLabel("");
       setLoadingCauses(false);
-      console.log("No NGO selected, causeOptions cleared."); // <--- LOG
       return;
     }
     setLoadingCauses(true);
     const unsubscribe = onSnapshot(
       collection(db, "campaigns"),
       (snapshot) => {
-        console.log(
-          "All campaigns:",
-          snapshot.docs.map((doc) => doc.data())
-        );
         const causes = snapshot.docs
           .filter((doc) => {
-            // --- DEBUG LOG START ---
             const createdBy = doc.data().createdBy;
-            // ngo might be an object or a string depending on your code
-            // If ngo is an object, use ngo.value; if it's a string, use ngo
             const ngoValue =
               typeof ngo === "object" && ngo !== null ? ngo.value : ngo;
-            const isMatch = createdBy === ngoValue;
-            console.log(
-              "Comparing createdBy:",
-              JSON.stringify(createdBy),
-              "with ngo:",
-              JSON.stringify(ngoValue),
-              "Result:",
-              isMatch
-            );
-            return isMatch;
-            // --- DEBUG LOG END ---
+            return createdBy === ngoValue;
           })
           .map((doc) => ({
             label: doc.data().title,
@@ -252,27 +231,15 @@ export default function ListItemScreen() {
           .filter((cause) => cause.label && cause.value);
         setCauseOptions(causes);
         setLoadingCauses(false);
-        console.log("Cause options set:", causes); // <--- LOG
       },
       (error) => {
         setLoadingCauses(false);
-        console.error("onSnapshot error:", error);
       }
     );
     return () => unsubscribe();
   }, [ngo]);
 
-  // Submit handler
   const handleSubmit = async () => {
-    console.log("Validation about to fail with values:", {
-      title,
-      price,
-      description,
-      ngo,
-      cause,
-      images,
-      pickupLocation,
-    });
     if (!agree) {
       Alert.alert("Please agree to the terms before submitting.");
       return;
@@ -303,7 +270,9 @@ export default function ListItemScreen() {
       await addDoc(collection(db, "items"), {
         title,
         ngo,
+        ngoName: ngoLabel,
         cause,
+        causeName: causeLabel,
         price: parseFloat(price),
         salePrice: salePrice ? parseFloat(salePrice) : 0,
         negotiable,
@@ -323,7 +292,9 @@ export default function ListItemScreen() {
       Alert.alert("Ad listed successfully!");
       setTitle("");
       setNgo("");
+      setNgoLabel("");
       setCause("");
+      setCauseLabel("");
       setPrice("");
       setSalePrice("");
       setNegotiable(false);
@@ -342,12 +313,14 @@ export default function ListItemScreen() {
     setLoading(false);
   };
 
-  // Image grid render
   const renderImageItem = ({ item, index }) => (
     <View style={styles.imageBox}>
       <Image
         source={{
-          uri:  item.publicUrl || item.downloadUrl || item.uri,
+          uri:
+            typeof item === "string"
+              ? item
+              : item.publicUrl || item.downloadUrl || item.uri,
         }}
         style={styles.imageThumb}
       />
@@ -360,7 +333,6 @@ export default function ListItemScreen() {
     </View>
   );
 
-  // Add image button for grid
   const renderAddImageBtn = () => (
     <TouchableOpacity
       style={styles.imageBox}
@@ -371,10 +343,8 @@ export default function ListItemScreen() {
     </TouchableOpacity>
   );
 
-  // For FlatList data
   const safeImages = Array.isArray(images) ? images : [];
 
-  // Slide-up modal logic for pickup location
   const openLocationModal = async () => {
     setModalVisible(true);
     try {
@@ -396,7 +366,6 @@ export default function ListItemScreen() {
     }
   };
 
-  // Fetch suggestions from Google Places API
   const fetchSuggestions = async (text) => {
     setSearch(text);
     if (!text) {
@@ -423,7 +392,6 @@ export default function ListItemScreen() {
     setAutocompleteLoading(false);
   };
 
-  // Fetch place details (lat/lng, etc.)
   const fetchPlaceDetails = async (placeId) => {
     try {
       const res = await axios.get(
@@ -442,14 +410,12 @@ export default function ListItemScreen() {
     }
   };
 
-  // Extract postal code from address components
   const getPostalCode = (components) => {
     if (!components) return "";
     const pc = components.find((c) => c.types.includes("postal_code"));
     return pc ? pc.long_name : "";
   };
 
-  // Handle suggestion selection
   const handleSelect = async (item) => {
     setAutocompleteLoading(true);
     const details = await fetchPlaceDetails(item.place_id);
@@ -484,10 +450,8 @@ export default function ListItemScreen() {
     setAutocompleteLoading(false);
   };
 
-  // When Apply is pressed
   const handleApplyLocation = () => {
     setModalVisible(false);
-    // pickupLocation and pickupCoords are already set
   };
 
   return (
@@ -525,7 +489,6 @@ export default function ListItemScreen() {
               </Text>
             </View>
 
-            {/* --- CATEGORY DROPDOWN --- */}
             <Text style={styles.inputLabel}>CATEGORY</Text>
             <CustomDropdown
               data={categoryData}
@@ -544,7 +507,6 @@ export default function ListItemScreen() {
               style={styles.input}
             />
 
-            {/* NGO Dropdown (real-time) */}
             <Text style={styles.inputLabel}>Select NGO</Text>
             {loadingNgos ? (
               <ActivityIndicator size="small" color="#2CB67D" />
@@ -553,16 +515,16 @@ export default function ListItemScreen() {
                 data={ngoOptions}
                 value={ngo}
                 onChange={(item) => {
-                  setNgo(item);
+                  setNgo(item.value);
+                  setNgoLabel(item.label);
                   setCause("");
-                  console.log("NGO selected (onChange):", item); // Reset cause when NGO changes
+                  setCauseLabel("");
                 }}
                 placeholder="Select NGO"
                 testID="ngoDropdown"
               />
             )}
 
-            {/* Cause Dropdown (real-time) */}
             <Text style={styles.inputLabel}>Select Cause</Text>
             {loadingCauses ? (
               <ActivityIndicator size="small" color="#2CB67D" />
@@ -570,7 +532,10 @@ export default function ListItemScreen() {
               <CustomDropdown
                 data={causeOptions}
                 value={cause}
-                onChange={setCause}
+                onChange={(item) => {
+                  setCause(item.value);
+                  setCauseLabel(item.label);
+                }}
                 placeholder={
                   ngo
                     ? loadingCauses
@@ -651,7 +616,6 @@ export default function ListItemScreen() {
               ]}
             />
 
-            {/* --- Pickup Location Field and Modal --- */}
             <View style={styles.pickupRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
@@ -763,7 +727,9 @@ export default function ListItemScreen() {
                 onPress={() => {
                   setTitle("");
                   setNgo("");
+                  setNgoLabel("");
                   setCause("");
+                  setCauseLabel("");
                   setPrice("");
                   setSalePrice("");
                   setNegotiable(false);
@@ -912,7 +878,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  // --- Modal UI Improvements ---
+  // Modal UI
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.32)",
