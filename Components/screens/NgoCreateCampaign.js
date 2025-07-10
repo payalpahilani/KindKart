@@ -23,6 +23,7 @@ import { Platform } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
 import { KeyboardAvoidingView } from 'react-native';
 import { doc, getDoc } from "firebase/firestore";
+import CustomDropdown from "../Utilities/CustomDropdown"; 
 
 
 
@@ -64,6 +65,8 @@ export default function NgoCreateCampaignScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [urgent, setUrgent] = useState(false);
   const [daysLeft, setDaysLeft] = useState(null);
+  const [tempCategory, setTempCategory] = useState("");
+
 
 
   useEffect(() => {
@@ -260,6 +263,11 @@ export default function NgoCreateCampaignScreen() {
           showsHorizontalScrollIndicator={false}
         />
 
+            <Text style={styles.imageHint}>
+                Prepare images before uploading. Upload images larger than 750px
+                × 450px. Max number of images is 5. Max image size is 134MB.
+              </Text>
+
         <View style={styles.section}>
           <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={styles.input} />
           <TextInput placeholder="Campaigner Name" value={campaignerName} onChangeText={setCampaignerName} style={styles.input} />
@@ -320,84 +328,53 @@ export default function NgoCreateCampaignScreen() {
         </TouchableOpacity>
       </View>
 
-      <RNPickerSelect
-  onValueChange={(value) => setCategory(value)}
-  value={category}
-  placeholder={{ label: "Select Category", value: null }}
-  items={[
-    { label: "Donation", value: "donation" },
-    { label: "Charity", value: "charity" },
-    { label: "Campaign", value: "campaign" },
-    { label: "Support", value: "support" },
-    { label: "Fundraiser", value: "Fundraiser" },
-    { label: "Awareness", value: "awareness" },
-    { label: "Events", value: "events" },
-  ]}
-  style={{
-    inputIOS: { ...styles.input, color: '#000' },
-    inputAndroid: { ...styles.input, color: '#000' },
-    iconContainer: { top: 20, right: 15 },
-  }}
-  
-  useNativeAndroidPickerStyle={false}
-  Icon={() => <Ionicons name="chevron-down" size={10} color="gray" />}
+      <CustomDropdown
+      data={[
+        { label: "Donation", value: "donation" },
+        { label: "Charity", value: "charity" },
+        { label: "Campaign", value: "campaign" },
+        { label: "Support", value: "support" },
+        { label: "Fundraiser", value: "Fundraiser" },
+        { label: "Awareness", value: "awareness" },
+        { label: "Events", value: "events" },
+      ]}
+      value={category}
+      onChange={setCategory}
+      placeholder="Select Category"
+      inputStyle={styles.input}
 />
 
-<RNPickerSelect
-  onValueChange={(value) => setCampaignCategory(value)}
-  value={campaignCategory}
-  placeholder={{ label: "Select Campaign Category", value: null }}
-  items={[
-  { label: "Medical Aid", value: "medical_aid" },
-  { label: "Disaster Relief", value: "disaster_relief" },
-  { label: "Child Welfare", value: "child_welfare" },
-  { label: "Women Empowerment", value: "women_empowerment" },
-  { label: "Education", value: "education" },
-  { label: "Environment", value: "environment" },
-  { label: "Animal Welfare", value: "animal_welfare" },
-  { label: "Community Development", value: "community_development" },
-  { label: "Elderly Support", value: "elderly_support" },
-  { label: "Livelihood Support", value: "livelihood_support" },
-  ]}
-  style={{
-    inputIOS: { ...styles.input, color: '#000' },
-    inputAndroid: { ...styles.input, color: '#000' },
-    iconContainer: { top: 20, right: 15 },
-  }}
-  
-  useNativeAndroidPickerStyle={false}
-  Icon={() => <Ionicons name="chevron-down" size={10} color="gray" />}
+<CustomDropdown
+      data={[
+        { label: "Medical Aid", value: "medical_aid" },
+        { label: "Disaster Relief", value: "disaster_relief" },
+        { label: "Child Welfare", value: "child_welfare" },
+        { label: "Women Empowerment", value: "women_empowerment" },
+        { label: "Education", value: "education" },
+        { label: "Environment", value: "environment" },
+        { label: "Animal Welfare", value: "animal_welfare" },
+        { label: "Community Development", value: "community_development" },
+        { label: "Elderly Support", value: "elderly_support" },
+        { label: "Livelihood Support", value: "livelihood_support" },
+      ]}
+      value={campaignCategory}
+      onChange={setCampaignCategory}
+      placeholder= "Select Campaign Category"
+      inputStyle={styles.input}
 />
 
-
-
-          {/* <TextInput placeholder="Category (e.g. Campaign)" value={category} onChangeText={setCategory} style={styles.input} />
-          <TextInput placeholder="Campaign Category (e.g. Personal)" value={campaignCategory} onChangeText={setCampaignCategory} style={styles.input} /> */}
-          <TextInput placeholder="Total Donation (e.g. 1000000)" value={totalDonation} onChangeText={setTotalDonation} keyboardType="numeric" style={styles.input} />
-          <RNPickerSelect
-                onValueChange={(value) => setCurrency(value)}
-                value={currency}
-                placeholder={{}}
-                items={[
-                    { label: "CAD", value: "CAD" },
-                    { label: "USD", value: "USD" },
-                ]}
-                style={{
-                    inputIOS: styles.input,     
-                    inputAndroid: styles.input,
-                    iconContainer: {
-                    top: 20,
-                    right: 15,
-                    },
-                }}
-                useNativeAndroidPickerStyle={false}
-                Icon={() => {
-                    return <Ionicons name="chevron-down" size={10} color="gray" />;
-                }}
-                />
-
-
-
+    <TextInput placeholder="Total Donation (e.g. 1000000)" value={totalDonation} onChangeText={setTotalDonation} keyboardType="numeric" style={styles.input} />
+      
+    <CustomDropdown
+      data={[
+        { label: "CAD", value: "CAD" },
+        { label: "USD", value: "USD" },
+      ]}
+      value={currency}
+      onChange={setCurrency}
+      placeholder="Select Currency"
+      inputStyle={styles.input}
+      />
           </View>
 
         <View style={styles.section}>
@@ -442,7 +419,7 @@ const styles = StyleSheet.create({
     header: {
       fontSize: 24,
       fontWeight: "700",
-      color: PRIMARY,
+      color: "#000",
     },
     label: {
       fontSize: 16,
@@ -470,6 +447,12 @@ const styles = StyleSheet.create({
     textArea: {
       minHeight: 100,
       textAlignVertical: "top",
+    },
+    imageHint: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10,
+      marginTop: 8,
     },
     imageBox: {
       width: 80,
@@ -545,6 +528,7 @@ const styles = StyleSheet.create({
         padding: 14,
         marginBottom: 12,
         fontSize: 15,
+        color: "#000",
       },
       inputAndroid: {
         backgroundColor: "#fff",
@@ -554,6 +538,7 @@ const styles = StyleSheet.create({
         padding: 14,
         marginBottom: 12,
         fontSize: 15,
+        color: "#000",
       },
   });
   

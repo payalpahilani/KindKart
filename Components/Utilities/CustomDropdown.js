@@ -9,10 +9,11 @@ export default function CustomDropdown({
   onChange,
   placeholder,
   testID,
+  inputStyle,
 }) {
   return (
     <Dropdown
-      style={styles.dropdown}
+      style={[styles.dropdown, inputStyle]}
       placeholderStyle={styles.placeholderStyle}
       selectedTextStyle={styles.selectedTextStyle}
       itemTextStyle={styles.itemTextStyle}

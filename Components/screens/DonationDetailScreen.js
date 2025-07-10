@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
   thumbRow: { flexDirection: 'row', marginBottom: 20 },
   thumb: { width: 70, height: 70, borderRadius: 8, marginRight: 10 },
 
-  title: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  date: { fontSize: 13, color: '#888' },
+  title: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  date: { fontSize: 13, color: '#888', marginBottom: 8, },
 
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   badge: {
@@ -202,6 +202,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    marginTop: 4,
   },
   badgeText: { fontSize: 12, color: '#1F2E41' },
 

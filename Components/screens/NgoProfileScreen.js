@@ -122,20 +122,6 @@ export default function NgoProfileScreen() {
           <InfoRow icon="currency-usd" label="Total Raised" value={`$${campaignStats.total}`} />
         </View>
 
-        {/* Preferences */}
-        <Text style={styles.sectionTitle}>Preferences</Text>
-        <View style={styles.prefRow}>
-          <View style={styles.prefLabel}>
-            <Icon name="bell-ring" size={22} color="#EFAC3A" />
-            <Text style={styles.prefText}>Campaign Alerts</Text>
-          </View>
-          <Switch
-            value={campaignAlerts}
-            onValueChange={setCampaignAlerts}
-            thumbColor={campaignAlerts ? '#fff' : '#ccc'}
-            trackColor={{ true: '#EFAC3A', false: '#ccc' }}
-          />
-        </View>
 
         {/* Actions */}
         <Text style={styles.sectionTitle}>Actions</Text>
@@ -178,9 +164,9 @@ const styles = StyleSheet.create({
     borderColor: '#EFAC3A',
     borderRadius: 44,
     padding: 2,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  avatar: { width: 88, height: 88, borderRadius: 44 },
+  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12, },
   name: { fontSize: 22, fontWeight: '700', color: '#4D4D4D' },
   email: { fontSize: 14, color: '#666', marginTop: 4 },
 
@@ -188,7 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginTop: 24,
-    marginBottom: 10,
+    marginBottom: 8,
     color: '#444',
   },
 
@@ -255,7 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFAC3A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   initialsText: {
     fontSize: 32,
