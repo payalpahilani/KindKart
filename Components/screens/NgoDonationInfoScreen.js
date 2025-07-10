@@ -25,35 +25,34 @@ export default function NgoDonationInfoScreen() {
   const [ngoDetails, setNgoDetails] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
 
-
   useEffect(() => {
     const fetchCampaign = async () => {
-        try {
-          const docRef = doc(db, 'campaigns', campaignId);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const campaignData = docSnap.data();
-            setCampaign(campaignData);
-          
-            if (campaignData.imageUrls && campaignData.imageUrls.length > 0) {
-              setSelectedImage({ uri: campaignData.imageUrls[0] });
-            }
-           
-            if (campaignData.createdBy) {
-              const ngoRef = doc(db, 'ngo', campaignData.createdBy);
-              const ngoSnap = await getDoc(ngoRef);
-              if (ngoSnap.exists()) {
-                setNgoDetails(ngoSnap.data());
-              }
+      try {
+        const docRef = doc(db, 'campaigns', campaignId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const campaignData = docSnap.data();
+          setCampaign(campaignData);
+
+          if (campaignData.imageUrls?.length > 0) {
+            setSelectedImage({ uri: campaignData.imageUrls[0] });
+          }
+
+          if (campaignData.createdBy) {
+            const ngoRef = doc(db, 'ngo', campaignData.createdBy);
+            const ngoSnap = await getDoc(ngoRef);
+            if (ngoSnap.exists()) {
+              setNgoDetails(ngoSnap.data());
             }
           }
-        } catch (e) {
-          console.warn('Failed to fetch campaign details:', e);
-        } finally {
-          setLoading(false);
         }
-      };
-      
+      } catch (e) {
+        console.warn('Failed to fetch campaign details:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchCampaign();
   }, [campaignId]);
 
@@ -77,20 +76,35 @@ export default function NgoDonationInfoScreen() {
     title,
     imageUrls = [],
     story,
-    ngoName,
-    goalAmount,
-    raisedAmount,
-    startDate,
+    campaignerName,
+    campaignCategory,
+    category,
+    currency = 'CAD',
+    totalDonation,
+    raisedAmount = 0,
+    campaignDate,
+    urgent,
   } = campaign;
 
- 
-  const mainImage = imageUrls.length > 0 ? { uri: imageUrls[0] } : require('../../assets/Images/campaign1.jpg');
   const thumbnails = imageUrls.map((url, i) => (
     <TouchableOpacity key={i} onPress={() => setSelectedImage({ uri: url })}>
       <Image source={{ uri: url }} style={styles.thumb} />
     </TouchableOpacity>
   ));
-  
+
+  const dateLabel = campaignDate
+    ? new Date(campaignDate).toDateString()
+    : 'Date not available';
+
+  const ngoInitials =
+    ngoDetails?.ngoName?.split(' ').map((n) => n[0]).join('').toUpperCase() || 'NGO';
+
+  const avatarUri = ngoDetails?.avatarUrl;
+
+  const progress =
+    totalDonation && raisedAmount
+      ? Math.min((raisedAmount / totalDonation) * 100, 100)
+      : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,41 +132,48 @@ export default function NgoDonationInfoScreen() {
 
         {/* Campaign Meta */}
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.date}>{new Date(startDate).toDateString()}</Text>
-        <View style={styles.badge}><Text style={styles.badgeText}>Donation</Text></View>
+        <Text style={styles.date}>{dateLabel}</Text>
+
+        <View style={styles.badgeRow}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{category || 'Campaign'}</Text>
+          </View>
+          {campaignCategory && (
+            <View style={[styles.badge, { backgroundColor: '#FFDDCC' }]}>
+              <Text style={styles.badgeText}>{campaignCategory.replace('_', ' ')}</Text>
+            </View>
+          )}
+          {urgent && (
+            <View style={[styles.badge, { backgroundColor: '#FFD6D6' }]}>
+              <Text style={[styles.badgeText, { color: '#B00020' }]}>Urgent</Text>
+            </View>
+          )}
+        </View>
 
         <Text style={styles.raised}>
-          ${raisedAmount?.toLocaleString() || 0} from ${goalAmount?.toLocaleString() || 0}
+          {currency} {raisedAmount?.toLocaleString()} from {currency}{' '}
+          {totalDonation?.toLocaleString()}
         </Text>
+
         <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressBar,
-              { width: `${(raisedAmount / goalAmount) * 100 || 0}%` },
-            ]}
-          />
+          <View style={[styles.progressBar, { width: `${progress}%` }]} />
         </View>
 
         {/* NGO Info */}
         <Text style={styles.sectionTitle}>Campaigner</Text>
         <View style={styles.ngoBox}>
-        <View style={styles.ngoAvatar}>
-            <Text style={styles.ngoInitials}>
-            {ngoDetails?.ngoName
-                ? ngoDetails.ngoName
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .toUpperCase()
-                : 'NGO'}
-            </Text>
-        </View>
-        <View>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.ngoAvatar}>
+              <Text style={styles.ngoInitials}>{ngoInitials}</Text>
+            </View>
+          )}
+          <View>
             <Text style={styles.ngoName}>{ngoDetails?.ngoName || 'NGO'}</Text>
             <Text style={styles.verified}>Verified Account</Text>
+          </View>
         </View>
-        </View>
-
 
         {/* Description */}
         <Text style={styles.sectionTitle}>Campaign Story</Text>
@@ -177,14 +198,14 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
   date: { fontSize: 13, color: '#888' },
+
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   badge: {
     backgroundColor: '#B8D6DF',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginTop: 6,
-    marginBottom: 12,
   },
   badgeText: { fontSize: 12, color: '#1F2E41' },
 
@@ -219,6 +240,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#B8D6DF',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 14,
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     marginRight: 14,
   },
   ngoInitials: { fontSize: 16, fontWeight: '700', color: '#1F2E41' },

@@ -88,17 +88,21 @@ export default function NgoProfileScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-                <View style={styles.initialsAvatar}>
-          <Text style={styles.initialsText}>
-            {ngo?.ngoName
-              ? ngo.ngoName
-                  .split(' ')
-                  .map((word) => word[0])
-                  .join('')
-                  .toUpperCase()
-              : 'NGO'}
-          </Text>
-        </View>
+          {ngo?.avatarUrl ? (
+            <Image source={{ uri: ngo.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.initialsAvatar}>
+              <Text style={styles.initialsText}>
+                {ngo?.ngoName
+                  ? ngo.ngoName
+                      .split(' ')
+                      .map((word) => word[0])
+                      .join('')
+                      .toUpperCase()
+                  : 'NGO'}
+              </Text>
+            </View>
+          )}
           <Text style={styles.name}>{ngo?.ngoName || 'NGO Name'}</Text>
           <Text style={styles.email}>{ngo?.email}</Text>
         </View>
