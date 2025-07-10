@@ -32,17 +32,25 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db, auth } from "../../firebaseConfig";
 import { ThemeContext } from "../Utilities/ThemeContext";
+import { useStripe } from "@stripe/stripe-react-native";
 
 const { width } = Dimensions.get("window");
 
+// FIXED InfoRow: always renders a string, never an object!
 function InfoRow({ label, value, isDarkMode }) {
+  let displayValue = value;
+  if (value && typeof value === "object") {
+    if ("label" in value) displayValue = value.label;
+    else if ("value" in value) displayValue = value.value;
+    else displayValue = JSON.stringify(value);
+  }
   return (
     <View style={isDarkMode ? darkStyles.infoRow : lightStyles.infoRow}>
       <Text style={isDarkMode ? darkStyles.infoLabel : lightStyles.infoLabel}>
         {label}
       </Text>
       <Text style={isDarkMode ? darkStyles.infoValue : lightStyles.infoValue}>
-        {value}
+        {displayValue}
       </Text>
     </View>
   );
@@ -61,6 +69,8 @@ export default function AdDetailsScreen({ route, navigation }) {
   const [userName, setUserName] = useState("Seller");
   const [userAvatar, setUserAvatar] = useState(null);
   const [liked, setLiked] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -96,12 +106,13 @@ export default function AdDetailsScreen({ route, navigation }) {
       setUserAvatar(null);
     }
 
-    // Check if current user liked this ad
     const checkIfLiked = async () => {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      const likedDoc = await getDoc(doc(db, "users", currentUser.uid, "liked", ad.id));
+      const likedDoc = await getDoc(
+        doc(db, "users", currentUser.uid, "liked", ad.id)
+      );
       setLiked(likedDoc.exists());
     };
     checkIfLiked();
@@ -139,11 +150,15 @@ export default function AdDetailsScreen({ route, navigation }) {
 
   const sendMessage = async () => {
     const currentUser = auth.currentUser;
-    if (!message.trim() || !adData.userId || currentUser.uid === adData.userId) return;
+    if (!message.trim() || !adData.userId || currentUser.uid === adData.userId)
+      return;
 
     try {
       const roomsRef = collection(db, "chatRooms");
-      const q = query(roomsRef, where("users", "array-contains", currentUser.uid));
+      const q = query(
+        roomsRef,
+        where("users", "array-contains", currentUser.uid)
+      );
       const snap = await getDocs(q);
 
       let existingRoomId = null;
@@ -208,46 +223,130 @@ export default function AdDetailsScreen({ route, navigation }) {
 
   if (loading || !adData) {
     return (
-      <View style={isDarkMode ? darkStyles.loadingContainer : lightStyles.loadingContainer}>
+      <View
+        style={
+          isDarkMode
+            ? darkStyles.loadingContainer
+            : lightStyles.loadingContainer
+        }
+      >
         <ActivityIndicator size="large" color="#2CB67D" />
       </View>
     );
   }
 
+  // PAYMENT GATEWAY
+
+  const handlePurchase = async () => {
+    setPaymentLoading(true);
+    try {
+      // Call your backend to create a PaymentIntent
+      const response = await fetch(
+        "https://kindkart-0l245p6y.b4a.run/create-payment-intent",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: adData.price * 100, // Stripe uses cents
+            currency: adData.currency?.value || adData.currency || "usd",
+          }),
+        }
+      );
+      const { clientSecret } = await response.json();
+
+      // Initialize the payment sheet
+      const initSheet = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: "Kindkart",
+      });
+      if (initSheet.error) throw initSheet.error;
+
+      // Present the payment sheet
+      const paymentResult = await presentPaymentSheet();
+      if (paymentResult.error) throw paymentResult.error;
+
+      alert("Payment successful!");
+      // Optionally update your app state or Firestore here
+    } catch (error) {
+      alert(`Payment failed: ${error.message}`);
+    }
+    setPaymentLoading(false);
+  };
+
   return (
-    <SafeAreaView style={isDarkMode ? darkStyles.safeArea : lightStyles.safeArea}>
+    <SafeAreaView
+      style={isDarkMode ? darkStyles.safeArea : lightStyles.safeArea}
+    >
       <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBg} />
 
       {/* Top Bar */}
       <View style={isDarkMode ? darkStyles.topBar : lightStyles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={isDarkMode ? darkStyles.backBtn : lightStyles.backBtn}>
-          <Icon name="arrow-left" size={28} color={isDarkMode ? "#fff" : "#23253A"} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={isDarkMode ? darkStyles.backBtn : lightStyles.backBtn}
+        >
+          <Icon
+            name="arrow-left"
+            size={28}
+            color={isDarkMode ? "#fff" : "#23253A"}
+          />
         </TouchableOpacity>
-        <View style={isDarkMode ? darkStyles.topRightButtons : lightStyles.topRightButtons}>
-          <TouchableOpacity style={isDarkMode ? darkStyles.actionBtn : lightStyles.actionBtn} onPress={toggleLike}>
+        <View
+          style={
+            isDarkMode
+              ? darkStyles.topRightButtons
+              : lightStyles.topRightButtons
+          }
+        >
+          <TouchableOpacity
+            style={isDarkMode ? darkStyles.actionBtn : lightStyles.actionBtn}
+            onPress={toggleLike}
+          >
             <Icon
               name={liked ? "heart" : "heart-outline"}
               size={24}
               color={liked ? "#e63946" : "#2CB67D"}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={isDarkMode ? darkStyles.actionBtn : lightStyles.actionBtn} onPress={handleShare}>
-            <Icon name="share-variant" size={24} color={isDarkMode ? "#fff" : "#23253A"} />
+          <TouchableOpacity
+            style={isDarkMode ? darkStyles.actionBtn : lightStyles.actionBtn}
+            onPress={handleShare}
+          >
+            <Icon
+              name="share-variant"
+              size={24}
+              color={isDarkMode ? "#fff" : "#23253A"}
+            />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={isDarkMode ? darkStyles.galleryContainer : lightStyles.galleryContainer}>
+        <View
+          style={
+            isDarkMode
+              ? darkStyles.galleryContainer
+              : lightStyles.galleryContainer
+          }
+        >
           <Image
             source={{ uri: selectedImage }}
             style={isDarkMode ? darkStyles.mainImage : lightStyles.mainImage}
             resizeMode="cover"
           />
           {adData.imageUrls && adData.imageUrls.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={isDarkMode ? darkStyles.thumbnailRow : lightStyles.thumbnailRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={
+                isDarkMode ? darkStyles.thumbnailRow : lightStyles.thumbnailRow
+              }
+            >
               {adData.imageUrls.map((img, idx) => (
-                <TouchableOpacity key={idx} onPress={() => setSelectedImage(img)}>
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => setSelectedImage(img)}
+                >
                   <Image
                     source={{ uri: img }}
                     style={[
@@ -264,27 +363,63 @@ export default function AdDetailsScreen({ route, navigation }) {
           )}
         </View>
 
-        <View style={isDarkMode ? darkStyles.headingRow : lightStyles.headingRow}>
-          <Text style={isDarkMode ? darkStyles.heading : lightStyles.heading}>{adData.title || "No title"}</Text>
+        <View
+          style={isDarkMode ? darkStyles.headingRow : lightStyles.headingRow}
+        >
+          <Text style={isDarkMode ? darkStyles.heading : lightStyles.heading}>
+            {adData.title || "No title"}
+          </Text>
           <Text style={isDarkMode ? darkStyles.price : lightStyles.price}>
-            {adData.price ? `${adData.price} ${adData.currency || ""}` : "No price"}
+            {adData.price
+              ? `${adData.price} ${
+                  adData.currency && typeof adData.currency === "object"
+                    ? adData.currency.label || adData.currency.value
+                    : adData.currency || ""
+                }`
+              : "No price"}
           </Text>
         </View>
 
-        <Text style={isDarkMode ? darkStyles.sectionTitle : lightStyles.sectionTitle}>Description</Text>
-        <Text style={isDarkMode ? darkStyles.description : lightStyles.description}>
+        <Text
+          style={
+            isDarkMode ? darkStyles.sectionTitle : lightStyles.sectionTitle
+          }
+        >
+          Description
+        </Text>
+        <Text
+          style={isDarkMode ? darkStyles.description : lightStyles.description}
+        >
           {adData.description || "No description provided."}
         </Text>
 
-        <View style={isDarkMode ? darkStyles.userMessageCard : lightStyles.userMessageCard}>
-          <View style={isDarkMode ? darkStyles.userInfoRow : lightStyles.userInfoRow}>
+        <View
+          style={
+            isDarkMode
+              ? darkStyles.userMessageCard
+              : lightStyles.userMessageCard
+          }
+        >
+          <View
+            style={
+              isDarkMode ? darkStyles.userInfoRow : lightStyles.userInfoRow
+            }
+          >
             <Image
               source={{ uri: userAvatar || "https://via.placeholder.com/60" }}
-              style={isDarkMode ? darkStyles.userAvatar : lightStyles.userAvatar}
+              style={
+                isDarkMode ? darkStyles.userAvatar : lightStyles.userAvatar
+              }
             />
-            <Text style={isDarkMode ? darkStyles.userName : lightStyles.userName}>{userName}</Text>
+            <Text
+              style={isDarkMode ? darkStyles.userName : lightStyles.userName}
+            >
+              {userName}
+            </Text>
           </View>
-          <View style={isDarkMode ? darkStyles.messageBox : lightStyles.messageBox}>
+          <View
+            style={isDarkMode ? darkStyles.messageBox : lightStyles.messageBox}
+          >
             <TextInput
               style={isDarkMode ? darkStyles.input : lightStyles.input}
               placeholder="Send seller a message"
@@ -293,17 +428,42 @@ export default function AdDetailsScreen({ route, navigation }) {
               onChangeText={setMessage}
               multiline={true}
             />
-            <TouchableOpacity style={isDarkMode ? darkStyles.sendButton : lightStyles.sendButton} onPress={sendMessage}>
+            <TouchableOpacity
+              style={
+                isDarkMode ? darkStyles.sendButton : lightStyles.sendButton
+              }
+              onPress={sendMessage}
+            >
               <Icon name="send" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}>
-          <Text style={isDarkMode ? darkStyles.detailsTitle : lightStyles.detailsTitle}>Details</Text>
-          <InfoRow label="Category" value={adData.category || "Not specified"} isDarkMode={isDarkMode} />
-          <InfoRow label="Condition" value={adData.condition || "Not specified"} isDarkMode={isDarkMode} />
-          <InfoRow label="Sale Price" value={adData.salePrice ? `${adData.salePrice}` : "Not specified"} isDarkMode={isDarkMode} />
+        <View
+          style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}
+        >
+          <Text
+            style={
+              isDarkMode ? darkStyles.detailsTitle : lightStyles.detailsTitle
+            }
+          >
+            Details
+          </Text>
+          <InfoRow
+            label="Category"
+            value={adData.category || "Not specified"}
+            isDarkMode={isDarkMode}
+          />
+          <InfoRow
+            label="Condition"
+            value={adData.condition || "Not specified"}
+            isDarkMode={isDarkMode}
+          />
+          <InfoRow
+            label="Sale Price"
+            value={adData.salePrice ? `${adData.salePrice}` : "Not specified"}
+            isDarkMode={isDarkMode}
+          />
           <InfoRow
             label="Negotiable"
             value={
@@ -317,24 +477,53 @@ export default function AdDetailsScreen({ route, navigation }) {
           />
         </View>
 
-        <View style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}>
-          <Text style={isDarkMode ? darkStyles.detailsTitle : lightStyles.detailsTitle}>NGO & Cause</Text>
-          <InfoRow label="NGO Name" value={adData.ngoName || adData.ngo || "Not specified"} isDarkMode={isDarkMode} />
-          <InfoRow label="Cause" value={adData.ngoCause || adData.cause || "Not specified"} isDarkMode={isDarkMode} />
+        <View
+          style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}
+        >
+          <Text
+            style={
+              isDarkMode ? darkStyles.detailsTitle : lightStyles.detailsTitle
+            }
+          >
+            NGO & Cause
+          </Text>
+          <InfoRow
+            label="NGO Name"
+            value={adData.ngoName || adData.ngo || "Not specified"}
+            isDarkMode={isDarkMode}
+          />
+          <InfoRow
+            label="Cause"
+            value={adData.causeName || "Not specified"}
+            isDarkMode={isDarkMode}
+          />
         </View>
 
-        <View style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}>
-          <Text style={isDarkMode ? darkStyles.detailsTitle : lightStyles.detailsTitle}>Location</Text>
-          <InfoRow label="Pickup Location" value={adData.pickupLocation || "Not specified"} isDarkMode={isDarkMode} />
-          <InfoRow label="Address" value={adData.address || "Not specified"} isDarkMode={isDarkMode} />
+        <View
+          style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}
+        >
+          <Text
+            style={
+              isDarkMode ? darkStyles.detailsTitle : lightStyles.detailsTitle
+            }
+          >
+            Location
+          </Text>
+          <InfoRow
+            label="Pickup"
+            value={adData.pickupLocation || "Not specified"}
+            isDarkMode={isDarkMode}
+          />
         </View>
 
         <View style={isDarkMode ? darkStyles.mapCard : lightStyles.mapCard}>
           <MapView
             style={isDarkMode ? darkStyles.map : lightStyles.map}
             initialRegion={{
-              latitude: adData?.pickupCoords?.latitude || adData.latitude || 28.6139,
-              longitude: adData?.pickupCoords?.longitude || adData.longitude || 77.209,
+              latitude:
+                adData?.pickupCoords?.latitude || adData.latitude || 28.6139,
+              longitude:
+                adData?.pickupCoords?.longitude || adData.longitude || 77.209,
               latitudeDelta: 0.01,
               longitudeDelta: 0.01,
             }}
@@ -343,8 +532,10 @@ export default function AdDetailsScreen({ route, navigation }) {
           >
             <Marker
               coordinate={{
-                latitude: adData?.pickupCoords?.latitude || adData.latitude || 28.6139,
-                longitude: adData?.pickupCoords?.longitude || adData.longitude || 77.209,
+                latitude:
+                  adData?.pickupCoords?.latitude || adData.latitude || 28.6139,
+                longitude:
+                  adData?.pickupCoords?.longitude || adData.longitude || 77.209,
               }}
               title={adData.pickupLocation}
             />
@@ -353,28 +544,30 @@ export default function AdDetailsScreen({ route, navigation }) {
             {adData.pickupLocation || "No location"}
           </Text>
         </View>
+
+        <View style={{ padding: 18 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#2CB67D",
+              borderRadius: 10,
+              padding: 16,
+              alignItems: "center",
+              opacity: paymentLoading ? 0.6 : 1,
+            }}
+            onPress={handlePurchase}
+            disabled={paymentLoading}
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
+              {paymentLoading ? "Processing..." : "Purchase"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const base = {
-  infoRow: {
-    flexDirection: "row",
-    marginBottom: 4,
-    alignItems: "center",
-  },
-  infoLabel: {
-    fontWeight: "600",
-    fontSize: 14,
-    width: 120,
-  },
-  infoValue: {
-    fontSize: 14,
-    flex: 1,
-    flexWrap: "wrap",
-  },
-};
+// ...styles (same as before, see previous message)
 
 const lightStyles = StyleSheet.create({
   safeArea: {
@@ -409,7 +602,6 @@ const lightStyles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#F6F6F6",
   },
-
   galleryContainer: {
     backgroundColor: "#f6f6f6",
     borderRadius: 18,
@@ -438,7 +630,6 @@ const lightStyles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: "#eee",
   },
-
   headingRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -459,7 +650,6 @@ const lightStyles = StyleSheet.create({
     fontWeight: "bold",
     color: "#2CB67D",
   },
-
   sectionTitle: {
     fontWeight: "600",
     fontSize: 18,
@@ -474,7 +664,6 @@ const lightStyles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 18,
   },
-
   userMessageCard: {
     backgroundColor: "#fff",
     marginHorizontal: 18,
@@ -510,7 +699,6 @@ const lightStyles = StyleSheet.create({
     fontWeight: "600",
     color: "#23253A",
   },
-
   messageBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -533,7 +721,6 @@ const lightStyles = StyleSheet.create({
     padding: 10,
     marginLeft: 8,
   },
-
   detailsCard: {
     backgroundColor: "#F6F6F6",
     borderRadius: 12,
@@ -549,7 +736,6 @@ const lightStyles = StyleSheet.create({
     color: "#23253A",
     marginBottom: 6,
   },
-
   mapCard: {
     borderRadius: 14,
     overflow: "hidden",
@@ -573,6 +759,24 @@ const lightStyles = StyleSheet.create({
     borderBottomRightRadius: 14,
     borderTopWidth: 1,
     borderColor: "#e0e0e0",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    paddingVertical: 2,
+  },
+  infoLabel: {
+    fontWeight: "600",
+    fontSize: 15,
+    color: "#23253A",
+    minWidth: 90,
+  },
+  infoValue: {
+    fontSize: 15,
+    color: "#23253A",
+    flex: 1,
+    flexWrap: "wrap",
   },
 });
 
@@ -609,7 +813,6 @@ const darkStyles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#1E1E1E",
   },
-
   galleryContainer: {
     backgroundColor: "#1E1E1E",
     borderRadius: 18,
@@ -638,7 +841,6 @@ const darkStyles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: "#2A2A2A",
   },
-
   headingRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -650,7 +852,7 @@ const darkStyles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FFFFFF",  
+    color: "#FFFFFF",
     flex: 1,
     marginRight: 8,
   },
@@ -659,22 +861,20 @@ const darkStyles = StyleSheet.create({
     fontWeight: "bold",
     color: "#2CB67D",
   },
-
   sectionTitle: {
     fontWeight: "600",
     fontSize: 18,
-    color: "#FFFFFF", 
+    color: "#FFFFFF",
     marginTop: 18,
     marginBottom: 4,
     paddingHorizontal: 18,
   },
   description: {
     fontSize: 16,
-    color: "#FFFFFF",  
+    color: "#FFFFFF",
     marginBottom: 8,
     paddingHorizontal: 18,
   },
-
   userMessageCard: {
     backgroundColor: "#333333",
     marginHorizontal: 18,
@@ -708,9 +908,8 @@ const darkStyles = StyleSheet.create({
   userName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF", 
+    color: "#FFFFFF",
   },
-
   messageBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -722,7 +921,7 @@ const darkStyles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#FFFFFF", 
+    color: "#FFFFFF",
     paddingVertical: 6,
     backgroundColor: "transparent",
     maxHeight: 100,
@@ -733,7 +932,6 @@ const darkStyles = StyleSheet.create({
     padding: 10,
     marginLeft: 8,
   },
-
   detailsCard: {
     backgroundColor: "#1E1E1E",
     borderRadius: 12,
@@ -746,10 +944,9 @@ const darkStyles = StyleSheet.create({
   detailsTitle: {
     fontWeight: "bold",
     fontSize: 16,
-    color: "#FFFFFF", 
+    color: "#FFFFFF",
     marginBottom: 6,
   },
-
   mapCard: {
     borderRadius: 14,
     overflow: "hidden",
@@ -766,7 +963,7 @@ const darkStyles = StyleSheet.create({
   mapLabel: {
     padding: 10,
     fontSize: 14,
-    color: "#FFFFFF", 
+    color: "#FFFFFF",
     fontWeight: "500",
     backgroundColor: "#121212",
     borderBottomLeftRadius: 14,
@@ -774,23 +971,22 @@ const darkStyles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "#333",
   },
-
   infoRow: {
     flexDirection: "row",
-    marginBottom: 4,
     alignItems: "center",
+    marginBottom: 8,
+    paddingVertical: 2,
   },
   infoLabel: {
     fontWeight: "600",
-    fontSize: 14,
-    width: 120,
-    color: "#FFFFFF", 
+    fontSize: 15,
+    color: "#fff",
+    minWidth: 90,
   },
   infoValue: {
-    fontSize: 14,
+    fontSize: 15,
+    color: "#fff",
     flex: 1,
     flexWrap: "wrap",
-    color: "#FFFFFF",
   },
 });
-

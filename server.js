@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const AWS = require("aws-sdk");
 const cors = require("cors");
+const Stripe = require("stripe");
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 app.use(cors());
@@ -70,6 +72,22 @@ app.get("/get-presigned-url", async (req, res) => {
   } catch (err) {
     console.log("S3 error:", err);
     res.status(500).json({ error: err.message, details: err });
+  }
+});
+
+app.post("/create-payment-intent", express.json(), async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
+    if (!amount || !currency) {
+      return res.status(400).json({ error: "Missing amount or currency" });
+    }
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency,
+    });
+    res.send({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
