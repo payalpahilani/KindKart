@@ -105,10 +105,6 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
-        <Text style={styles.forgotText}>Forgot Password?</Text>
-        </TouchableOpacity>
-
 
         <TouchableOpacity onPress={handleLogin}>
           <LinearGradient
