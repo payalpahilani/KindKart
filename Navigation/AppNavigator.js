@@ -39,7 +39,8 @@ import NgoDonationInfoScreen from "../Components/screens/NgoDonationInfoScreen";
 import NgoDashboardScreen from '../Components/screens/NgoDashboardScreen';
 import ForgotPasswordScreen from "../Components/screens/ForgotPasswordScreen";
 import YourAdsScreen from "../Components/screens/YourAdsScreen";
-
+import EditListingScreen from "../Components/screens/EditListingScreen";
+import CategoryAdsScreen from "../Components/screens/CategoryAdsScreen";
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -209,8 +210,10 @@ export default function AppNavigator() {
         />
         <RootStack.Screen name="NgoEditCampaign" component={NgoEditCampaign} />
         <RootStack.Screen name="AdDetails" component={AdDetailsScreen} />
-        {/* <RootStack.Screen name="YourAdsScreen" component={YourAdsScreen} /> */}
+        <RootStack.Screen name="YourAdsScreen" component={YourAdsScreen} /> 
         <RootStack.Screen name="LikedAdsScreen" component={LikedAdsScreen} />
+        <RootStack.Screen name="EditListingScreen" component={EditListingScreen} />
+        <RootStack.Screen name="CategoryAdsScreen" component={CategoryAdsScreen} />
         <RootStack.Screen
           name="NgoEditProfile"
           component={NgoEditProfileScreen}

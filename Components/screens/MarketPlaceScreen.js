@@ -237,15 +237,19 @@ export default function MarketplaceScreen({ navigation }) {
     }
     // Categories
     if (item.type === "categories") {
-      // Determine how many categories to show
       const catsToShow = showAllCategories
         ? categories
         : categories.slice(0, 5);
+      const rows = chunkArray(catsToShow, NUM_CAT_COLUMNS);
+      const columnWidth = (width - 32) / NUM_CAT_COLUMNS;
 
-      // Split into rows of 5
-      const rows = [];
-      for (let i = 0; i < catsToShow.length; i += 5) {
-        rows.push(catsToShow.slice(i, i + 5));
+      // Helper to chunk categories into rows of NUM_CAT_COLUMNS
+      function chunkArray(array, size) {
+        const result = [];
+        for (let i = 0; i < array.length; i += size) {
+          result.push(array.slice(i, i + size));
+        }
+        return result;
       }
 
       return (
@@ -300,12 +304,23 @@ export default function MarketplaceScreen({ navigation }) {
             {rows.map((row, rowIdx) => (
               <View
                 key={rowIdx}
-                style={{ flexDirection: "row", marginBottom: 12 }}
+                style={{
+                  flexDirection: "row",
+                  marginBottom: 12,
+                  justifyContent: "space-between",
+                }}
               >
                 {row.map((cat, idx) => (
                   <TouchableOpacity
                     key={cat.label}
-                    style={st.categoryColumn}
+                    style={[
+                      st.categoryColumn,
+                      {
+                        width: columnWidth,
+                        minWidth: columnWidth,
+                        maxWidth: columnWidth,
+                      },
+                    ]}
                     activeOpacity={0.85}
                     onPress={() =>
                       navigation.navigate("CategoryAdsScreen", {
@@ -330,11 +345,20 @@ export default function MarketplaceScreen({ navigation }) {
                     </Text>
                   </TouchableOpacity>
                 ))}
-                {/* Fill empty columns if last row has less than 5 */}
-                {row.length < 5 &&
-                  Array.from({ length: 5 - row.length }).map((_, i) => (
-                    <View key={`empty-${i}`} style={st.categoryColumn} />
-                  ))}
+                {/* Fill empty columns if last row has less than NUM_CAT_COLUMNS */}
+                {row.length < NUM_CAT_COLUMNS &&
+                  Array.from({ length: NUM_CAT_COLUMNS - row.length }).map(
+                    (_, i) => (
+                      <View
+                        key={`empty-${i}`}
+                        style={{
+                          width: columnWidth,
+                          minWidth: columnWidth,
+                          maxWidth: columnWidth,
+                        }}
+                      />
+                    )
+                  )}
               </View>
             ))}
           </View>
@@ -417,6 +441,10 @@ export default function MarketplaceScreen({ navigation }) {
     setPendingCategories([]);
     setPendingMinPrice("");
     setPendingMaxPrice("");
+    setSortOption("date_desc");
+    setSelectedCategories([]);
+    setMinPrice("");
+    setMaxPrice("");
     setFilterModalVisible(false);
   };
 
@@ -800,7 +828,7 @@ function AdGridCard({ ad, st, navigation }) {
 const common = StyleSheet.create({
   safe: { flex: 1 },
   container: { padding: 16 },
-  headerTitle:{
+  headerTitle: {
     fontSize: 26,
     fontWeight: "bold",
   },
@@ -856,8 +884,6 @@ const common = StyleSheet.create({
   categoryColumn: {
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
-    maxWidth: (width - 32) / NUM_CAT_COLUMNS,
   },
   categoryCircle: {
     width: 54,
@@ -969,4 +995,3 @@ const dark = StyleSheet.create({
     color: "#2CB67D",
   },
 });
-

@@ -12,6 +12,7 @@ import {
   Share,
   ActivityIndicator,
   StatusBar,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import MapView, { Marker } from "react-native-maps";
@@ -36,7 +37,6 @@ import { useStripe } from "@stripe/stripe-react-native";
 
 const { width } = Dimensions.get("window");
 
-// FIXED InfoRow: always renders a string, never an object!
 function InfoRow({ label, value, isDarkMode }) {
   let displayValue = value;
   if (value && typeof value === "object") {
@@ -71,6 +71,18 @@ export default function AdDetailsScreen({ route, navigation }) {
   const [liked, setLiked] = useState(false);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Track current user ID for ownership check
+  const [currentUserId, setCurrentUserId] = useState(null);
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUserId(user ? user.uid : null);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Ownership check
+  const isOwner = currentUserId && adData && adData.userId === currentUserId;
 
   useEffect(() => {
     setLoading(true);
@@ -121,6 +133,7 @@ export default function AdDetailsScreen({ route, navigation }) {
       unsubscribeAd();
       unsubscribeUser();
     };
+    // eslint-disable-next-line
   }, [ad.id, ad.userId, adData?.userId]);
 
   const toggleLike = async () => {
@@ -218,6 +231,31 @@ export default function AdDetailsScreen({ route, navigation }) {
     }
   };
 
+  const handleDelete = async () => {
+    // Confirm delete (cross-platform)
+    Alert.alert(
+      "Delete Ad",
+      "Are you sure you want to delete this ad?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "items", adData.id));
+              alert("Ad deleted successfully.");
+              navigation.goBack();
+            } catch (err) {
+              alert("Failed to delete ad. Please try again.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const statusBarStyle = isDarkMode ? "light-content" : "dark-content";
   const statusBarBg = isDarkMode ? "#121212" : "#fff";
 
@@ -236,7 +274,6 @@ export default function AdDetailsScreen({ route, navigation }) {
   }
 
   // PAYMENT GATEWAY
-
   const handlePurchase = async () => {
     setPaymentLoading(true);
     try {
@@ -272,6 +309,24 @@ export default function AdDetailsScreen({ route, navigation }) {
     }
     setPaymentLoading(false);
   };
+
+  function getCurrencyLabel(currency) {
+    if (!currency) return "";
+    if (typeof currency === "object") {
+      return currency.label || currency.value || "";
+    }
+    // If it's just a string like "usd"
+    switch (currency.toLowerCase()) {
+      case "usd":
+        return "USD ($)";
+      case "cad":
+        return "CAD ($)";
+      case "inr":
+        return "INR (₹)";
+      default:
+        return currency.toUpperCase();
+    }
+  }
 
   return (
     <SafeAreaView
@@ -371,12 +426,8 @@ export default function AdDetailsScreen({ route, navigation }) {
           </Text>
           <Text style={isDarkMode ? darkStyles.price : lightStyles.price}>
             {adData.price
-              ? `${adData.price} ${
-                  adData.currency && typeof adData.currency === "object"
-                    ? adData.currency.label || adData.currency.value
-                    : adData.currency || ""
-                }`
-              : "No price"}
+              ? `${getCurrencyLabel(adData.currency)} ${adData.salePrice}`
+              : "No sale price"}
           </Text>
         </View>
 
@@ -460,8 +511,12 @@ export default function AdDetailsScreen({ route, navigation }) {
             isDarkMode={isDarkMode}
           />
           <InfoRow
-            label="Sale Price"
-            value={adData.salePrice ? `${adData.salePrice}` : "Not specified"}
+            label="Price"
+            value={
+              adData.price
+                ? `${getCurrencyLabel(adData.currency)} ${adData.price}`
+                : "Not specified"
+            }
             isDarkMode={isDarkMode}
           />
           <InfoRow
@@ -545,29 +600,72 @@ export default function AdDetailsScreen({ route, navigation }) {
           </Text>
         </View>
 
+        {/* Owner sees Edit/Delete, others see Purchase */}
         <View style={{ padding: 18 }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: "#2CB67D",
-              borderRadius: 10,
-              padding: 16,
-              alignItems: "center",
-              opacity: paymentLoading ? 0.6 : 1,
-            }}
-            onPress={handlePurchase}
-            disabled={paymentLoading}
-          >
-            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
-              {paymentLoading ? "Processing..." : "Purchase"}
-            </Text>
-          </TouchableOpacity>
+          {isOwner ? (
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#008060",
+                  borderRadius: 10,
+                  padding: 16,
+                  alignItems: "center",
+                  flex: 1,
+                  marginRight: 8,
+                }}
+                onPress={() =>
+                  navigation.navigate("EditListingScreen", { ad: adData })
+                }
+              >
+                <Text
+                  style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}
+                >
+                  Edit
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#FF4D4F",
+                  borderRadius: 10,
+                  padding: 16,
+                  alignItems: "center",
+                  flex: 1,
+                  marginLeft: 8,
+                }}
+                onPress={handleDelete}
+              >
+                <Text
+                  style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}
+                >
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#2CB67D",
+                borderRadius: 10,
+                padding: 16,
+                alignItems: "center",
+                opacity: paymentLoading ? 0.6 : 1,
+              }}
+              onPress={handlePurchase}
+              disabled={paymentLoading}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
+                {paymentLoading ? "Processing..." : "Purchase"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ...styles (same as before, see previous message)
 
 const lightStyles = StyleSheet.create({
   safeArea: {
