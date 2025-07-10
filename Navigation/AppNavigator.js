@@ -124,15 +124,24 @@ function MainTabs() {
 
 // NGO Tabs (unchanged)
 function NgoTabNavigator() {
+  const { isDarkMode } = useContext(ThemeContext);
+
   return (
     <NgoTab.Navigator
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: "#EFAC3A",
-        tabBarInactiveTintColor: "gray",
+        tabBarInactiveTintColor: isDarkMode ? "#aaa" : "gray",
         tabBarLabelStyle: { fontSize: 12 },
         tabBarStyle: {
+          backgroundColor: isDarkMode ? "#222" : "#fff",
           paddingBottom: 10,
           height: 80,
+          borderTopWidth: 0,
+          shadowColor: "#000",
+          shadowOpacity: 0.2,
+          shadowOffset: { width: 0, height: -2 },
+          shadowRadius: 4,
+          elevation: 10,
         },
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
@@ -178,6 +187,7 @@ function NgoTabNavigator() {
     </NgoTab.Navigator>
   );
 }
+
 
 export default function AppNavigator() {
   return (

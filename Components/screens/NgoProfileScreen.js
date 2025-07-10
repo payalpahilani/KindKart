@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useContext } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   StatusBar,
   RefreshControl,
   Switch,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,15 +20,17 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 
-export default function NgoProfileScreen() {
+export default function NgongoProfileScreen() {
   const navigation = useNavigation();
-  const { isDarkMode } = useContext(ThemeContext);
+  const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [ngo, setNgo] = useState(null);
-  const [campaignAlerts, setCampaignAlerts] = useState(true);
   const [campaignStats, setCampaignStats] = useState({ count: 0, total: 0 });
 
   const fetchNgoDetails = async () => {
@@ -71,6 +74,33 @@ export default function NgoProfileScreen() {
     fetchNgoDetails();
   }, []);
 
+  const bg = isDarkMode ? '#0B0B0B' : '#FFFFFF';
+  const cardBg = isDarkMode ? '#1A1A1C' : '#FFFFFF';
+  const cardBor = isDarkMode ? '#2B2B2B' : '#E3E3E3';
+  const text = isDarkMode ? '#FFFFFF' : '#20222E';
+  const muted = isDarkMode ? '#A7A7A7' : '#757575';
+  const accent = '#F6B93B';
+
+  const LangChip = ({ code, label, flag }) => {
+    const active = i18n.language === code;
+    return (
+      <Pressable
+        onPress={() => i18n.changeLanguage(code)}
+        style={{
+          borderWidth: 1,
+          borderRadius: 20,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          marginHorizontal: 6,
+          borderColor: active ? accent : muted,
+          backgroundColor: active ? accent : 'transparent',
+        }}
+      >
+        <Text style={{ color: active ? '#fff' : text, fontWeight: '600' }}>{flag} {label}</Text>
+      </Pressable>
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -80,8 +110,8 @@ export default function NgoProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}> 
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={bg} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchNgoDetails} />}
@@ -91,7 +121,7 @@ export default function NgoProfileScreen() {
           {ngo?.avatarUrl ? (
             <Image source={{ uri: ngo.avatarUrl }} style={styles.avatar} />
           ) : (
-            <View style={styles.initialsAvatar}>
+            <View style={[styles.initialsAvatar, { backgroundColor: accent }]}> 
               <Text style={styles.initialsText}>
                 {ngo?.ngoName
                   ? ngo.ngoName
@@ -103,83 +133,89 @@ export default function NgoProfileScreen() {
               </Text>
             </View>
           )}
-          <Text style={styles.name}>{ngo?.ngoName || 'NGO Name'}</Text>
-          <Text style={styles.email}>{ngo?.email}</Text>
+          <Text style={[styles.name, { color: text }]}>{ngo?.ngoName || 'NGO Name'}</Text>
+          <Text style={[styles.email, { color: muted }]}>{ngo?.email}</Text>
         </View>
 
         {/* Info Section */}
-        <Text style={styles.sectionTitle}>Contact Information</Text>
-        <View style={styles.card}>
-          <InfoRow icon="phone" label="Contact" value={ngo?.contact} />
-          <InfoRow icon="identifier" label="NGO Code" value={ngo?.ngoCode} />
-          <InfoRow icon="email" label="Email" value={ngo?.email} />
+        <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.contactInfo')}</Text>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBor }]}>
+          <InfoRow icon="phone" label={t('ngoProfile.contact')} value={ngo?.contact} textColor={text} mutedColor={muted} />
+          <InfoRow icon="identifier" label={t('ngoProfile.ngoCode')} value={ngo?.ngoCode} textColor={text} mutedColor={muted} />
+          <InfoRow icon="email" label={t('ngoProfile.email')} value={ngo?.email} textColor={text} mutedColor={muted} />
         </View>
 
         {/* Campaign Statistics */}
-        <Text style={styles.sectionTitle}>Campaign Overview</Text>
-        <View style={[styles.card, styles.statsCard]}>
-          <InfoRow icon="bullhorn" label="Active Campaigns" value={campaignStats.count} />
-          <InfoRow icon="currency-usd" label="Total Raised" value={`$${campaignStats.total}`} />
+        <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.campaignOverview')}</Text>
+        <View style={[styles.card, styles.statsCard, { backgroundColor: isDarkMode ? '#302B27' : '#F3E8DD' }]}>
+          <InfoRow icon="bullhorn" label={t('ngoProfile.activeCampaigns')} value={campaignStats.count} textColor={text} mutedColor={muted} />
+          <InfoRow icon="currency-usd" label={t('ngoProfile.totalRaised')} value={`$${campaignStats.total}`} textColor={text} mutedColor={muted} />
         </View>
 
+        {/* Appearance Settings */}
+        <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.preferences')}</Text>
+        <View style={[styles.prefRow, { backgroundColor: cardBg, borderColor: cardBor }]}>
+          <View style={styles.prefLabel}>
+            <Icon name="palette-swatch" size={20} color={accent} />
+            <Text style={[styles.prefText, { color: text }]}>{t('settings.dark_mode')}</Text>
+          </View>
+          <Switch
+            value={isDarkMode}
+            onValueChange={toggleDarkMode}
+            trackColor={{ false: '#767577', true: '#2CB67D' }}
+            thumbColor={isDarkMode ? '#fff' : '#f4f3f4'}
+          />
+        </View>
+        <View style={[styles.prefRow, { backgroundColor: cardBg, borderColor: cardBor }]}>
+          <View style={styles.prefLabel}>
+            <Icon name="translate" size={20} color={accent} />
+            <Text style={[styles.prefText, { color: text }]}>{t('settings.select_language')}</Text>
+          </View>
+          <View style={{ flexDirection: 'row' }}>
+            <LangChip code="en" label="English" />
+            <LangChip code="fr" label="Français" />
+          </View>
+        </View>
 
         {/* Actions */}
-        <Text style={styles.sectionTitle}>Actions</Text>
+        <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.actions')}</Text>
         <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('NgoEditProfile')}>
-          <Icon name="account-edit" size={20} color="#333" />
-          <Text style={styles.optionText}>Edit Profile</Text>
+          <Icon name="account-edit" size={20} color={text} />
+          <Text style={[styles.optionText, { color: text }]}>{t('ngoProfile.editngoProfile')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('AboutUsScreen')}>
-          <Icon name="information-outline" size={20} color="#333" />
-          <Text style={styles.optionText}>About Us</Text>
+          <Icon name="information-outline" size={20} color={text} />
+          <Text style={[styles.optionText, { color: text }]}>{t('ngoProfile.aboutUs')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.option} onPress={handleLogout}>
           <Icon name="exit-to-app" size={20} color="#e74c3c" />
-          <Text style={[styles.optionText, { color: '#e74c3c' }]}>Logout</Text>
+          <Text style={[styles.optionText, { color: '#e74c3c' }]}>{t('ngoProfile.logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// Reusable Row Component
-function InfoRow({ icon, label, value }) {
+function InfoRow({ icon, label, value, textColor, mutedColor }) {
   return (
     <View style={styles.infoRow}>
-      <Icon name={icon} size={20} color="#888" style={{ width: 24 }} />
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value || '—'}</Text>
+      <Icon name={icon} size={20} color={mutedColor} style={{ width: 24 }} />
+      <Text style={[styles.infoLabel, { color: mutedColor }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: textColor }]}>{value || '—'}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   scroll: { padding: 20 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
   header: { alignItems: 'center', marginBottom: 24 },
-  avatarWrapper: {
-    borderWidth: 2,
-    borderColor: '#EFAC3A',
-    borderRadius: 44,
-    padding: 2,
-    marginBottom: 12,
-  },
-  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12, },
-  name: { fontSize: 22, fontWeight: '700', color: '#4D4D4D' },
-  email: { fontSize: 14, color: '#666', marginTop: 4 },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 24,
-    marginBottom: 8,
-    color: '#444',
-  },
-
+  avatar: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
+  name: { fontSize: 22, fontWeight: '700' },
+  email: { fontSize: 14, marginTop: 4 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', marginTop: 24, marginBottom: 8 },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 16,
     marginBottom: 16,
@@ -188,12 +224,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     elevation: 3,
-    borderColor: '#eee',
     borderWidth: 1,
   },
-
-  statsCard: { backgroundColor: '#F3E8DD' },
-
+  statsCard: {},
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,15 +235,12 @@ const styles = StyleSheet.create({
   infoLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#666',
     marginLeft: 10,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
   },
-
   prefRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -218,14 +248,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f9f9f9',
     borderRadius: 12,
-    borderColor: '#eee',
     borderWidth: 1,
   },
   prefLabel: { flexDirection: 'row', alignItems: 'center' },
-  prefText: { fontSize: 16, marginLeft: 10, color: '#333' },
-
+  prefText: { fontSize: 16, marginLeft: 10 },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,12 +260,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  optionText: { fontSize: 16, marginLeft: 12, color: '#333' },
+  optionText: { fontSize: 16, marginLeft: 12 },
   initialsAvatar: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#EFAC3A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -248,5 +274,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  
 });

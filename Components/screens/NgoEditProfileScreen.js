@@ -94,9 +94,13 @@ export default function NgoEditProfileScreen() {
     });
 
   const getPresignedUrls = async (filename, fileType, userId, itemId) => {
-    const res = await fetch(`${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(filename)}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}&type=ngo`);
+    const res = await fetch(
+      `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
+        filename
+      )}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}&type=ngo`
+    );
     if (!res.ok) throw new Error('Presigned URL fetch failed');
-    return await res.json(); 
+    return await res.json();
   };
 
   const uploadImageAsync = async (uri, userId) => {
@@ -104,7 +108,12 @@ export default function NgoEditProfileScreen() {
     const fileName = uri.split('/').pop().split('?')[0];
     const fileType = getMimeType(fileName);
     const itemId = Math.random().toString(36).substring(2, 10);
-    const { uploadUrl, publicUrl } = await getPresignedUrls(fileName, fileType, userId, itemId);
+    const { uploadUrl, publicUrl } = await getPresignedUrls(
+      fileName,
+      fileType,
+      userId,
+      itemId
+    );
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',
       body: blob,
@@ -141,13 +150,13 @@ export default function NgoEditProfileScreen() {
         ngoName: ngoName.trim(),
         contact: contact.trim(),
       };
-      
+
       if (avatarUrl !== undefined) {
         updateData.avatarUrl = avatarUrl;
       }
-      
+
       await updateDoc(doc(db, 'ngo', uid), updateData);
-      
+
       Alert.alert('Success', 'Profile updated successfully!');
       navigation.goBack();
     } catch (err) {
@@ -167,36 +176,32 @@ export default function NgoEditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor="#121212" />
 
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton} >
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
         <Text style={styles.backText}>← Back</Text>
       </TouchableOpacity>
 
-
       <ScrollView contentContainerStyle={styles.scroll}>
         <TouchableOpacity onPress={pickImage} style={styles.logoWrap}>
-        {avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={styles.logo} />
-        ) : (
-          <View style={styles.initialsAvatar}>
-            <Text style={styles.initialsText}>
-              {ngoName
-                ? ngoName
-                    .split(' ')
-                    .map((word) => word[0])
-                    .join('')
-                    .toUpperCase()
-                : 'NGO'}
-            </Text>
-          </View>
-        )}
-
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.logo} />
+          ) : (
+            <View style={styles.initialsAvatar}>
+              <Text style={styles.initialsText}>
+                {ngoName
+                  ? ngoName
+                      .split(' ')
+                      .map((word) => word[0])
+                      .join('')
+                      .toUpperCase()
+                  : 'NGO'}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.editIcon}>
-            <Icon name="camera-plus" size={20} color="#fff" />
+            <Icon name="camera-plus" size={20} color="#121212" />
           </View>
         </TouchableOpacity>
 
@@ -206,6 +211,7 @@ export default function NgoEditProfileScreen() {
           value={ngoName}
           onChangeText={setNgoName}
           placeholder="NGO Name"
+          placeholderTextColor="#aaa"
         />
 
         <Text style={styles.label}>Contact</Text>
@@ -215,11 +221,12 @@ export default function NgoEditProfileScreen() {
           onChangeText={setContact}
           placeholder="Phone Number"
           keyboardType="phone-pad"
+          placeholderTextColor="#aaa"
         />
 
         <Text style={styles.label}>Email (not editable)</Text>
         <TextInput
-          style={[styles.input, { backgroundColor: '#eee' }]}
+          style={[styles.input, { backgroundColor: '#222', color: '#777' }]}
           value={email}
           editable={false}
         />
@@ -229,7 +236,11 @@ export default function NgoEditProfileScreen() {
           onPress={handleSave}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save Changes</Text>}
+          {saving ? (
+            <ActivityIndicator color="#121212" />
+          ) : (
+            <Text style={styles.saveText}>Save Changes</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -237,59 +248,60 @@ export default function NgoEditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#121212' },
   scroll: { padding: 20 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  label: { fontSize: 14, fontWeight: '600', color: '#444', marginTop: 16 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
+  label: { fontSize: 14, fontWeight: '600', color: '#ddd', marginTop: 16 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#444',
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
     marginTop: 6,
+    color: '#eee',
+    backgroundColor: '#222',
   },
-  logoWrap: { alignItems: 'center', marginVertical: 24 },
-  logo: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#eee' },
+  logoWrap: { alignItems: 'center', marginVertical: 24, position: 'relative' },
+  logo: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#333' },
   editIcon: {
     position: 'absolute',
     bottom: 0,
     right: 120 / 3,
-    backgroundColor: '#0AB1E7',
+    backgroundColor: '#EFAC3A',
     borderRadius: 18,
     padding: 6,
   },
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 20,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   backText: {
     color: '#EFAC3A',
     fontWeight: '600',
     fontSize: 16,
   },
-  
   saveBtn: {
     marginTop: 30,
-    backgroundColor: '#F6B93B',
+    backgroundColor: '#EFAC3A',
     paddingVertical: 14,
     borderRadius: 20,
     alignItems: 'center',
   },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  saveText: { color: '#121212', fontSize: 16, fontWeight: '600' },
   initialsAvatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#B8D6DF',
+    backgroundColor: '#2c2c2c',
     justifyContent: 'center',
     alignItems: 'center',
   },
   initialsText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#1F2E41',
+    color: '#EFAC3A',
   },
-  
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,14 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { ThemeContext } from '../Utilities/ThemeContext';  // import your ThemeContext
 
 export default function NgoDonationInfoScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { campaignId } = route.params;
+
+  const { isDarkMode } = useContext(ThemeContext);  // get dark mode status
 
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +61,7 @@ export default function NgoDonationInfoScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={[styles.centered, { backgroundColor: isDarkMode ? '#121212' : '#fff' }]}>
         <ActivityIndicator size="large" color="#0AB1E7" />
       </SafeAreaView>
     );
@@ -66,8 +69,8 @@ export default function NgoDonationInfoScreen() {
 
   if (!campaign) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <Text>Campaign not found</Text>
+      <SafeAreaView style={[styles.centered, { backgroundColor: isDarkMode ? '#121212' : '#fff' }]}>
+        <Text style={{ color: isDarkMode ? '#fff' : '#000' }}>Campaign not found</Text>
       </SafeAreaView>
     );
   }
@@ -76,7 +79,6 @@ export default function NgoDonationInfoScreen() {
     title,
     imageUrls = [],
     story,
-    campaignerName,
     campaignCategory,
     category,
     currency = 'CAD',
@@ -106,18 +108,31 @@ export default function NgoDonationInfoScreen() {
       ? Math.min((raisedAmount / totalDonation) * 100, 100)
       : 0;
 
+  // Colors for dark mode
+  const bg = isDarkMode ? '#121212' : '#fff';
+  const textColor = isDarkMode ? '#E1E1E1' : '#1F2E41';
+  const subTextColor = isDarkMode ? '#A0A0A0' : '#888';
+  const badgeBg = isDarkMode ? '#2A3942' : '#B8D6DF';
+  const badgeTextColor = isDarkMode ? '#E1E1E1' : '#1F2E41';
+  const urgentBadgeBg = isDarkMode ? '#5B2C2C' : '#FFD6D6';
+  const urgentBadgeTextColor = isDarkMode ? '#FF9494' : '#B00020';
+  const raisedTextColor = isDarkMode ? '#C6D3DF' : '#333';
+  const ngoBoxBg = isDarkMode ? '#1E1E1E' : '#FDFDFD';
+  const ngoBorderColor = isDarkMode ? '#333' : '#eee';
+  const progressTrackBg = isDarkMode ? '#333' : '#eee';
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={bg} />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Back */}
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Icon name="chevron-left" size={26} color="#EFAC3A" />
-          <Text style={styles.backText}>Back</Text>
+          <Text style={[styles.backText, { color: textColor }]}>Back</Text>
         </TouchableOpacity>
 
         {/* Title */}
-        <Text style={styles.pageTitle}>Detail Info</Text>
+        <Text style={[styles.pageTitle, { color: textColor }]}>Detail Info</Text>
 
         {/* Main Image */}
         <Image
@@ -131,12 +146,12 @@ export default function NgoDonationInfoScreen() {
         </ScrollView>
 
         {/* Campaign Meta */}
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.date}>{dateLabel}</Text>
+        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+        <Text style={[styles.date, { color: subTextColor }]}>{dateLabel}</Text>
 
         <View style={styles.badgeRow}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{category || 'Campaign'}</Text>
+          <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+            <Text style={[styles.badgeText, { color: badgeTextColor }]}>{category || 'Campaign'}</Text>
           </View>
           {campaignCategory && (
             <View style={[styles.badge, { backgroundColor: '#FFDDCC' }]}>
@@ -144,51 +159,51 @@ export default function NgoDonationInfoScreen() {
             </View>
           )}
           {urgent && (
-            <View style={[styles.badge, { backgroundColor: '#FFD6D6' }]}>
-              <Text style={[styles.badgeText, { color: '#B00020' }]}>Urgent</Text>
+            <View style={[styles.badge, { backgroundColor: urgentBadgeBg }]}>
+              <Text style={[styles.badgeText, { color: urgentBadgeTextColor }]}>Urgent</Text>
             </View>
           )}
         </View>
 
-        <Text style={styles.raised}>
+        <Text style={[styles.raised, { color: raisedTextColor }]}>
           {currency} {raisedAmount?.toLocaleString()} from {currency}{' '}
           {totalDonation?.toLocaleString()}
         </Text>
 
-        <View style={styles.progressTrack}>
+        <View style={[styles.progressTrack, { backgroundColor: progressTrackBg }]}>
           <View style={[styles.progressBar, { width: `${progress}%` }]} />
         </View>
 
         {/* NGO Info */}
-        <Text style={styles.sectionTitle}>Campaigner</Text>
-        <View style={styles.ngoBox}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Campaigner</Text>
+        <View style={[styles.ngoBox, { backgroundColor: ngoBoxBg, borderColor: ngoBorderColor }]}>
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
           ) : (
             <View style={styles.ngoAvatar}>
-              <Text style={styles.ngoInitials}>{ngoInitials}</Text>
+              <Text style={[styles.ngoInitials, { color: badgeTextColor }]}>{ngoInitials}</Text>
             </View>
           )}
           <View>
-            <Text style={styles.ngoName}>{ngoDetails?.ngoName || 'NGO'}</Text>
+            <Text style={[styles.ngoName, { color: textColor }]}>{ngoDetails?.ngoName || 'NGO'}</Text>
           </View>
         </View>
 
         {/* Description */}
-        <Text style={styles.sectionTitle}>Campaign Story</Text>
-        <Text style={styles.story}>{story}</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Campaign Story</Text>
+        <Text style={[styles.story, { color: textColor }]}>{story}</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   scroll: { padding: 20 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  backText: { color: '#EFAC3A', fontWeight: '600', fontSize: 15 },
+  backText: { fontWeight: '600', fontSize: 15 },
 
   pageTitle: { fontSize: 20, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
   mainImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12 },
@@ -196,23 +211,21 @@ const styles = StyleSheet.create({
   thumb: { width: 70, height: 70, borderRadius: 8, marginRight: 10 },
 
   title: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
-  date: { fontSize: 13, color: '#888', marginBottom: 8, },
+  date: { fontSize: 13, marginBottom: 8 },
 
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   badge: {
-    backgroundColor: '#B8D6DF',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 4,
   },
-  badgeText: { fontSize: 14, color: '#1F2E41' },
+  badgeText: { fontSize: 14 },
 
   raised: { fontSize: 15, fontWeight: '600', marginBottom: 6 },
   progressTrack: {
     height: 8,
-    backgroundColor: '#eee',
     borderRadius: 6,
     overflow: 'hidden',
     marginBottom: 16,
@@ -226,12 +239,10 @@ const styles = StyleSheet.create({
   ngoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FDFDFD',
     padding: 12,
     borderRadius: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eee',
   },
   ngoAvatar: {
     width: 48,
@@ -248,8 +259,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginRight: 14,
   },
-  ngoInitials: { fontSize: 16, fontWeight: '700', color: '#1F2E41' },
+  ngoInitials: { fontSize: 16, fontWeight: '700' },
   ngoName: { fontSize: 15, fontWeight: '600' },
 
-  story: { fontSize: 14, color: '#333', lineHeight: 20 },
+  story: { fontSize: 14, lineHeight: 20 },
 });

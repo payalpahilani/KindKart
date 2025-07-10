@@ -1,89 +1,59 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  Image, Alert,
+  Image,
+  Alert,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ThemeContext } from '../Utilities/ThemeContext';
 
 export default function CampaignsScreen() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+  const { isDarkMode } = useContext(ThemeContext);
 
- useFocusEffect(
-  useCallback(() => {
-    const fetchCampaigns = async () => {
-      try {
-        const userId = getAuth().currentUser?.uid;
-        if (!userId) return;
+  const bg = isDarkMode ? '#0B0B0B' : '#FFFFFF';
+  const cardBg = isDarkMode ? '#1C1C1C' : '#FFFFFF';
+  const text = isDarkMode ? '#FFFFFF' : '#20222E';
+  const muted = isDarkMode ? '#A7A7A7' : '#555';
+  const accent = '#007B55';
 
-        const q = query(collection(db, 'campaigns'), where('createdBy', '==', userId));
-        const querySnapshot = await getDocs(q);
-        const result = [];
-        querySnapshot.forEach((doc) => {
-          result.push({ id: doc.id, ...doc.data() });
-        });
-        setCampaigns(result);
-      } catch (err) {
-        console.error('Error fetching campaigns:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const fetchCampaigns = async () => {
+        try {
+          const userId = getAuth().currentUser?.uid;
+          if (!userId) return;
 
-    fetchCampaigns();
-  }, [])
-);
+          const q = query(collection(db, 'campaigns'), where('createdBy', '==', userId));
+          const querySnapshot = await getDocs(q);
+          const result = [];
+          querySnapshot.forEach((doc) => {
+            result.push({ id: doc.id, ...doc.data() });
+          });
+          setCampaigns(result);
+        } catch (err) {
+          console.error('Error fetching campaigns:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-    <Image
-      source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
-      style={styles.image}
-    />
-    <View style={styles.info}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.amount}>🎯 Goal: {item.currency} {item.totalDonation?.toLocaleString()}</Text>
-      <Text numberOfLines={3} style={styles.story}>{item.story}</Text>
-  
-      <View style={styles.actions}>
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => navigation.navigate('NgoEditCampaign', { campaign: item })}
-      >
-        <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.iconButton, { backgroundColor: '#D94141' }]}
-        onPress={() => handleDelete(item.id)}
-      >
-        <MaterialCommunityIcons name="trash-can" size={20} color="#fff" />
-      </TouchableOpacity>
-    </View>
-
-    </View>
-  </View>
-  
+      fetchCampaigns();
+    }, [])
   );
-  
-  
+
   const handleDelete = (campaignId) => {
     Alert.alert(
       'Confirm Deletion',
@@ -107,23 +77,49 @@ export default function CampaignsScreen() {
       ]
     );
   };
-  
 
+  const renderItem = ({ item }) => (
+    <View style={[styles.card, { backgroundColor: cardBg, shadowColor: text }]}>
+      <Image
+        source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+        style={styles.image}
+      />
+      <View style={styles.info}>
+        <Text style={[styles.title, { color: text }]}>{item.title}</Text>
+        <Text style={[styles.amount, { color: accent }]}>🎯 Goal: {item.currency} {item.totalDonation?.toLocaleString()}</Text>
+        <Text numberOfLines={3} style={[styles.story, { color: muted }]}>{item.story}</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('NgoEditCampaign', { campaign: item })}
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: '#D94141' }]}
+            onPress={() => handleDelete(item.id)}
+          >
+            <MaterialCommunityIcons name="trash-can" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator size="large" color="#007B55" />
+      <SafeAreaView style={[styles.center, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={accent} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
       <View style={styles.headerSection}>
-        <Text style={styles.sectionTitle}>Your Active Campaigns</Text>
+        <Text style={[styles.sectionTitle, { color: text }]}>Your Active Campaigns</Text>
         {campaigns.length === 0 && (
-          <Text style={styles.subtitle}>No campaigns created yet.</Text>
+          <Text style={[styles.subtitle, { color: muted }]}>No campaigns created yet.</Text>
         )}
       </View>
 
@@ -138,7 +134,7 @@ export default function CampaignsScreen() {
 
       {/* Floating Action Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: accent }]}
         onPress={() => navigation.navigate('NgoCreateCampaign')}
       >
         <Ionicons name="add" size={28} color="#fff" />
@@ -156,12 +152,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
   },
   list: {
     paddingHorizontal: 16,
@@ -177,7 +171,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#007B55',
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -191,11 +184,9 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
@@ -205,9 +196,9 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 12,
-    marginVertical: 10,     // ✅ top & bottom spacing only
-    marginLeft: 10,   
-    alignSelf: 'center', 
+    marginVertical: 10,
+    marginLeft: 10,
+    alignSelf: 'center',
   },
   info: {
     flex: 1,
@@ -217,40 +208,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
     marginBottom: 4,
   },
   amount: {
     fontSize: 14,
-    color: '#007B55',
     marginBottom: 6,
   },
   story: {
     fontSize: 13,
-    color: '#555',
     marginBottom: 8,
   },
   actions: {
     flexDirection: 'row',
     gap: 10,
-    justifyContent: 'flex-end'
-  },
-  editButton: {
-    backgroundColor: '#0AB1E7',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  deleteButton: {
-    backgroundColor: '#D94141',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  actionText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
+    justifyContent: 'flex-end',
   },
   iconButton: {
     backgroundColor: '#0AB1E7',
@@ -260,6 +231,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  
 });

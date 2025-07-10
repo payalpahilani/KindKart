@@ -149,25 +149,45 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        {[ // Option list only
-          { icon: 'cog-outline', label: t('profile.settings'), action: 'settings' },
-          { icon: 'heart-outline', label: t('profile.yourLikedAds') || 'Your Liked Ads', action: 'likedAds' },
-          { icon: 'format-list-bulleted', label: t('profile.yourAds') || 'Your Ads', action: 'yourAds' },
-          { icon: 'comment-question-outline', label: t('profile.faq'), action: 'faq' },
-          { icon: 'exit-to-app', label: t('profile.exitApp'), action: 'exit' },
-        ].map((o) => (
-          <TouchableOpacity
-            style={styles.optionCard}
-            key={o.action}
-            onPress={() => handleRowPress(o.action)}
-          >
-            <View style={styles.cardLeft}>
-              <Icon name={o.icon} size={22} color={isDarkMode ? '#fff' : '#000'} />
-              <Text style={styles.optionText}>{o.label}</Text>
-            </View>
-            <Icon name="chevron-right" size={24} color={isDarkMode ? '#ccc' : '#888'} />
-          </TouchableOpacity>
-        ))}
+        {[
+            { icon: 'cog-outline', label: t('profile.settings'), action: 'settings' },
+            { icon: 'heart-outline', label: t('profile.yourLikedAds'), action: 'likedAds' },
+            { icon: 'format-list-bulleted', label: t('profile.yourAds'), action: 'yourAds' },
+            { icon: 'comment-question-outline', label: t('profile.faq'), action: 'faq' },
+            { icon: 'exit-to-app', label: t('profile.exitApp'), action: 'exit' },
+          ].map((o) => {
+            const isExit = o.action === 'exit';
+            return (
+              <TouchableOpacity
+                style={styles.optionCard}
+                key={o.action}
+                onPress={() => handleRowPress(o.action)}
+              >
+                <View style={styles.cardLeft}>
+                  <Icon
+                    name={o.icon}
+                    size={22}
+                    color={isExit ? 'red' : isDarkMode ? '#fff' : '#000'} 
+                  />
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isExit && { color: 'red' }, 
+                    ]}
+                  >
+                    {o.label}
+                  </Text>
+                </View>
+                <Icon
+                  name="chevron-right"
+                  size={24}
+                  color={isExit ? 'red' : isDarkMode ? '#ccc' : '#888'} 
+                />
+              </TouchableOpacity>
+            );
+          })}
+
+
 
         <View style={{ height: 24 }} />
       </ScrollView>
