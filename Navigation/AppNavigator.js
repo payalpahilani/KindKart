@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -9,6 +9,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
+import { ThemeContext } from "../Components/Utilities/ThemeContext";
 // Import screens
 import LaunchScreen from "../Components/screens/LaunchScreen";
 import LoginScreen from "../Components/screens/LoginScreen";
@@ -47,11 +48,14 @@ const NgoTab = createBottomTabNavigator();
 
 // Custom Tab Bar
 function MyTabBar({ state, navigation, descriptors, style }) {
+  const { isDarkMode } = useContext(ThemeContext);
+
   if (style && style.display === "none") {
     return null;
   }
+
   return (
-    <View style={[styles.tabBarContainer, style]}>
+    <View style={[styles.tabBarContainer, isDarkMode && darkStyles.tabBarContainer, style]}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const icons = {
@@ -73,7 +77,7 @@ function MyTabBar({ state, navigation, descriptors, style }) {
             <Icon
               name={iconName}
               size={26}
-              color={isFocused ? "#F6B93B" : "#888"}
+              color={isFocused ? "#F6B93B" : isDarkMode ? "#bbb" : "#888"}
             />
           </TouchableOpacity>
         );
@@ -81,6 +85,8 @@ function MyTabBar({ state, navigation, descriptors, style }) {
     </View>
   );
 }
+
+
 
 // Main Tabs (NO ChatScreen here!)
 function MainTabs() {
@@ -223,6 +229,18 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const darkStyles = StyleSheet.create({
+  tabBarContainer: {
+    backgroundColor: "#222",
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    borderRadius: 24,
+  },
+});
+
 
 const styles = StyleSheet.create({
   tabBarContainer: {

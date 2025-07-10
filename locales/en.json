@@ -87,7 +87,7 @@
     "aboutApp": "About the app",
     "giveRating": "Give the rating",
     "termsConditions": "Terms & Condition",
-    "exitApp": "Exit the app",
+    "exitApp": "Logout",
     "yourLikedAds": "your Liked Ads",
     "noUser": "No user data found",
     "reloadProfile": "Reload Profile",
@@ -136,5 +136,39 @@
       },
       "lastUpdated": "Last updated: June 5, 2025"
     }
+  },
+
+
+  "ngoSignUp": {
+    "error": "Error",
+    "fillAllFields": "Please fill in all fields.",
+    "passwordsNotMatch": "Passwords do not match.",
+    "success": "Success",
+    "accountCreated": "NGO Account Created!",
+    "signUpError": "Sign Up Error",
+    "back": "Back",
+    "register": "Register Your NGO",
+    "ngoName": "NGO Name",
+    "ngoEmail": "NGO Email",
+    "ngoCode": "NGO Code",
+    "contactNumber": "Contact Number",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "signUp": "SIGN UP",
+    "alreadyHaveAccount": "Already have an account?",
+    "logIn": "Log In"
+  },
+  "ngoLogin": {
+    "error": "Error",
+    "enterEmailPassword": "Please enter email and password.",
+    "loginFailed": "Login failed",
+    "back": "Back",
+    "welcome": "Welcome NGO! Login to KindKart.",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "login": "Login",
+    "noAccount": "Don’t have an account?",
+    "registerNow": "Register Now"
   }
+
 }

@@ -19,9 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ThemeContext } from '../Utilities/ThemeContext';
 
-// Utility function to get mime type from file extension (basic)
-const getMimeType = (filename) => {
-  const ext = filename.split('.').pop().toLowerCase();
+const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
+
+const getMimeType = (uri) => {
+  const ext = uri.split('.').pop().toLowerCase();
   switch (ext) {
     case 'jpg':
     case 'jpeg':
@@ -41,11 +42,8 @@ const getMimeType = (filename) => {
   }
 };
 
-const backendUrl = 'http://10.0.0.116:4000';
-
-
 const generateItemId = () => {
-  return Math.random().toString(36).substring(2, 10);
+  return Math.random().toString(36).substring(2, 12);
 };
 
 export default function EditProfileScreen() {
@@ -93,7 +91,7 @@ export default function EditProfileScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 0.8,
       allowsEditing: true,
       aspect: [1, 1],
     });
@@ -103,66 +101,54 @@ export default function EditProfileScreen() {
     }
   };
 
-  // Convert URI to Blob (necessary for upload)
+  // Convert URI to Blob (for upload)
   const uriToBlob = (uri) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.onload = function () {
-        resolve(xhr.response);
-      };
-      xhr.onerror = function () {
-        reject(new Error('Failed to convert URI to Blob'));
-      };
+      xhr.onload = () => resolve(xhr.response);
+      xhr.onerror = () => reject(new Error('Failed to convert URI to Blob'));
       xhr.responseType = 'blob';
       xhr.open('GET', uri, true);
       xhr.send(null);
     });
   };
 
-  // Get presigned URLs from your backend
- async function getPresignedUrls(filename, fileType, userId, itemId) {
-  const url = `${backendUrl}/get-presigned-url?fileName=${encodeURIComponent(filename)}&fileType=${encodeURIComponent(fileType)}&userId=${encodeURIComponent(userId)}&itemId=${encodeURIComponent(itemId)}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error('Failed to get pre-signed URLs');
-  }
-  return await res.json(); // expects { uploadUrl, downloadUrl }
-}
+  // Get presigned upload URL from backend
+  const getPresignedUrl = async (fileName, fileType, userId, itemId) => {
+    const url = `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}&userId=${encodeURIComponent(userId)}&itemId=${encodeURIComponent(itemId)}&type=profile`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to get presigned URL');
+    return await res.json(); // expects { uploadUrl, publicUrl }
+  };
 
- async function uploadImageAsync(uri, userId) {
-  try {
+  // Upload image to S3 using presigned URL
+  const uploadImageToS3 = async (uri, userId) => {
     const blob = await uriToBlob(uri);
-
-    // Extract filename from uri or fallback
-    const filename = uri.split('/').pop().split('?')[0];
-    const fileType = getMimeType(filename);
+    const fileName = uri.split('/').pop();
+    const fileType = getMimeType(uri);
     const itemId = generateItemId();
 
-    const { uploadUrl, downloadUrl } = await getPresignedUrls(filename, fileType, userId, itemId);
+    const { uploadUrl, publicUrl } = await getPresignedUrl(fileName, fileType, userId, itemId);
 
-    // Upload to S3 using the pre-signed URL
-    const uploadResponse = await fetch(uploadUrl, {
+    const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',
       body: blob,
       headers: {
         'Content-Type': fileType,
-        'x-amz-server-side-encryption': 'AES256', // if your backend requires this header
+        'x-amz-server-side-encryption': 'AES256',
       },
     });
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('S3 upload failed:', errorText);
-      throw new Error('Upload to S3 failed');
+    if (!uploadRes.ok) {
+      const errorText = await uploadRes.text();
+      console.error('S3 upload error:', errorText);
+      throw new Error('Failed to upload image to S3');
     }
+
     if (blob.close) blob.close();
 
-    return downloadUrl; 
-  } catch (error) {
-    console.error('Upload failed:', error);
-    throw error;
-  }
-}
+    return publicUrl; // return permanent public URL (not presigned)
+  };
 
   const handleSave = async () => {
     const uid = auth.currentUser?.uid;
@@ -184,9 +170,9 @@ export default function EditProfileScreen() {
     try {
       let avatarUrlToSave = avatarUri;
 
-      // Upload new image if user picked one and it's not already a URL
+      // If user picked a new image and it's not a remote URL, upload it
       if (avatarUri && !avatarUri.startsWith('http')) {
-        avatarUrlToSave = await uploadImageAsync(avatarUri, uid);
+        avatarUrlToSave = await uploadImageToS3(avatarUri, uid);
       }
 
       await updateDoc(doc(db, 'users', uid), {
@@ -198,7 +184,7 @@ export default function EditProfileScreen() {
       Alert.alert('Success', 'Profile updated.');
       navigation.goBack();
     } catch (error) {
-      console.log('Save error:', error);
+      console.error('Save error:', error);
       Alert.alert('Upload failed', error.message || 'Could not save profile.');
     } finally {
       setSaving(false);
@@ -287,7 +273,6 @@ export default function EditProfileScreen() {
   );
 }
 
-// Styles (unchanged)
 const base = {
   safe: {
     flex: 1,
@@ -344,10 +329,12 @@ const base = {
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
+    backgroundColor: '#F6B93B',
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#121212',
   },
   scrollContent: {
     padding: 24,
@@ -366,6 +353,9 @@ const base = {
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E3E3E6',
   },
 };
 
@@ -382,19 +372,9 @@ const lightStyles = StyleSheet.create({
     backgroundColor: '#fff',
     color: '#222',
   },
-  saveBtn: {
-    ...base.saveBtn,
-    backgroundColor: '#F6B93B',
-  },
-  saveText: {
-    ...base.saveText,
-    color: '#fff',
-  },
   card: {
     ...base.card,
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E3E3E6',
   },
 });
 
@@ -411,18 +391,9 @@ const darkStyles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
     color: '#eee',
   },
-  saveBtn: {
-    ...base.saveBtn,
-    backgroundColor: '#F6B93B',
-  },
-  saveText: {
-    ...base.saveText,
-    color: '#121212',
-  },
   card: {
     ...base.card,
     backgroundColor: '#1E1E1E',
-    borderWidth: 1,
     borderColor: '#333',
   },
 });

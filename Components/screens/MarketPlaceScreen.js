@@ -968,5 +968,9 @@ const dark = StyleSheet.create({
     ...common.gridPrice,
     color: "#2CB67D",
   },
+    headerTitle: {
+    ...common.headerTitle,
+    color: "#fff",
+  },
 });
 

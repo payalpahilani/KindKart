@@ -136,5 +136,38 @@
       },
       "lastUpdated": "Dernière mise à jour : 5 juin 2025"
     }
+  },
+
+  "ngoSignUp": {
+    "error": "Erreur",
+    "fillAllFields": "Veuillez remplir tous les champs.",
+    "passwordsNotMatch": "Les mots de passe ne correspondent pas.",
+    "success": "Succès",
+    "accountCreated": "Compte ONG créé !",
+    "signUpError": "Erreur d'inscription",
+    "back": "Retour",
+    "register": "Enregistrer votre ONG",
+    "ngoName": "Nom de l'ONG",
+    "ngoEmail": "Email de l'ONG",
+    "ngoCode": "Code ONG",
+    "contactNumber": "Numéro de contact",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmez le mot de passe",
+    "signUp": "S'INSCRIRE",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "logIn": "Se connecter"
+  },
+  
+  "ngoLogin": {
+    "error": "Erreur",
+    "enterEmailPassword": "Veuillez saisir l'email et le mot de passe.",
+    "loginFailed": "Échec de la connexion",
+    "back": "Retour",
+    "welcome": "Bienvenue ONG ! Connectez-vous à KindKart.",
+    "emailPlaceholder": "Entrez votre email",
+    "passwordPlaceholder": "Entrez votre mot de passe",
+    "login": "Connexion",
+    "noAccount": "Vous n'avez pas de compte ?",
+    "registerNow": "Inscrivez-vous"
   }
 }
