@@ -17,12 +17,18 @@ import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db, auth } from "../../firebaseConfig";
 import { doc, setDoc, collection, getDocs } from "firebase/firestore";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
-const categories = [
+const allCategories = [
   { label: "Donation", icon: "hand-heart" },
   { label: "Charity", icon: "charity" },
   { label: "Campaign", icon: "bullhorn" },
   { label: "Support", icon: "lifebuoy" },
+  { label: "Fundraiser", icon: "cash" },
+  { label: "Awareness", icon: "lightbulb-on-outline" },
+  { label: "Events", icon: "calendar" },
+  { label: "Show all", icon: "view-dashboard" },
 ];
 
 const DonateButton = ({ onPress, title, isDarkMode }) => (
@@ -46,57 +52,86 @@ export default function HomeScreen({ navigation }) {
   const [urgentDonations, setUrgentDonations] = useState([]);
   const [nonUrgentDonations, setNonUrgentDonations] = useState([]);
   const [showAllOthers, setShowAllOthers] = useState(false);
-
-
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [allCampaigns, setAllCampaigns] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Show all");
   const [randomBanner, setRandomBanner] = useState(null);
+
+  const filterCampaigns = (searchTerm, category) => {
+    const filteredUrgent = [];
+    const filteredNonUrgent = [];
+
+    allCampaigns.forEach((item) => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = category === "Show all" || item.category?.toLowerCase() === category.toLowerCase();
+
+      if (matchesSearch && matchesCategory) {
+        if (item.isUrgent) {
+          filteredUrgent.push(item);
+        } else {
+          filteredNonUrgent.push(item);
+        }
+      }
+    });
+
+    setUrgentDonations(filteredUrgent);
+    setNonUrgentDonations(filteredNonUrgent);
+  };
+
+
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedCategory("Show all");
+      setSearchQuery("");
+      filterCampaigns("", "Show all");
+    }, [])
+  );
+
 
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "campaigns"));
-        const allCampaigns = [];
-        const urgent = [];
-        const nonUrgent = [];
-
+        const campaigns = [];
+  
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           const campaign = {
             id: docSnap.id,
-            title: data.title,
-            description: data.story ? data.story.slice(0, 50) + "..." : "",
+            title: data.title || "",
+            description: data.story || "",
             imageUrl: data.imageUrls?.[0] || null,
             raised: `$${data.totalDonation?.toLocaleString() || "0"}`,
             daysLeft: calculateDaysLeft(data.campaignDate),
             fullStory: data.story || "",
+            isUrgent: data.urgent === true,
+            category: data.category || "Uncategorized",
           };
-
-          allCampaigns.push(campaign);
-
-          if (data.urgent === true) {
-            urgent.push(campaign);
-          } else {
-            nonUrgent.push(campaign);
-          }
+          campaigns.push(campaign);
         });
-
-        setUrgentDonations(urgent);
-        setNonUrgentDonations(nonUrgent);
-
-        if (allCampaigns.length > 0) {
-          const randomIndex = Math.floor(Math.random() * allCampaigns.length);
-          setRandomBanner(allCampaigns[randomIndex]);
-        }
+  
+        setAllCampaigns(campaigns);
+        setRandomBanner(campaigns[Math.floor(Math.random() * campaigns.length)]);
       } catch (error) {
         console.error("Error fetching campaigns:", error);
       }
     };
-
+  
     fetchCampaigns();
   }, []);
 
+
+  useEffect(() => {
+    if (allCampaigns.length > 0) {
+      setSelectedCategory("Show all"); // <-- optional, to reset
+      filterCampaigns(searchQuery, "Show all");
+    }
+  }, [allCampaigns]);
+  
   const calculateDaysLeft = (dateStr) => {
     try {
-      const target = new Date(dateStr); // works with "YYYY-MM-DD"
+      const target = new Date(dateStr);
       const now = new Date();
       const diff = target - now;
       return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
@@ -104,7 +139,6 @@ export default function HomeScreen({ navigation }) {
       return 0;
     }
   };
-  
 
   useEffect(() => {
     const requestAndStoreLocation = async () => {
@@ -135,7 +169,6 @@ export default function HomeScreen({ navigation }) {
                 if (status === "granted") {
                   const location = await Location.getCurrentPositionAsync({});
                   await AsyncStorage.setItem(permissionKey, "granted");
-
                   await setDoc(doc(db, "locations", user.uid), {
                     uid: user.uid,
                     latitude: location.coords.latitude,
@@ -158,25 +191,23 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, isDarkMode ? styles.darkBg : styles.lightBg]}
-      edges={["top", "left", "right"]}
-    >
-      <ScrollView
-        contentContainerStyle={[styles.container, isDarkMode ? styles.darkBg : styles.lightBg]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={[styles.searchBarContainer, { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F6FA" }, isDarkMode && { shadowOpacity: 0 }]}
-        >
+    <SafeAreaView style={[styles.safeArea, isDarkMode ? styles.darkBg : styles.lightBg]}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={[styles.searchBarContainer, { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F6FA" }]}>
           <Icon name="magnify" size={22} color={isDarkMode ? "#bbb" : "#888"} style={{ marginLeft: 10 }} />
           <TextInput
             style={[styles.searchBar, { color: isDarkMode ? "#eee" : "#222" }]}
             placeholder="What do you want to help?"
             placeholderTextColor={isDarkMode ? "#999" : "#888"}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              filterCampaigns(text, selectedCategory);
+            }}
+            value={searchQuery}
           />
         </View>
 
+        {/* Banner */}
         {randomBanner && (
           <View style={styles.banner}>
             <Image source={{ uri: randomBanner.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
@@ -188,151 +219,108 @@ export default function HomeScreen({ navigation }) {
               >
                 <Text style={styles.bannerButtonText}>View more</Text>
               </TouchableOpacity>
-
             </View>
           </View>
         )}
 
-<View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
-            Sharing kindness
-          </Text>
-          <TouchableOpacity>
+        {/* Categories */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>Sharing Kindness</Text>
+          <TouchableOpacity onPress={() => setShowAllCategories(!showAllCategories)}>
             <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
-              See all
+              {showAllCategories ? "Show less" : "See all"}
             </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.categoriesRow}>
-          {categories.map((cat) => (
-            <View key={cat.label} style={styles.categoryItem}>
-              <View
-                style={[
-                  styles.categoryIconWrap,
-                  { backgroundColor: isDarkMode ? "#444" : "#F5F6FA" },
-                ]}
-              >
+          {(showAllCategories ? allCategories : allCategories.slice(0, 4)).map((cat) => (
+            <TouchableOpacity
+              key={cat.label}
+              style={[styles.categoryItem, selectedCategory === cat.label && { opacity: 0.6 }]}
+              onPress={() => {
+                setSelectedCategory(cat.label);
+                filterCampaigns(searchQuery, cat.label);
+              }}
+            >
+              <View style={[styles.categoryIconWrap, { backgroundColor: isDarkMode ? "#444" : "#F5F6FA" }]}>
                 <Icon name={cat.icon} size={28} color="#4A90E2" />
               </View>
-              <Text style={[styles.categoryLabel, isDarkMode && styles.darkText]}>
-                {cat.label}
-              </Text>
-            </View>
+              <Text style={[styles.categoryLabel, isDarkMode && styles.darkText]}>{cat.label}</Text>
+            </TouchableOpacity>
           ))}
         </View>
 
+        {/* Urgent Campaigns */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>Urgent donation</Text>
-          
         </View>
-        
         <FlatList
           data={urgentDonations}
           horizontal
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.donationCard,
-                { backgroundColor: isDarkMode ? "#222" : "#fff" },
-                isDarkMode && { shadowColor: "#000", shadowOpacity: 0.6 },
-              ]}
-            >
+            <View style={[styles.donationCard, { backgroundColor: isDarkMode ? "#222" : "#fff" }]}>
               {item.imageUrl ? (
                 <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
               ) : (
-                <View style={[styles.cardImage, { backgroundColor: "#ccc", justifyContent: "center", alignItems: "center" }]}> 
+                <View style={[styles.cardImage, { backgroundColor: "#ccc", justifyContent: "center", alignItems: "center" }]}>
                   <Text style={{ color: "#666" }}>No Image</Text>
                 </View>
               )}
               <View style={styles.cardContent}>
-                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>{item.title}</Text>
+                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.cardDesc, isDarkMode && styles.cardDescDark]} numberOfLines={2}>{item.description}</Text>
-                <View style={styles.cardInfoRow}>
-                  <View style={styles.cardInfoBox}>
-                    <Text style={[styles.cardInfoLabel, isDarkMode && styles.cardInfoLabelDark]}>Raised</Text>
-                    <Text style={[styles.cardInfoValue, isDarkMode && styles.darkText]}>{item.raised}</Text>
-                  </View>
-                  <View style={styles.cardInfoBox}>
-                    <Text style={[styles.cardInfoLabel, isDarkMode && styles.cardInfoLabelDark]}>Days left</Text>
-                    <Text style={[styles.cardInfoValue, isDarkMode && styles.darkText]}>{item.daysLeft}</Text>
-                  </View>
-                </View>
+                <Text style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+                  {item.daysLeft} days left · {item.raised} raised
+                </Text>
                 <DonateButton title="Donate" onPress={() => navigation.navigate("DonationDetail", { campaignId: item.id })} isDarkMode={isDarkMode} />
               </View>
             </View>
           )}
         />
 
-<View style={styles.sectionHeader}>
-  <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
-    Others
-  </Text>
-  {nonUrgentDonations.length > 2 && (
-    <TouchableOpacity onPress={() => setShowAllOthers(!showAllOthers)}>
-      <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
-        {showAllOthers ? "Show less" : "See all"}
-      </Text>
-    </TouchableOpacity>
-  )}
-</View>
-
-<FlatList
-  data={showAllOthers ? nonUrgentDonations : nonUrgentDonations.slice(0, 2)}
-  keyExtractor={(item) => item.id.toString()}
-  numColumns={2}
-  scrollEnabled={false}
-  columnWrapperStyle={{ justifyContent: "space-between" }}
-  renderItem={({ item }) => (
-    <TouchableOpacity
-      style={{ width: "48%", marginBottom: 16 }}
-      onPress={() => navigation.navigate("DonationDetail", { campaignId: item.id })}
-    >
-      <View
-        style={[
-          styles.donationCardGrid,
-          { backgroundColor: isDarkMode ? "#222" : "#fff" },
-          isDarkMode && { shadowColor: "#000", shadowOpacity: 0.6 },
-        ]}
-      >
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
-        ) : (
-          <View
-            style={[
-              styles.cardImage,
-              {
-                backgroundColor: "#ccc",
-                justifyContent: "center",
-                alignItems: "center",
-              },
-            ]}
-          >
-            <Text style={{ color: "#666" }}>No Image</Text>
-          </View>
-        )}
-        <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>
-            {item.title}
-          </Text>
-          <Text
-            style={[styles.cardDesc, isDarkMode && styles.cardDescDark]}
-            numberOfLines={2}
-          >
-            {item.description}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
-            {item.daysLeft} days left · {item.raised} raised
-          </Text>
+        {/* Others */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>Others</Text>
+          {nonUrgentDonations.length > 2 && (
+            <TouchableOpacity onPress={() => setShowAllOthers(!showAllOthers)}>
+              <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
+                {showAllOthers ? "Show less" : "See all"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
-  )}
-/>
-
-
-
+        <FlatList
+          data={showAllOthers ? nonUrgentDonations : nonUrgentDonations.slice(0, 2)}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          scrollEnabled={false}
+          columnWrapperStyle={{ justifyContent: "space-between" }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={{ width: "48%", marginBottom: 16 }}
+              onPress={() => navigation.navigate("DonationDetail", { campaignId: item.id })}
+            >
+              <View style={[styles.donationCardGrid, { backgroundColor: isDarkMode ? "#222" : "#fff" }]}>
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+                ) : (
+                  <View style={[styles.cardImage, { backgroundColor: "#ccc", justifyContent: "center", alignItems: "center" }]}>
+                    <Text style={{ color: "#666" }}>No Image</Text>
+                  </View>
+                )}
+                <View style={styles.cardContent}>
+                  <Text style={[styles.cardTitle, isDarkMode && styles.darkText]} numberOfLines={1}>{item.title}</Text>
+                  <Text style={[styles.cardDesc, isDarkMode && styles.cardDescDark]} numberOfLines={2}>{item.description}</Text>
+                  <Text style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+                    {item.daysLeft} days left · {item.raised} raised
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
@@ -419,10 +407,17 @@ const styles = StyleSheet.create({
   },
   categoriesRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
     marginBottom: 10,
   },
-  categoryItem: { alignItems: "center", width: 80, marginHorizontal: 10 },
+  categoryItem: {
+    width: "25%",       // fixed width so they stack as expected
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  
+  
   categoryIconWrap: {
     borderRadius: 16,
     padding: 14,
@@ -444,7 +439,7 @@ const styles = StyleSheet.create({
   },
   cardImage: { width: "100%", height: 130, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   cardContent: { padding: 14 },
-  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 4, color: "#222" },
+  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 4, color: "#222" , height: 22},
   cardDesc: { fontSize: 13, color: "#666", marginBottom: 12 },
   cardDescDark: { color: "#ccc" },
   cardInfoRow: { flexDirection: "row", justifyContent: "space-between" },

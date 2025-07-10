@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 4,
   },
-  badgeText: { fontSize: 12, color: '#1F2E41' },
+  badgeText: { fontSize: 16, color: '#1F2E41' },
 
   raised: { fontSize: 15, fontWeight: '600', marginBottom: 6 },
   progressTrack: {
