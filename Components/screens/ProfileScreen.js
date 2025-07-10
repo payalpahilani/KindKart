@@ -72,6 +72,9 @@ export default function ProfileScreen() {
       case 'likedAds':
         navigation.navigate('LikedAdsScreen');
         break;
+      case 'yourAds':
+        navigation.navigate('YourAdsScreen');
+        break;
       default:
         break;
     }
@@ -149,6 +152,7 @@ export default function ProfileScreen() {
         {[ // Option list only
           { icon: 'cog-outline', label: t('profile.settings'), action: 'settings' },
           { icon: 'heart-outline', label: t('profile.yourLikedAds') || 'Your Liked Ads', action: 'likedAds' },
+          { icon: 'format-list-bulleted', label: t('profile.yourAds') || 'Your Ads', action: 'yourAds' },
           { icon: 'comment-question-outline', label: t('profile.faq'), action: 'faq' },
           { icon: 'exit-to-app', label: t('profile.exitApp'), action: 'exit' },
         ].map((o) => (

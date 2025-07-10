@@ -33,7 +33,7 @@ const getMimeType = (filename) => {
   }
 };
 
-const BACKEND_URL = 'http://192.168.68.60:4000';
+const BACKEND_URL = 'https://kindkart-0l245p6y.b4a.run';
 
 export default function NgoEditProfileScreen() {
   const navigation = useNavigation();
@@ -96,7 +96,7 @@ export default function NgoEditProfileScreen() {
   const getPresignedUrls = async (filename, fileType, userId, itemId) => {
     const res = await fetch(`${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(filename)}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}&type=ngo`);
     if (!res.ok) throw new Error('Presigned URL fetch failed');
-    return await res.json(); // { uploadUrl, downloadUrl }
+    return await res.json(); 
   };
 
   const uploadImageAsync = async (uri, userId) => {
@@ -104,7 +104,7 @@ export default function NgoEditProfileScreen() {
     const fileName = uri.split('/').pop().split('?')[0];
     const fileType = getMimeType(fileName);
     const itemId = Math.random().toString(36).substring(2, 10);
-    const { uploadUrl, downloadUrl } = await getPresignedUrls(fileName, fileType, userId, itemId);
+    const { uploadUrl, publicUrl } = await getPresignedUrls(fileName, fileType, userId, itemId);
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',
       body: blob,
@@ -118,7 +118,7 @@ export default function NgoEditProfileScreen() {
       throw new Error(errorText);
     }
     if (blob.close) blob.close();
-    return downloadUrl;
+    return publicUrl;
   };
 
   const handleSave = async () => {
@@ -137,12 +137,17 @@ export default function NgoEditProfileScreen() {
         avatarUrl = await uploadImageAsync(avatarUri, uid);
       }
 
-      await updateDoc(doc(db, 'ngo', uid), {
+      const updateData = {
         ngoName: ngoName.trim(),
         contact: contact.trim(),
-        avatarUrl,
-      });
-
+      };
+      
+      if (avatarUrl !== undefined) {
+        updateData.avatarUrl = avatarUrl;
+      }
+      
+      await updateDoc(doc(db, 'ngo', uid), updateData);
+      
       Alert.alert('Success', 'Profile updated successfully!');
       navigation.goBack();
     } catch (err) {
@@ -173,7 +178,7 @@ export default function NgoEditProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <TouchableOpacity onPress={pickImage} style={styles.logoWrap}>
-        {avatarUri && avatarUri.startsWith('http') ? (
+        {avatarUri ? (
           <Image source={{ uri: avatarUri }} style={styles.logo} />
         ) : (
           <View style={styles.initialsAvatar}>
@@ -188,6 +193,7 @@ export default function NgoEditProfileScreen() {
             </Text>
           </View>
         )}
+
 
           <View style={styles.editIcon}>
             <Icon name="camera-plus" size={20} color="#fff" />

@@ -27,7 +27,8 @@ import { doc, getDoc } from "firebase/firestore";
 
 
 
-const BACKEND_URL = "http://192.168.68.60:4000"; // Update if needed
+const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
+
 const MAX_IMAGES = 5;
 
 const PRIMARY = "#0AB1E7";
@@ -115,47 +116,50 @@ export default function NgoCreateCampaignScreen() {
 
   const uploadImageToS3 = async (img, userId, itemId) => {
     const fileName = img.fileName || img.uri.split("/").pop();
-    const fileType = getMimeType(img.uri);
-
-    console.log("Uploading image:", { fileName, fileType, userId, itemId });
-
+    const fileType = img.type?.startsWith("image/") ? img.type : getMimeType(img.uri);
+  
     const res = await fetch(
-        `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}&type=ngo`
-      );
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error("Presigned URL fetch failed: " + text);
-    }
-
-    const { uploadUrl, downloadUrl } = await res.json();
-    const imageBlob = await (await fetch(img.uri)).blob();
-
+      `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
+        fileName
+      )}&fileType=${encodeURIComponent(
+        fileType
+      )}&userId=${userId}&itemId=${itemId}&type=ngo`
+    );
+  
+    if (!res.ok) throw new Error("Failed to get S3 URL");
+    const { uploadUrl, publicUrl } = await res.json();
+  
+    const imgRes = await fetch(img.uri);
+    const blob = await imgRes.blob();
+  
     const uploadRes = await fetch(uploadUrl, {
       method: "PUT",
-      body: imageBlob,
+      body: blob,
       headers: {
         "Content-Type": fileType,
         "x-amz-server-side-encryption": "AES256",
       },
     });
-
+  
     if (!uploadRes.ok) {
       const errorText = await uploadRes.text();
-      console.log("Upload error response:", errorText);
-      throw new Error("S3 upload failed: " + errorText);
+      console.log("S3 upload error response:", errorText);
+      throw new Error("Failed to upload image to S3");
     }
-
-    return downloadUrl;
+  
+    return publicUrl;
   };
+  
 
   const uploadAllImages = async (userId, itemId) => {
-    const urls = [];
-    for (const img of images) {
+    const uploadedUrls = [];
+    for (const img of images || []) {
       const url = await uploadImageToS3(img, userId, itemId);
-      urls.push(url);
+      uploadedUrls.push(url);
     }
-    return urls;
+    return uploadedUrls;
   };
+  
 
   const handleSubmit = async () => {
     const auth = getAuth();

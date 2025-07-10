@@ -23,8 +23,8 @@ import EditProfileScreen from "../Components/screens/EditProfileScreen";
 import SettingsScreen from "../Components/screens/SettingsScreen";
 import AboutUsScreen from "../Components/screens/AboutUsScreen";
 import TermsAndConditionsScreen from "../Components/screens/TermsAndConditionsScreen";
-import NgoHomeScreen from '../Components/screens/NgoHomeScreen'
-import CampaignsScreen from '../Components/screens/CampaignsScreen'
+import NgoHomeScreen from '../Components/screens/NgoHomeScreen';
+import CampaignsScreen from '../Components/screens/CampaignsScreen';
 import DonorsScreen from '../Components/screens/DonorsScreen';
 import DonationDetailScreen from "../Components/screens/DonationDetailScreen";
 import NgoProfileScreen from '../Components/screens/NgoProfileScreen';
@@ -34,10 +34,11 @@ import NgoCreateCampaignScreen from "../Components/screens/NgoCreateCampaign";
 import NgoEditCampaign from "../Components/screens/NgoEditCampaign";
 import AdDetailsScreen from "../Components/screens/AdDetailScreen";
 import LikedAdsScreen from "../Components/screens/LikedAdsScreen";
-import NgoEditProfileScreen from "../Components/screens/NgoEditProfileScreen"
+import NgoEditProfileScreen from "../Components/screens/NgoEditProfileScreen";
 import NgoDonationInfoScreen from "../Components/screens/NgoDonationInfoScreen";
 import NgoDashboardScreen from '../Components/screens/NgoDashboardScreen';
 import ForgotPasswordScreen from "../Components/screens/ForgotPasswordScreen";
+import YourAdsScreen from "../Components/screens/YourAdsScreen";
 
 
 const RootStack = createNativeStackNavigator();
@@ -181,10 +182,7 @@ export default function AppNavigator() {
       >
         <RootStack.Screen name="Launch" component={LaunchScreen} />
         <RootStack.Screen name="Login" component={LoginScreen} />
-        <RootStack.Screen
-          name="ForgotPassword"
-          component={ForgotPasswordScreen}
-        />
+        <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen}/>
         <RootStack.Screen name="SignUp" component={SignUpScreen} />
         <RootStack.Screen name="MainTabs" component={MainTabs} />
         <RootStack.Screen name="NgoLogin" component={NgoLoginScreen} />
@@ -211,6 +209,7 @@ export default function AppNavigator() {
         />
         <RootStack.Screen name="NgoEditCampaign" component={NgoEditCampaign} />
         <RootStack.Screen name="AdDetails" component={AdDetailsScreen} />
+        {/* <RootStack.Screen name="YourAdsScreen" component={YourAdsScreen} /> */}
         <RootStack.Screen name="LikedAdsScreen" component={LikedAdsScreen} />
         <RootStack.Screen
           name="NgoEditProfile"

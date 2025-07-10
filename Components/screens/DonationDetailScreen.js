@@ -1,170 +1,265 @@
-import React from "react";
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
-  TouchableOpacity,
+  Image,
   ScrollView,
-} from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+  ActivityIndicator,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function DonationDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { campaign } = route.params;
+  const { campaignId } = route.params;
+
+  const [campaign, setCampaign] = useState(null);
+  const [ngo, setNgo] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCampaignAndNgo = async () => {
+      try {
+        const campaignRef = doc(db, 'campaigns', campaignId);
+        const campaignSnap = await getDoc(campaignRef);
+
+        if (campaignSnap.exists()) {
+          const data = campaignSnap.data();
+          setCampaign(data);
+          if (data.imageUrls?.length > 0) {
+            setSelectedImage({ uri: data.imageUrls[0] });
+          }
+
+          if (data.createdBy) {
+            const ngoRef = doc(db, 'ngo', data.createdBy);
+            const ngoSnap = await getDoc(ngoRef);
+            if (ngoSnap.exists()) {
+              setNgo(ngoSnap.data());
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching campaign/NGO:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaignAndNgo();
+  }, [campaignId]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color="#0AB1E7" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!campaign) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text>Campaign not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const {
+    title,
+    imageUrls = [],
+    story,
+    campaignCategory,
+    category,
+    currency = 'CAD',
+    totalDonation,
+    raisedAmount = 0,
+    daysLeft,
+    urgent,
+    campaignDate,
+  } = campaign;
+
+  const progress = totalDonation
+    ? Math.min((raisedAmount / totalDonation) * 100, 100)
+    : 0;
+
+  const ngoInitials = ngo?.ngoName
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+
+  const thumbnails = imageUrls.map((url, index) => (
+    <TouchableOpacity key={index} onPress={() => setSelectedImage({ uri: url })}>
+      <Image source={{ uri: url }} style={styles.thumb} />
+    </TouchableOpacity>
+  ));
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Top Bar */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="chevron-left" size={26} color="#EFAC3A" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detail Media</Text>
-        <TouchableOpacity onPress={() => alert("Share clicked!")}>
-          <Icon name="share-variant" size={24} />
-        </TouchableOpacity>
-      </View>
 
-      {/* Main Image */}
-      <Image source={{ uri: campaign.imageUrl }} style={styles.mainImage} />
+        <Text style={styles.pageTitle}>Campaign Details</Text>
 
-      {/* Title & Tag */}
-      <Text style={styles.title}>{campaign.title}</Text>
-      <View style={styles.tag}>
-        <Text style={styles.tagText}>Donation</Text>
-      </View>
-
-      {/* Date, Raised, Days Left */}
-      <Text style={styles.date}>May 1, 2024</Text>
-      <View style={styles.row}>
-        <Text style={styles.raised}>{campaign.raised} from $40000</Text>
-        <Text style={styles.daysLeft}>{campaign.daysLeft} days left</Text>
-      </View>
-
-      <View style={styles.line} />
-
-      {/* Campaigner */}
-      <Text style={styles.sectionTitle}>Campaigner</Text>
-      <View style={styles.campaignerBox}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>OF</Text>
-        </View>
-        <View>
-          <Text style={styles.campaignerName}>Orphan Foundation</Text>
-          <Text style={styles.verified}>Verified Account from May 01 2023</Text>
-        </View>
-      </View>
-
-      {/* Story */}
-      <Text style={styles.sectionTitle}>Campaign story</Text>
-      <Text style={styles.story}>
-        {campaign.fullStory || "Join us in making a lasting impact..."}
-      </Text>
-
-      {/* Donators */}
-      <Text style={styles.sectionTitle}>Donators</Text>
-      <View style={styles.donatorBox}>
         <Image
-          source={require("../../assets/Images/avatar.jpg")}
-          style={styles.donatorAvatar}
+          source={selectedImage || require('../../assets/Images/campaign1.jpg')}
+          style={styles.mainImage}
         />
-        <View>
-          <Text style={styles.donatorName}>Anonymous</Text>
-          <Text style={styles.donationTime}>Donate $20 · 1 minute ago</Text>
-        </View>
-      </View>
 
-      {/* Donate Button */}
-      <TouchableOpacity style={styles.donateButton} onPress={() => alert("Donate now!")}>
-        <Text style={styles.donateButtonText}>Donate Now</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbRow}>
+          {thumbnails}
+        </ScrollView>
+
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.date}>
+          {campaignDate ? new Date(campaignDate).toDateString() : 'Date not available'}
+        </Text>
+
+        <View style={styles.badgeRow}>
+          {category && (
+            <View style={[styles.badge, { backgroundColor: '#C8F4E5' }]}>
+              <Text style={styles.badgeText}>{category}</Text>
+            </View>
+          )}
+          {campaignCategory && (
+            <View style={[styles.badge, { backgroundColor: '#FFDDCC' }]}>
+              <Text style={styles.badgeText}>{campaignCategory.replace('_', ' ')}</Text>
+            </View>
+          )}
+          {urgent && (
+            <View style={[styles.badge, { backgroundColor: '#FFD6D6' }]}>
+              <Text style={[styles.badgeText, { color: '#B00020' }]}>Urgent</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.raised}>
+          {currency} {raisedAmount.toLocaleString()} from {currency}{' '}
+          {totalDonation?.toLocaleString()}
+        </Text>
+
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressBar, { width: `${progress}%` }]} />
+        </View>
+
+        {/* Campaigner */}
+        <Text style={styles.sectionTitle}>Campaigner</Text>
+        <View style={styles.ngoBox}>
+          {ngo?.avatarUrl ? (
+            <Image source={{ uri: ngo.avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.ngoAvatar}>
+              <Text style={styles.ngoInitials}>{ngoInitials || 'NGO'}</Text>
+            </View>
+          )}
+          <View>
+            <Text style={styles.ngoName}>{ngo?.ngoName || 'NGO'}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Campaign Story</Text>
+        <Text style={styles.story}>{story}</Text>
+
+        <TouchableOpacity style={styles.donateButton} onPress={() => alert("Donate now!")}>
+          <Text style={styles.donateButtonText}>Donate Now</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  headerTitle: { fontSize: 18, fontWeight: "bold" },
-  mainImage: { width: "100%", height: 200, borderRadius: 12 },
-  title: { fontSize: 18, fontWeight: "bold", marginTop: 16 },
-  tag: {
-    backgroundColor: "#D6F2EE",
-    alignSelf: "flex-start",
+  container: { flex: 1, backgroundColor: '#fff' },
+  scroll: { padding: 20 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  backText: { color: '#EFAC3A', fontWeight: '600', fontSize: 15 },
+
+  pageTitle: { fontSize: 20, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
+  mainImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12 },
+  thumbRow: { flexDirection: 'row', marginBottom: 20 },
+  thumb: { width: 70, height: 70, borderRadius: 8, marginRight: 10 },
+
+  title: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
+  date: { fontSize: 13, color: '#888' },
+
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  badge: {
+    backgroundColor: '#B8D6DF',
+    alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 6,
-  },
-  tagText: { color: "#4CAF93", fontWeight: "600" },
-  date: { color: "#555", marginTop: 6 },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 8,
-  },
-  raised: { fontSize: 16, fontWeight: "bold" },
-  daysLeft: { color: "#999" },
-  line: {
-    height: 1,
-    backgroundColor: "#ccc",
-    marginVertical: 16,
-  },
-  sectionTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 8 },
-  campaignerBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
     borderRadius: 12,
   },
-  avatar: {
-    backgroundColor: "#E5F6F5",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: { color: "#4CAF93", fontWeight: "bold", fontSize: 18 },
-  campaignerName: { fontWeight: "bold" },
-  verified: { color: "#666" },
-  story: { color: "#444", marginBottom: 20 },
-  donatorBox: {
-    flexDirection: "row",
-    alignItems: "center",
+  badgeText: { fontSize: 12, color: '#1F2E41' },
+
+  raised: { fontSize: 15, fontWeight: '600', marginBottom: 6 },
+  progressTrack: {
+    height: 8,
+    backgroundColor: '#eee',
+    borderRadius: 6,
+    overflow: 'hidden',
     marginBottom: 16,
   },
-  donatorAvatar: {
+  progressBar: {
+    height: 8,
+    backgroundColor: '#0AB1E7',
+  },
+
+  sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 10 },
+  ngoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDFDFD',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  ngoAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 12,
+    backgroundColor: '#B8D6DF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
   },
-  donatorName: { fontWeight: "bold" },
-  donationTime: { color: "#777" },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 14,
+  },
+  ngoInitials: { fontSize: 16, fontWeight: '700', color: '#1F2E41' },
+  ngoName: { fontSize: 15, fontWeight: '600' },
+
+  story: { fontSize: 14, color: '#333', lineHeight: 20 },
+
   donateButton: {
-    backgroundColor: "#F6B93B",
+    backgroundColor: '#F6B93B',
     padding: 14,
     borderRadius: 28,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 20,
     marginBottom: 40,
   },
   donateButtonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });

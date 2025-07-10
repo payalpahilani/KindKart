@@ -44,16 +44,23 @@ const DonateButton = ({ onPress, title, isDarkMode }) => (
 export default function HomeScreen({ navigation }) {
   const { isDarkMode } = useContext(ThemeContext);
   const [urgentDonations, setUrgentDonations] = useState([]);
+  const [nonUrgentDonations, setNonUrgentDonations] = useState([]);
+  const [showAllOthers, setShowAllOthers] = useState(false);
+
+
+  const [randomBanner, setRandomBanner] = useState(null);
 
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "campaigns"));
-        const campaigns = [];
+        const allCampaigns = [];
+        const urgent = [];
+        const nonUrgent = [];
 
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          campaigns.push({
+          const campaign = {
             id: docSnap.id,
             title: data.title,
             description: data.story ? data.story.slice(0, 50) + "..." : "",
@@ -61,10 +68,24 @@ export default function HomeScreen({ navigation }) {
             raised: `$${data.totalDonation?.toLocaleString() || "0"}`,
             daysLeft: calculateDaysLeft(data.campaignDate),
             fullStory: data.story || "",
-          });
+          };
+
+          allCampaigns.push(campaign);
+
+          if (data.urgent === true) {
+            urgent.push(campaign);
+          } else {
+            nonUrgent.push(campaign);
+          }
         });
 
-        setUrgentDonations(campaigns);
+        setUrgentDonations(urgent);
+        setNonUrgentDonations(nonUrgent);
+
+        if (allCampaigns.length > 0) {
+          const randomIndex = Math.floor(Math.random() * allCampaigns.length);
+          setRandomBanner(allCampaigns[randomIndex]);
+        }
       } catch (error) {
         console.error("Error fetching campaigns:", error);
       }
@@ -75,8 +96,7 @@ export default function HomeScreen({ navigation }) {
 
   const calculateDaysLeft = (dateStr) => {
     try {
-      const [month, day, year] = dateStr.split("/");
-      const target = new Date(`${year}-${month}-${day}`);
+      const target = new Date(dateStr); // works with "YYYY-MM-DD"
       const now = new Date();
       const diff = target - now;
       return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
@@ -84,15 +104,13 @@ export default function HomeScreen({ navigation }) {
       return 0;
     }
   };
+  
 
   useEffect(() => {
     const requestAndStoreLocation = async () => {
       try {
         const user = auth.currentUser;
-        if (!user) {
-          console.warn("No authenticated user found.");
-          return;
-        }
+        if (!user) return;
 
         const permissionKey = `locationPermission_${user.uid}`;
         const storedPermission = await AsyncStorage.getItem(permissionKey);
@@ -124,8 +142,6 @@ export default function HomeScreen({ navigation }) {
                     longitude: location.coords.longitude,
                     timestamp: new Date().toISOString(),
                   });
-
-                  console.log("Location saved for:", user.uid);
                 } else {
                   await AsyncStorage.setItem(permissionKey, "denied");
                 }
@@ -147,25 +163,13 @@ export default function HomeScreen({ navigation }) {
       edges={["top", "left", "right"]}
     >
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          isDarkMode ? styles.darkBg : styles.lightBg,
-        ]}
+        contentContainerStyle={[styles.container, isDarkMode ? styles.darkBg : styles.lightBg]}
         showsVerticalScrollIndicator={false}
       >
         <View
-          style={[
-            styles.searchBarContainer,
-            { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F6FA" },
-            isDarkMode && { shadowOpacity: 0 },
-          ]}
+          style={[styles.searchBarContainer, { backgroundColor: isDarkMode ? "#2C2C2C" : "#F5F6FA" }, isDarkMode && { shadowOpacity: 0 }]}
         >
-          <Icon
-            name="magnify"
-            size={22}
-            color={isDarkMode ? "#bbb" : "#888"}
-            style={{ marginLeft: 10 }}
-          />
+          <Icon name="magnify" size={22} color={isDarkMode ? "#bbb" : "#888"} style={{ marginLeft: 10 }} />
           <TextInput
             style={[styles.searchBar, { color: isDarkMode ? "#eee" : "#222" }]}
             placeholder="What do you want to help?"
@@ -173,23 +177,23 @@ export default function HomeScreen({ navigation }) {
           />
         </View>
 
-        <View style={styles.banner}>
-          <Image
-            source={require("../../assets/Images/school.jpg")}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
-          <View style={styles.bannerOverlay}>
-            <Text style={styles.bannerText}>
-              Support campaign cost for children's school
-            </Text>
-            <TouchableOpacity style={styles.bannerButton}>
-              <Text style={styles.bannerButtonText}>View more</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {randomBanner && (
+          <View style={styles.banner}>
+            <Image source={{ uri: randomBanner.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
+            <View style={styles.bannerOverlay}>
+              <Text style={styles.bannerText}>{randomBanner.title}</Text>
+              <TouchableOpacity
+                style={styles.bannerButton}
+                onPress={() => navigation.navigate("DonationDetail", { campaignId: randomBanner.id })}
+              >
+                <Text style={styles.bannerButtonText}>View more</Text>
+              </TouchableOpacity>
 
-        <View style={styles.sectionHeader}>
+            </View>
+          </View>
+        )}
+
+<View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
             Sharing kindness
           </Text>
@@ -218,16 +222,10 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
-            Urgent donation
-          </Text>
-          <TouchableOpacity>
-            <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
-              See all
-            </Text>
-          </TouchableOpacity>
+          <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>Urgent donation</Text>
+          
         </View>
-
+        
         <FlatList
           data={urgentDonations}
           horizontal
@@ -244,66 +242,103 @@ export default function HomeScreen({ navigation }) {
               {item.imageUrl ? (
                 <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
               ) : (
-                <View
-                  style={[
-                    styles.cardImage,
-                    {
-                      backgroundColor: "#ccc",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    },
-                  ]}
-                >
+                <View style={[styles.cardImage, { backgroundColor: "#ccc", justifyContent: "center", alignItems: "center" }]}> 
                   <Text style={{ color: "#666" }}>No Image</Text>
                 </View>
               )}
               <View style={styles.cardContent}>
-                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>
-                  {item.title}
-                </Text>
-                <Text
-                  style={[styles.cardDesc, isDarkMode && styles.cardDescDark]}
-                  numberOfLines={2}
-                >
-                  {item.description}
-                </Text>
+                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>{item.title}</Text>
+                <Text style={[styles.cardDesc, isDarkMode && styles.cardDescDark]} numberOfLines={2}>{item.description}</Text>
                 <View style={styles.cardInfoRow}>
                   <View style={styles.cardInfoBox}>
-                    <Text
-                      style={[styles.cardInfoLabel, isDarkMode && styles.cardInfoLabelDark]}
-                    >
-                      Raised
-                    </Text>
-                    <Text style={[styles.cardInfoValue, isDarkMode && styles.darkText]}>
-                      {item.raised}
-                    </Text>
+                    <Text style={[styles.cardInfoLabel, isDarkMode && styles.cardInfoLabelDark]}>Raised</Text>
+                    <Text style={[styles.cardInfoValue, isDarkMode && styles.darkText]}>{item.raised}</Text>
                   </View>
                   <View style={styles.cardInfoBox}>
-                    <Text
-                      style={[styles.cardInfoLabel, isDarkMode && styles.cardInfoLabelDark]}
-                    >
-                      Days left
-                    </Text>
-                    <Text style={[styles.cardInfoValue, isDarkMode && styles.darkText]}>
-                      {item.daysLeft}
-                    </Text>
+                    <Text style={[styles.cardInfoLabel, isDarkMode && styles.cardInfoLabelDark]}>Days left</Text>
+                    <Text style={[styles.cardInfoValue, isDarkMode && styles.darkText]}>{item.daysLeft}</Text>
                   </View>
                 </View>
-                <DonateButton
-                  title="Donate"
-                  onPress={() => navigation.navigate("DonationDetail", { campaign: item })}
-                  isDarkMode={isDarkMode}
-                />
+                <DonateButton title="Donate" onPress={() => navigation.navigate("DonationDetail", { campaignId: item.id })} isDarkMode={isDarkMode} />
               </View>
             </View>
           )}
         />
+
+<View style={styles.sectionHeader}>
+  <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>
+    Others
+  </Text>
+  {nonUrgentDonations.length > 2 && (
+    <TouchableOpacity onPress={() => setShowAllOthers(!showAllOthers)}>
+      <Text style={[styles.seeAll, isDarkMode && styles.seeAllDark]}>
+        {showAllOthers ? "Show less" : "See all"}
+      </Text>
+    </TouchableOpacity>
+  )}
+</View>
+
+<FlatList
+  data={showAllOthers ? nonUrgentDonations : nonUrgentDonations.slice(0, 2)}
+  keyExtractor={(item) => item.id.toString()}
+  numColumns={2}
+  scrollEnabled={false}
+  columnWrapperStyle={{ justifyContent: "space-between" }}
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={{ width: "48%", marginBottom: 16 }}
+      onPress={() => navigation.navigate("DonationDetail", { campaignId: item.id })}
+    >
+      <View
+        style={[
+          styles.donationCardGrid,
+          { backgroundColor: isDarkMode ? "#222" : "#fff" },
+          isDarkMode && { shadowColor: "#000", shadowOpacity: 0.6 },
+        ]}
+      >
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+        ) : (
+          <View
+            style={[
+              styles.cardImage,
+              {
+                backgroundColor: "#ccc",
+                justifyContent: "center",
+                alignItems: "center",
+              },
+            ]}
+          >
+            <Text style={{ color: "#666" }}>No Image</Text>
+          </View>
+        )}
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>
+            {item.title}
+          </Text>
+          <Text
+            style={[styles.cardDesc, isDarkMode && styles.cardDescDark]}
+            numberOfLines={2}
+          >
+            {item.description}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+            {item.daysLeft} days left · {item.raised} raised
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  )}
+/>
+
+
 
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -427,4 +462,14 @@ const styles = StyleSheet.create({
   donateButtonDark: { backgroundColor: "#F6B93B" },
   donateButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
   donateButtonTextDark: { color: "#fff" },
+  donationCardGrid: {
+    width: "100%",
+    borderRadius: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  }
+  
 });
