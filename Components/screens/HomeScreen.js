@@ -62,8 +62,8 @@ export default function HomeScreen({ navigation }) {
           const data = docSnap.data();
           const campaign = {
             id: docSnap.id,
-            title: data.title,
-            description: data.story ? data.story.slice(0, 50) + "..." : "",
+            title: data.title ? data.title.slice(0, 50) +  "" : "",
+            description: data.story ? data.story.slice(0, 50) + "" : "",
             imageUrl: data.imageUrls?.[0] || null,
             raised: `$${data.totalDonation?.toLocaleString() || "0"}`,
             daysLeft: calculateDaysLeft(data.campaignDate),
@@ -247,7 +247,8 @@ export default function HomeScreen({ navigation }) {
                 </View>
               )}
               <View style={styles.cardContent}>
-                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>{item.title}</Text>
+          
+                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}  numberOfLines={1} >{item.title}</Text>
                 <Text style={[styles.cardDesc, isDarkMode && styles.cardDescDark]} numberOfLines={2}>{item.description}</Text>
                 <View style={styles.cardInfoRow}>
                   <View style={styles.cardInfoBox}>
@@ -313,7 +314,8 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
         <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>
+          <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}
+          numberOfLines={1} >
             {item.title}
           </Text>
           <Text
@@ -444,7 +446,7 @@ const styles = StyleSheet.create({
   },
   cardImage: { width: "100%", height: 130, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   cardContent: { padding: 14 },
-  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 4, color: "#222" },
+  cardTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 4, color: "#222" , height: 22},
   cardDesc: { fontSize: 13, color: "#666", marginBottom: 12 },
   cardDescDark: { color: "#ccc" },
   cardInfoRow: { flexDirection: "row", justifyContent: "space-between" },
