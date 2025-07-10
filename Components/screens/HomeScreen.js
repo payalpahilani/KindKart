@@ -82,11 +82,47 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      // If no campaigns are loaded, fetch them again
+      if (allCampaigns.length === 0) {
+        const fetchCampaigns = async () => {
+          try {
+            const querySnapshot = await getDocs(collection(db, "campaigns"));
+            const campaigns = [];
+  
+            querySnapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              const campaign = {
+                id: docSnap.id,
+                title: data.title || "",
+                description: data.story || "",
+                imageUrl: data.imageUrls?.[0] || null,
+                raised: `$${data.totalDonation?.toLocaleString() || "0"}`,
+                daysLeft: calculateDaysLeft(data.campaignDate),
+                fullStory: data.story || "",
+                isUrgent: data.urgent === true,
+                category: data.category || "Uncategorized",
+              };
+              campaigns.push(campaign);
+            });
+  
+            setAllCampaigns(campaigns);
+            setRandomBanner(campaigns[Math.floor(Math.random() * campaigns.length)]);
+            filterCampaigns(searchQuery, "Show all");
+          } catch (error) {
+            console.error("Error fetching campaigns on refocus:", error);
+          }
+        };
+  
+        fetchCampaigns();
+      } else {
+        filterCampaigns(searchQuery, "Show all");
+      }
+  
       setSelectedCategory("Show all");
       setSearchQuery("");
-      filterCampaigns("", "Show all");
-    }, [])
+    }, [allCampaigns])
   );
+  
 
 
   useEffect(() => {
