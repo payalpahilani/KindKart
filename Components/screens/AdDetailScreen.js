@@ -284,7 +284,7 @@ export default function AdDetailsScreen({ route, navigation }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: adData.price * 100, // Stripe uses cents
+            amount: adData.salePrice * 100, // Stripe uses cents
             currency: adData.currency?.value || adData.currency || "usd",
           }),
         }

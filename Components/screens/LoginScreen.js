@@ -105,7 +105,6 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-
         <TouchableOpacity onPress={handleLogin}>
           <LinearGradient
             colors={isDarkMode ? ['#EFAC3A', '#FFC107'] : ['#F3E8DD', '#B8D6DF']}
@@ -113,9 +112,16 @@ export default function LoginScreen({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={styles.loginButton}
           >
-          <Text style={styles.loginButtonText}>{t('login.loginButton')}</Text>
-        </LinearGradient>
+            <Text style={styles.loginButtonText}>{t('login.loginButton')}</Text>
+          </LinearGradient>
         </TouchableOpacity>
+
+        {/* Forgot Password */}
+        <View style={styles.forgotPasswordContainer}>
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPasswordText}>{t('login.forgotPassword')}</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.registerContainer}>
           <Text style={styles.registerText}>
@@ -180,11 +186,20 @@ const baseStyles = {
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 10,
   },
   loginButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+    marginTop: 5,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: 'grey',
   },
   registerContainer: {
     alignItems: 'center',
@@ -204,9 +219,6 @@ const lightStyles = StyleSheet.create({
   container: {
     ...baseStyles.container,
     backgroundColor: '#fff',
-  },
-  content: {
-    ...baseStyles.content,
   },
   backText: {
     ...baseStyles.backText,
@@ -238,6 +250,10 @@ const lightStyles = StyleSheet.create({
     ...baseStyles.loginButtonText,
     color: '#1F2E41',
   },
+  forgotPasswordText: {
+    ...baseStyles.forgotPasswordText,
+    color: 'grey',
+  },
   registerText: {
     ...baseStyles.registerText,
     color: '#333',
@@ -253,9 +269,6 @@ const darkStyles = StyleSheet.create({
   container: {
     ...baseStyles.container,
     backgroundColor: '#121212',
-  },
-  content: {
-    ...baseStyles.content,
   },
   backText: {
     ...baseStyles.backText,
@@ -286,6 +299,10 @@ const darkStyles = StyleSheet.create({
   loginButtonText: {
     ...baseStyles.loginButtonText,
     color: '#fff',
+  },
+  forgotPasswordText: {
+    ...baseStyles.forgotPasswordText,
+    color: 'grey',
   },
   registerText: {
     ...baseStyles.registerText,
