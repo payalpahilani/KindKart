@@ -41,7 +41,6 @@
     "express": "^5.1.0",
     "firebase": "^11.8.1",
     "i18next": "^25.3.0",
-    "i18next-react-native-language-detector": "^1.0.2",
     "kindkart": "file:",
     "parse": "^6.1.1",
     "react": "19.0.0",
@@ -53,6 +52,7 @@
     "react-native-gesture-handler": "~2.24.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-google-places-autocomplete": "^2.4.1",
+    "react-native-localize": "^3.4.2",
     "react-native-maps": "1.20.1",
     "react-native-paper": "^5.14.5",
     "react-native-picker-select": "^9.3.1",
@@ -60,7 +60,8 @@
     "react-native-screens": "~4.10.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "^0.20.0",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "stripe": "^18.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

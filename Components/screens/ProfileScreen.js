@@ -146,22 +146,6 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card}>
-          <View style={styles.cardLeft}>
-            <Icon name="calendar-heart" size={24} color={isDarkMode ? '#fff' : '#000'} />
-            <View style={{ marginLeft: 14, flex: 1 }}>
-              <View style={styles.row}>
-                <Text style={styles.cardTitle}>{t('profile.regularDonation')}</Text>
-                <View style={styles.newTag}>
-                  <Text style={styles.newTagText}>{t('profile.new')}</Text>
-                </View>
-              </View>
-              <Text style={styles.cardSubtitle}>{t('profile.donationSubtitle')}</Text>
-            </View>
-          </View>
-          <Icon name="chevron-right" size={26} color={isDarkMode ? '#ccc' : '#888'} />
-        </TouchableOpacity>
-
         {[ // Option list only
           { icon: 'cog-outline', label: t('profile.settings'), action: 'settings' },
           { icon: 'heart-outline', label: t('profile.yourLikedAds') || 'Your Liked Ads', action: 'likedAds' },

@@ -85,7 +85,7 @@ app.post("/create-payment-intent", express.json(), async (req, res) => {
       amount,
       currency,
     });
-    res.send({ clientSecret: paymentIntent.client_secret });
+    res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
