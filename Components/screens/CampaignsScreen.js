@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 
 
 export default function CampaignsScreen() {
@@ -52,27 +54,33 @@ export default function CampaignsScreen() {
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <Image
-        source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
-        style={styles.image}
-      />
-      <View style={styles.info}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.amount}>
-          Goal: {item.currency} {item.totalDonation?.toLocaleString()}
-        </Text>
-        <Text numberOfLines={2} style={styles.story}>{item.story}</Text>
+    <Image
+      source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+      style={styles.image}
+    />
+    <View style={styles.info}>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.amount}>🎯 Goal: {item.currency} {item.totalDonation?.toLocaleString()}</Text>
+      <Text numberOfLines={3} style={styles.story}>{item.story}</Text>
   
-        <View style={styles.actions}>
-          <TouchableOpacity onPress={() => navigation.navigate('NgoEditCampaign', { campaign: item })}>
-            <Text style={styles.editBtn}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item.id)}>
-            <Text style={styles.deleteBtn}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <View style={styles.actions}>
+      <TouchableOpacity
+        style={styles.iconButton}
+        onPress={() => navigation.navigate('NgoEditCampaign', { campaign: item })}
+      >
+        <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.iconButton, { backgroundColor: '#D94141' }]}
+        onPress={() => handleDelete(item.id)}
+      >
+        <MaterialCommunityIcons name="trash-can" size={20} color="#fff" />
+      </TouchableOpacity>
     </View>
+
+    </View>
+  </View>
+  
   );
   
   
@@ -159,35 +167,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 100,
   },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: '#f2f2f2',
-    borderRadius: 10,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  image: {
-    width: 100,
-    height: 100,
-  },
-  info: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  amount: {
-    fontSize: 14,
-    color: '#333',
-    marginVertical: 4,
-  },
-  story: {
-    fontSize: 13,
-    color: '#555',
-  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -210,18 +189,77 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    marginVertical: 10,     // ✅ top & bottom spacing only
+    marginLeft: 10,   
+    alignSelf: 'center', 
+  },
+  info: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  amount: {
+    fontSize: 14,
+    color: '#007B55',
+    marginBottom: 6,
+  },
+  story: {
+    fontSize: 13,
+    color: '#555',
+    marginBottom: 8,
+  },
   actions: {
     flexDirection: 'row',
-    marginTop: 8,
+    gap: 10,
+    justifyContent: 'flex-end'
   },
-  editBtn: {
-    marginRight: 16,
-    color: '#0AB1E7',
-    fontWeight: '600',
+  editButton: {
+    backgroundColor: '#0AB1E7',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  deleteBtn: {
-    color: '#D94141',
+  deleteButton: {
+    backgroundColor: '#D94141',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  actionText: {
+    color: '#fff',
     fontWeight: '600',
-  }
+    fontSize: 13,
+  },
+  iconButton: {
+    backgroundColor: '#0AB1E7',
+    width: 26,
+    height: 26,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
   
 });
