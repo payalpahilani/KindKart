@@ -273,6 +273,32 @@ export default function AdDetailsScreen({ route, navigation }) {
     );
   }
 
+  //PAYMENT_DEEP_LINKING
+  useEffect(() => {
+    
+    const handleDeepLink = (event) => {
+      const url = event.url;
+      if (url && url.startsWith("kindkartpay://stripe-redirect")) {
+        Alert.alert("Payment complete!", "You were redirected by Stripe.");
+        
+      }
+    };
+
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    Linking.getInitialURL().then((url) => {
+      if (url && url.startsWith("kindkartpay://stripe-redirect")) {
+        Alert.alert("Payment complete!", "You were redirected by Stripe.");
+       
+      }
+    });
+
+   
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // PAYMENT GATEWAY
   const handlePurchase = async () => {
     setPaymentLoading(true);
@@ -284,7 +310,7 @@ export default function AdDetailsScreen({ route, navigation }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: adData.price * 100, // Stripe uses cents
+            amount: adData.salePrice * 100, // Stripe uses cents
             currency: adData.currency?.value || adData.currency || "usd",
           }),
         }
@@ -295,6 +321,7 @@ export default function AdDetailsScreen({ route, navigation }) {
       const initSheet = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: "Kindkart",
+        returnURL: "kindkartpay://stripe-redirect",
       });
       if (initSheet.error) throw initSheet.error;
 

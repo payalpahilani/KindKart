@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme":"kindkartpay",
     "name": "kindkart",
     "slug": "kindkart",
     "version": "1.0.0",
