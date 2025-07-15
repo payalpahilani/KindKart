@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useContext} from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import CustomDropdown from '../Utilities/CustomDropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { ThemeContext } from '../Utilities/ThemeContext';
 
 const MAX_IMAGES = 5;
 const BACKEND_URL = 'https://kindkart-0l245p6y.b4a.run';
@@ -45,11 +46,11 @@ export default function NgoEditCampaign() {
   const { campaign } = route.params;
 
   // Toggle dark mode here, replace with your theme context if available
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const { isDarkMode } = useContext(ThemeContext);
 
   // Colors for dark/light mode
   const colors = {
-    background: isDarkMode ? '#121212' : '#F3E8DD',
+    background: isDarkMode ? '#121212' : '#FAF6F2',
     text: isDarkMode ? '#EEE' : '#2D3A4B',
     inputBg: isDarkMode ? '#222' : '#fff',
     border: isDarkMode ? '#555' : '#ccc',

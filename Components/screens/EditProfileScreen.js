@@ -18,7 +18,7 @@ import { auth, db } from '../../firebaseConfig';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ThemeContext } from '../Utilities/ThemeContext';
-
+import { Platform } from 'react-native';
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 
 const getMimeType = (uri) => {
@@ -210,10 +210,21 @@ export default function EditProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <TouchableOpacity onPress={pickImage} style={styles.avatarWrap}>
-            <Image
-              source={avatarUri ? { uri: avatarUri } : require('../../assets/Images/avatar.jpg')}
-              style={styles.avatar}
-            />
+          {avatarUri && avatarUri.startsWith('http') ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={styles.initialAvatar}> 
+                  <Text style={styles.initialText}>
+                    {name
+                      ? name
+                          .split(' ')
+                          .map((word) => word[0])
+                          .join('')
+                          .toUpperCase()
+                      : 'U'}
+                  </Text>
+                </View>
+          )}
             <View style={styles.editIcon}>
               <Icon name="camera-plus" size={20} color="#fff" />
             </View>
@@ -276,19 +287,23 @@ export default function EditProfileScreen() {
 const base = {
   safe: {
     flex: 1,
+    paddingTop: Platform.OS === 'android' ? 40 : 0,
   },
+ 
   backBtn: {
+    width: 40,
+    height: 40,
+    marginTop: 24,
+    borderRadius: 20,
     position: 'absolute',
     top: 48,
     left: 16,
     zIndex: 10,
-    padding: 10,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 16,
   },
   avatarWrap: {
     alignSelf: 'center',
@@ -362,7 +377,7 @@ const base = {
 const lightStyles = StyleSheet.create({
   ...base,
   safe: { ...base.safe, backgroundColor: '#fff' },
-  backBtn: { ...base.backBtn, backgroundColor: '#F2F2F7' },
+  backBtn: { ...base.backBtn, backgroundColor: '#fff' },
   backIcon: { color: '#000' },
   avatar: { ...base.avatar, backgroundColor: '#eee' },
   label: { ...base.label, color: '#444' },
@@ -376,6 +391,20 @@ const lightStyles = StyleSheet.create({
     ...base.card,
     backgroundColor: '#fff',
   },
+  initialAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#999', // or '#333' for dark
+  },
+  initialText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  
 });
 
 const darkStyles = StyleSheet.create({
@@ -395,5 +424,18 @@ const darkStyles = StyleSheet.create({
     ...base.card,
     backgroundColor: '#1E1E1E',
     borderColor: '#333',
+  },
+  initialAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#333',
+  },
+  initialText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

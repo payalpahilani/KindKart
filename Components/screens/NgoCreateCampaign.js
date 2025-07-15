@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import CustomDropdown from "../Utilities/CustomDropdown";
+import { ThemeContext } from '../Utilities/ThemeContext';
 
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
@@ -41,11 +42,11 @@ export default function NgoCreateCampaignScreen() {
   const navigation = useNavigation();
 
   // Change this to your actual theme context or system preference
-  const [isDarkMode, setIsDarkMode] = useState(true); // true = dark mode on, false = light mode
+  const { isDarkMode } = useContext(ThemeContext);// true = dark mode on, false = light mode
 
   // Colors dynamic based on theme
   const colors = {
-    background: isDarkMode ? "#121212" : "#F3E8DD",
+    background: isDarkMode ? "#121212" : "#FAF6F2",
     text: isDarkMode ? "#EEE" : "#2D3A4B",
     inputBg: isDarkMode ? "#222" : "#fff",
     border: isDarkMode ? "#555" : "#ccc",

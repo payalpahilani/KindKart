@@ -131,14 +131,22 @@ export default function ProfileScreen() {
           style={styles.profileHeader}
           onPress={() => navigation.navigate('EditProfileScreen', { user })}
         >
-          <Image
-            source={
-              user?.avatarUrl
-                ? { uri: user.avatarUrl }
-                : require('../../assets/Images/avatar.jpg')
-            }
-            style={styles.avatar}
-          />
+          
+        {user?.avatarUrl ? (
+                    <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.initialAvatar}> 
+                      <Text style={styles.initialText}>
+                        {user?.name
+                          ? user.name
+                              .split(' ')
+                              .map((word) => word[0])
+                              .join('')
+                              .toUpperCase()
+                          : 'U'}
+                      </Text>
+                    </View>
+                  )}
           <View>
             <Text style={styles.name}>{user?.name || t('profile.userName')}</Text>
             {user?.email && <Text style={styles.email}>{user.email}</Text>}
@@ -254,6 +262,22 @@ const lightStyles = StyleSheet.create({
     borderRadius: 20,
   },
   noUserText: { fontSize: 16, color: '#444' },
+  initialAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F6B93B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 18,
+  },
+  
+  initialText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  
 });
 
 const darkStyles = StyleSheet.create({
@@ -296,4 +320,20 @@ const darkStyles = StyleSheet.create({
     borderRadius: 20,
   },
   noUserText: { fontSize: 16, color: '#ccc' },
+  initialAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F6B93B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 18,
+  },
+  
+  initialText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  
 });

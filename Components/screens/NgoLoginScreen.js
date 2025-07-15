@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   SafeAreaView,
   View,
@@ -7,36 +7,64 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Switch,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
 import { useTranslation } from 'react-i18next';
-import { ThemeContext } from '../Utilities/ThemeContext'; // your ThemeContext
+import { ThemeContext } from '../Utilities/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function NgoLoginScreen({ navigation }) {
   const { t } = useTranslation();
   const { isDarkMode } = useContext(ThemeContext);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
   const styles = isDarkMode ? darkStyles : lightStyles;
 
-  const handleNgoLogin = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    const loadCredentials = async () => {
+      const saved = await AsyncStorage.getItem('ngoCredentials');
+      if (saved) {
+        const { email, password } = JSON.parse(saved);
+        setEmail(email);
+        setPassword(password);
+        setRememberMe(true);
+      }
+    };
+    loadCredentials();
+  }, []);
+
+  const handleNgoLogin = async () => {
     if (!email || !password) {
       return Alert.alert(t('ngoLogin.error'), t('ngoLogin.enterEmailPassword'));
     }
 
-    signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        navigation.replace('NgoHome');
-      })
-      .catch(err => Alert.alert(t('ngoLogin.loginFailed'), err.message));
+    try {
+      const ngoCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = ngoCredential.user;
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('ngoCredentials', JSON.stringify({ email, password }));
+      } else {
+        await AsyncStorage.removeItem('ngoCredentials');
+      }
+
+      await AsyncStorage.setItem('userId', user.uid); // Optional: Store ID
+      navigation.replace('NgoHome');
+    } catch (err) {
+      Alert.alert(t('ngoLogin.loginFailed'), err.message);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={styles.container.backgroundColor} />
       <View style={styles.content}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 20 }}>
           <Text style={styles.backText}>← {t('ngoLogin.back')}</Text>
@@ -63,9 +91,19 @@ export default function NgoLoginScreen({ navigation }) {
           secureTextEntry
         />
 
+        <View style={styles.rememberMeContainer}>
+          <Text style={styles.rememberMeText}>Remember Me</Text>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            trackColor={{ false: '#767577', true: '#ffc107' }}
+            thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
+          />
+        </View>
+
         <TouchableOpacity onPress={handleNgoLogin}>
           <LinearGradient
-            colors={['#FF7E00', '#FFB347']} // Orange gradient for button
+            colors={isDarkMode ? ['#EFAC3A', '#FFC107'] : ['#F3E8DD', '#B8D6DF']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.loginButton}
@@ -89,6 +127,7 @@ export default function NgoLoginScreen({ navigation }) {
     </SafeAreaView>
   );
 }
+
 
 const base = {
   container: { flex: 1 },
@@ -134,6 +173,16 @@ const base = {
     fontWeight: '900',
     fontSize: 16,
   },
+rememberMeContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 24,
+},
+rememberMeText: {
+  fontSize: 16,
+},
+
 };
 
 const lightStyles = StyleSheet.create({
@@ -156,6 +205,10 @@ const lightStyles = StyleSheet.create({
   backText: {
     color: '#EFAC3A',
   },
+rememberMeText: {
+  ...base.rememberMeText,
+  color: '#333',
+},
 });
 
 const darkStyles = StyleSheet.create({
@@ -178,4 +231,9 @@ const darkStyles = StyleSheet.create({
   backText: {
     color: '#EFAC3A',
   },
+rememberMeText: {
+  ...base.rememberMeText,
+  color: '#ddd',
+},
+
 });
