@@ -166,7 +166,7 @@ const base = {
     height: 50,
     borderRadius: 25,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 10,
     fontSize: 16,
   },
   loginButton: {
@@ -208,9 +208,11 @@ rememberMeText: {
 },
 errorText: {
   color: '#FF4D4D',
-  marginBottom: 10,
+  margin: 10,
+  marginTop: 0,
   fontSize: 13,
 },
+
 
 
 };
@@ -241,9 +243,11 @@ rememberMeText: {
 },
 errorText: {
   color: '#FF4D4D',
-  marginBottom: 10,
+  margin: 10,
+  marginTop: 0,
   fontSize: 13,
 },
+
 
 });
 
@@ -273,7 +277,8 @@ rememberMeText: {
 },
 errorText: {
   color: '#FF4D4D',
-  marginBottom: 10,
+  margin: 10,
+  marginTop: 0,
   fontSize: 13,
 },
 

@@ -30,34 +30,82 @@ export default function SignUpScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [errors, setErrors] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  });
 
+
+  const validateInputs = () => {
+    let valid = true;
+    const newErrors = {
+      fullName: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+    };
+  
+    if (!fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+      valid = false;
+    }
+  
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Enter a valid email address';
+      valid = false;
+    }
+  
+    if (!phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+      valid = false;
+    } else if (!/^\d{10}$/.test(phone)) {
+      newErrors.phone = 'Enter a valid phone number';
+      valid = false;
+    }
+  
+    if (!password) {
+      newErrors.password = 'Password is required';
+      valid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      valid = false;
+    }
+  
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Confirm your password';
+      valid = false;
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+      valid = false;
+    }
+  
+    setErrors(newErrors);
+    return valid;
+  };
+
+  
   const handleSignUp = async () => {
-    if (!fullName || !email || !phone || !password || !confirmPassword) {
-      return Alert.alert("Error", "Please fill in all fields.");
-    }
-    if (password !== confirmPassword) {
-      return Alert.alert("Error", "Passwords do not match.");
-    }
-
+    if (!validateInputs()) return;
+  
     try {
-      const userCred = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCred.user;
-
+  
       await updateProfile(user, { displayName: fullName });
-
+  
       if (rememberMe) {
-        await AsyncStorage.setItem(
-          "userCredentials",
-          JSON.stringify({ email, password })
-        );
+        await AsyncStorage.setItem("userCredentials", JSON.stringify({ email, password }));
       } else {
         await AsyncStorage.removeItem("userCredentials");
       }
-
+  
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name: fullName,
@@ -66,13 +114,14 @@ export default function SignUpScreen({ navigation }) {
         avatarUrl: "",
         createdAt: serverTimestamp(),
       });
-
+  
       Alert.alert("Success", "Account created!");
       navigation.replace("Login");
     } catch (err) {
       Alert.alert("Sign Up Error", err.message);
     }
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,6 +139,8 @@ export default function SignUpScreen({ navigation }) {
           value={fullName}
           onChangeText={setFullName}
         />
+        {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
+
         <TextInput
           style={styles.input}
           placeholder="Email Address"
@@ -99,6 +150,9 @@ export default function SignUpScreen({ navigation }) {
           value={email}
           onChangeText={setEmail}
         />
+        {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+
+
         <TextInput
           style={styles.input}
           placeholder="Phone Number"
@@ -107,6 +161,9 @@ export default function SignUpScreen({ navigation }) {
           value={phone}
           onChangeText={setPhone}
         />
+        {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
+
+
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -115,6 +172,9 @@ export default function SignUpScreen({ navigation }) {
           value={password}
           onChangeText={setPassword}
         />
+        {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+        
+
         <TextInput
           style={styles.input}
           placeholder="Confirm Password"
@@ -123,6 +183,7 @@ export default function SignUpScreen({ navigation }) {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
+        {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
 
         <View style={styles.rememberMeContainer}>
           <Text style={styles.rememberMeText}>Remember Me</Text>
@@ -178,7 +239,7 @@ const getStyles = (isDark) =>
       backgroundColor: isDark ? "#1e1e1e" : "#F5F5F5",
       borderRadius: 25,
       paddingHorizontal: 20,
-      marginBottom: 20,
+      marginBottom: 10,
       fontSize: 16,
       color: isDark ? "#fff" : "#000",
     },
@@ -215,4 +276,11 @@ const getStyles = (isDark) =>
       fontWeight: "600",
       color: "#EFAC3A",
     },
+    errorText: {
+      color: '#FF4D4D',
+      fontSize: 13,
+      margin: 10,
+      marginTop: 0,
+    },
+    
   });

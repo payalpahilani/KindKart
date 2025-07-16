@@ -194,7 +194,7 @@ const baseStyles = {
     height: 50,
     borderRadius: 25,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 10,
     fontSize: 16,
     borderWidth: 1,
   },
@@ -246,7 +246,8 @@ const baseStyles = {
   },
   errorText: {
     color: '#FF4D4D',
-    marginBottom: 10,
+    margin: 10,
+    marginTop: 0,
     fontSize: 13,
   },
   
@@ -300,6 +301,12 @@ const lightStyles = StyleSheet.create({
     ...baseStyles.registerLink,
     color: '#EFAC3A',
   },
+  errorText: {
+    color: '#FF4D4D',
+    margin: 10,
+    marginTop: 0,
+    fontSize: 13,
+  },
 });
 
 const darkStyles = StyleSheet.create({
@@ -349,5 +356,11 @@ const darkStyles = StyleSheet.create({
   registerLink: {
     ...baseStyles.registerLink,
     color: '#FFC107',
+  },
+  errorText: {
+    color: '#FF4D4D',
+    margin: 10,
+    marginTop: 0,
+    fontSize: 13,
   },
 });

@@ -25,16 +25,79 @@ export default function NgoSignUpScreen({ navigation }) {
   const [contact, setContact] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState({
+    ngoName: '',
+    email: '',
+    ngoCode: '',
+    contact: '',
+    password: '',
+    confirmPassword: '',
+  });
+  
 
   const styles = isDarkMode ? darkStyles : lightStyles;
 
+
+  const validateInputs = () => {
+    let valid = true;
+    const newErrors = {
+      ngoName: '',
+      email: '',
+      ngoCode: '',
+      contact: '',
+      password: '',
+      confirmPassword: '',
+    };
+  
+    if (!ngoName.trim()) {
+      newErrors.ngoName = 'NGO name is required';
+      valid = false;
+    }
+  
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Enter a valid email address';
+      valid = false;
+    }
+  
+    if (!ngoCode.trim()) {
+      newErrors.ngoCode = 'NGO code is required';
+      valid = false;
+    }
+  
+
+    if (!contact.trim()) {
+      newErrors.contact = 'Contact number is required';
+      valid = false;
+    } else if (!/^\d{10}$/.test(contact)) {
+      newErrors.contact = 'Enter a valid contact number';
+      valid = false;
+    }
+  
+    if (!password) {
+      newErrors.password = 'Password is required';
+      valid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      valid = false;
+    }
+  
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Please Confirm your password';
+      valid = false;
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+      valid = false;
+    }
+  
+    setErrors(newErrors);
+    return valid;
+  };
+
   const handleNgoSignUp = async () => {
-    if (!ngoName || !email || !ngoCode || !contact || !password || !confirmPassword) {
-      return Alert.alert(t('ngoSignUp.error'), t('ngoSignUp.fillAllFields'));
-    }
-    if (password !== confirmPassword) {
-      return Alert.alert(t('ngoSignUp.error'), t('ngoSignUp.passwordsNotMatch'));
-    }
+    if (!validateInputs()) return;
 
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
@@ -70,6 +133,8 @@ export default function NgoSignUpScreen({ navigation }) {
           autoComplete="off"
           autoCorrect={false}
         />
+        {errors.ngoName ? <Text style={styles.errorText}>{errors.ngoName}</Text> : null}
+
         <TextInput
           style={styles.input}
           placeholder={t('ngoSignUp.ngoEmail')}
@@ -79,6 +144,8 @@ export default function NgoSignUpScreen({ navigation }) {
           value={email}
           onChangeText={setEmail}
         />
+        {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+
         <TextInput
           style={styles.input}
           placeholder={t('ngoSignUp.ngoCode')}
@@ -88,6 +155,8 @@ export default function NgoSignUpScreen({ navigation }) {
           autoComplete="off"
           autoCorrect={false}
         />
+        {errors.ngoCode ? <Text style={styles.errorText}>{errors.ngoCode}</Text> : null}
+
         <TextInput
           style={styles.input}
           placeholder={t('ngoSignUp.contactNumber')}
@@ -96,6 +165,8 @@ export default function NgoSignUpScreen({ navigation }) {
           value={contact}
           onChangeText={setContact}
         />
+        {errors.contact ? <Text style={styles.errorText}>{errors.contact}</Text> : null}
+
         <TextInput
           style={styles.input}
           placeholder={t('ngoSignUp.password')}
@@ -104,6 +175,8 @@ export default function NgoSignUpScreen({ navigation }) {
           value={password}
           onChangeText={setPassword}
         />
+        {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+
         <TextInput
           style={styles.input}
           placeholder={t('ngoSignUp.confirmPassword')}
@@ -112,6 +185,7 @@ export default function NgoSignUpScreen({ navigation }) {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
+        {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
 
         <TouchableOpacity onPress={handleNgoSignUp}>
           <LinearGradient
@@ -148,7 +222,7 @@ const base = {
     height: 50,
     borderRadius: 25,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 10,
     fontSize: 16,
   },
   signUpButton: {
@@ -175,6 +249,12 @@ const base = {
     fontWeight: '600',
     fontSize: 16,
   },
+  errorText: {
+    color: '#FF4D4D',
+    margin: 10,
+    marginTop: 0,
+    fontSize: 13,
+  },  
 };
 
 const lightStyles = StyleSheet.create({
