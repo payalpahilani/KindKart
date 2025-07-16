@@ -26,6 +26,9 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
 
   useEffect(() => {
     const loadCredentials = async () => {
@@ -40,28 +43,53 @@ export default function LoginScreen({ navigation }) {
     loadCredentials();
   }, []);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      return Alert.alert(t('login.errorTitle'), t('login.errorMessage'));
+  const validateInputs = () => {
+    let valid = true;
+  
+    if (!email) {
+      setEmailError(t('Email is required'));
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError(t('Invalid email address'));
+      valid = false;
+    } else {
+      setEmailError('');
     }
-
+  
+    if (!password) {
+      setPasswordError(t('Password is required'));
+      valid = false;
+    } else if (password.length < 6) {
+      setPasswordError(t('Password must be at least 6 characters'));
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+  
+    return valid;
+  };
+  
+  const handleLogin = async () => {
+    const isValid = validateInputs();
+    if (!isValid) return;
+  
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
       if (rememberMe) {
         await AsyncStorage.setItem('userCredentials', JSON.stringify({ email, password }));
       } else {
         await AsyncStorage.removeItem('userCredentials');
       }
-
+  
       await AsyncStorage.setItem('userId', user.uid);
-
       navigation.replace('MainTabs');
     } catch (err) {
-      Alert.alert(t('login.loginFailedTitle'), err.message);
+      Alert.alert(t('login.loginFailedTitle'), t('Login failed. Incorrect email/password. Please try again.') || 'Login failed. Please try again.');
     }
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,6 +112,8 @@ export default function LoginScreen({ navigation }) {
           autoCapitalize="none"
           selectionColor={isDarkMode ? '#ffc107' : '#1F2E41'}
         />
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+
 
         <TextInput
           style={styles.input}
@@ -94,6 +124,8 @@ export default function LoginScreen({ navigation }) {
           secureTextEntry
           selectionColor={isDarkMode ? '#ffc107' : '#1F2E41'}
         />
+        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+
 
         <View style={styles.rememberMeContainer}>
           <Text style={styles.rememberMeText}>{t('login.rememberMe')}</Text>
@@ -212,6 +244,12 @@ const baseStyles = {
     marginLeft: 4,
     fontWeight: '600',
   },
+  errorText: {
+    color: '#FF4D4D',
+    marginBottom: 10,
+    fontSize: 13,
+  },
+  
 };
 
 const lightStyles = StyleSheet.create({

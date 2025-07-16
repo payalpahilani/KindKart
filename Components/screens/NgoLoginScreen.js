@@ -20,12 +20,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function NgoLoginScreen({ navigation }) {
   const { t } = useTranslation();
   const { isDarkMode } = useContext(ThemeContext);
-
   const styles = isDarkMode ? darkStyles : lightStyles;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     const loadCredentials = async () => {
@@ -40,10 +41,34 @@ export default function NgoLoginScreen({ navigation }) {
     loadCredentials();
   }, []);
 
-  const handleNgoLogin = async () => {
-    if (!email || !password) {
-      return Alert.alert(t('ngoLogin.error'), t('ngoLogin.enterEmailPassword'));
+  const validateInputs = () => {
+    let valid = true;
+
+    if (!email) {
+      setEmailError(t('Email is required') || 'Email is required');
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError(t('Invalid email address') || 'Invalid email address');
+      valid = false;
+    } else {
+      setEmailError('');
     }
+
+    if (!password) {
+      setPasswordError(t('Password is required') || 'Password is required');
+      valid = false;
+    } else if (password.length < 6) {
+      setPasswordError(t('Password must be at least 6 characters') || 'Password must be at least 6 characters');
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return valid;
+  };
+
+  const handleNgoLogin = async () => {
+    if (!validateInputs()) return;
 
     try {
       const ngoCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -55,10 +80,10 @@ export default function NgoLoginScreen({ navigation }) {
         await AsyncStorage.removeItem('ngoCredentials');
       }
 
-      await AsyncStorage.setItem('userId', user.uid); // Optional: Store ID
+      await AsyncStorage.setItem('userId', user.uid);
       navigation.replace('NgoHome');
     } catch (err) {
-      Alert.alert(t('ngoLogin.loginFailed'), err.message);
+      Alert.alert(t('ngoLogin.loginFailed'), t('Login failed. Please check your credentials.') || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -81,6 +106,7 @@ export default function NgoLoginScreen({ navigation }) {
           keyboardType="email-address"
           autoCapitalize="none"
         />
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
         <TextInput
           style={styles.input}
@@ -90,6 +116,7 @@ export default function NgoLoginScreen({ navigation }) {
           onChangeText={setPassword}
           secureTextEntry
         />
+        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
         <View style={styles.rememberMeContainer}>
           <Text style={styles.rememberMeText}>Remember Me</Text>
@@ -115,10 +142,7 @@ export default function NgoLoginScreen({ navigation }) {
         <View style={styles.registerContainer}>
           <Text style={styles.registerText}>
             {t('ngoLogin.noAccount')}{' '}
-            <Text
-              onPress={() => navigation.navigate('NgoSignUp')}
-              style={styles.registerLink}
-            >
+            <Text onPress={() => navigation.navigate('NgoSignUp')} style={styles.registerLink}>
               {t('ngoLogin.registerNow')}
             </Text>
           </Text>
@@ -182,6 +206,12 @@ rememberMeContainer: {
 rememberMeText: {
   fontSize: 16,
 },
+errorText: {
+  color: '#FF4D4D',
+  marginBottom: 10,
+  fontSize: 13,
+},
+
 
 };
 
@@ -209,6 +239,12 @@ rememberMeText: {
   ...base.rememberMeText,
   color: '#333',
 },
+errorText: {
+  color: '#FF4D4D',
+  marginBottom: 10,
+  fontSize: 13,
+},
+
 });
 
 const darkStyles = StyleSheet.create({
@@ -235,5 +271,11 @@ rememberMeText: {
   ...base.rememberMeText,
   color: '#ddd',
 },
+errorText: {
+  color: '#FF4D4D',
+  marginBottom: 10,
+  fontSize: 13,
+},
+
 
 });
