@@ -42,6 +42,7 @@ import ForgotPasswordScreen from "../Components/screens/ForgotPasswordScreen";
 import YourAdsScreen from "../Components/screens/YourAdsScreen";
 import EditListingScreen from "../Components/screens/EditListingScreen";
 import CategoryAdsScreen from "../Components/screens/CategoryAdsScreen";
+import PaymentScreen from '../Components/screens/PaymentScreen';
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -237,6 +238,10 @@ export default function AppNavigator() {
         <RootStack.Screen
           name="NgoDonationInfoScreen"
           component={NgoDonationInfoScreen}
+        />
+        <RootStack.Screen
+          name="PaymentScreen"
+          component={PaymentScreen}
         />
       </RootStack.Navigator>
     </NavigationContainer>
