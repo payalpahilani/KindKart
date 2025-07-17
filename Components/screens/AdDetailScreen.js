@@ -275,30 +275,30 @@ export default function AdDetailsScreen({ route, navigation }) {
   }
 
   //PAYMENT_DEEP_LINKING
-  useEffect(() => {
+  // useEffect(() => {
     
-    const handleDeepLink = (event) => {
-      const url = event.url;
-      if (url && url.startsWith("kindkartpay://stripe-redirect")) {
-        Alert.alert("Payment complete!", "You were redirected by Stripe.");
+  //   const handleDeepLink = (event) => {
+  //     const url = event.url;
+  //     if (url && url.startsWith("kindkartpay://stripe-redirect")) {
+  //       Alert.alert("Payment complete!", "You were redirected by Stripe.");
         
-      }
-    };
+  //     }
+  //   };
 
-    const subscription = Linking.addEventListener("url", handleDeepLink);
+  //   const subscription = Linking.addEventListener("url", handleDeepLink);
 
-    Linking.getInitialURL().then((url) => {
-      if (url && url.startsWith("kindkartpay://stripe-redirect")) {
-        Alert.alert("Payment complete!", "You were redirected by Stripe.");
+  //   Linking.getInitialURL().then((url) => {
+  //     if (url && url.startsWith("kindkartpay://stripe-redirect")) {
+  //       Alert.alert("Payment complete!", "You were redirected by Stripe.");
        
-      }
-    });
+  //     }
+  //   });
 
    
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+  //   return () => {
+  //     subscription.remove();
+  //   };
+  // }, []);
 
   // PAYMENT GATEWAY
   const handlePurchase = async () => {
