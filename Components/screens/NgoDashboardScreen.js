@@ -11,9 +11,11 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../../firebaseConfig';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function NgoDashboardScreen() {
   const { isDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
 
   const [activeCount, setActiveCount] = useState(0);
   const [closedCount, setClosedCount] = useState(0);
@@ -60,50 +62,38 @@ export default function NgoDashboardScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <Text style={[styles.heading, { color: textColor }]}>Dashboard Overview</Text>
+        <Text style={[styles.heading, { color: textColor }]}>{t('ngoDashboard.dashboard_overview')}</Text>
 
         {/* Campaign Stats */}
         <View style={styles.cardRow}>
           <View style={[styles.statCard, { backgroundColor: cardBg }]}>
-            {/* <Image
-              source={require('../../assets/Images/active_campaign.png')}
-              style={styles.iconImage}
-            /> */}
             <Text style={[styles.statNumber, { color: textColor }]}>{activeCount}</Text>
-            <Text style={[styles.statLabel, { color: subTextColor }]}>Active Campaigns</Text>
+            <Text style={[styles.statLabel, { color: subTextColor }]}>{t('ngoDashboard.active_campaigns')}</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: cardBg }]}>
-            {/* <Image
-              source={require('../../assets/Images/closed_campaign.png')}
-              style={styles.iconImage}
-            /> */}
             <Text style={[styles.statNumber, { color: textColor }]}>{closedCount}</Text>
-            <Text style={[styles.statLabel, { color: subTextColor }]}>Closed Campaigns</Text>
+            <Text style={[styles.statLabel, { color: subTextColor }]}>{t('ngoDashboard.closed_campaigns')}</Text>
           </View>
         </View>
 
         {/* Daily Donations Bar Chart */}
-        <Text style={[styles.sectionTitle, { color: textColor }]}>Daily Donations</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{t('ngoDashboard.daily_donations')}</Text>
         <Image
           source={require('../../assets/Images/bar_chart.png')}
           style={styles.chartImage}
         />
 
         {/* Donation Trends Line Chart */}
-        <Text style={[styles.sectionTitle, { color: textColor }]}>Donations Overview</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{t('ngoDashboard.donations_overview')}</Text>
         <Image
           source={require('../../assets/Images/line_chart.png')}
           style={styles.chartImage}
         />
 
         {/* Top Donor */}
-        <Text style={[styles.sectionTitle, { color: textColor }]}>Top Donor Today</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{t('ngoDashboard.top_donor_today')}</Text>
         <View style={[styles.donorCard, { backgroundColor: cardBg }]}>
-          {/* <Image
-            source={require('../../assets/Images/top_donor.png')}
-            style={styles.donorImage}
-          /> */}
           <Text style={[styles.donorName, { color: textColor }]}>Sarah Johnson</Text>
           <Text style={[styles.donorAmount, { color: subTextColor }]}>CAD $150</Text>
         </View>
@@ -140,11 +130,6 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
-  iconImage: {
-    width: 32,
-    height: 32,
-    marginBottom: 10,
-  },
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -169,12 +154,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-  },
-  donorImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 12,
   },
   donorName: {
     fontSize: 16,

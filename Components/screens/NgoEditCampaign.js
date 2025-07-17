@@ -1,4 +1,4 @@
-import React, { useState , useContext} from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { getAuth } from 'firebase/auth';
 import CustomDropdown from '../Utilities/CustomDropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const MAX_IMAGES = 5;
 const BACKEND_URL = 'https://kindkart-0l245p6y.b4a.run';
@@ -45,10 +46,9 @@ export default function NgoEditCampaign() {
   const route = useRoute();
   const { campaign } = route.params;
 
-  // Toggle dark mode here, replace with your theme context if available
   const { isDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
 
-  // Colors for dark/light mode
   const colors = {
     background: isDarkMode ? '#121212' : '#FAF6F2',
     text: isDarkMode ? '#EEE' : '#2D3A4B',
@@ -80,13 +80,13 @@ export default function NgoEditCampaign() {
 
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) {
-      Alert.alert('Max image limit reached.');
+      Alert.alert(t('editCampaign.max_image_limit'));
       return;
     }
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== 'granted') {
-      Alert.alert('Permission denied', 'Please allow access to your photo library.');
+      Alert.alert(t('editCampaign.permission_denied'), t('editCampaign.allow_photo_access'));
       return;
     }
 
@@ -117,7 +117,7 @@ export default function NgoEditCampaign() {
       )}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}&type=ngo`
     );
 
-    if (!res.ok) throw new Error('Failed to get S3 URL');
+    if (!res.ok) throw new Error(t('editCampaign.failed_presigned_url'));
     const { uploadUrl, publicUrl } = await res.json();
 
     const imgRes = await fetch(img.uri);
@@ -135,7 +135,7 @@ export default function NgoEditCampaign() {
     if (!uploadRes.ok) {
       const errorText = await uploadRes.text();
       console.log('S3 upload error response:', errorText);
-      throw new Error('Failed to upload image to S3');
+      throw new Error(t('editCampaign.failed_upload_s3'));
     }
 
     return publicUrl;
@@ -178,11 +178,11 @@ export default function NgoEditCampaign() {
         urgent,
       });
 
-      Alert.alert('Updated', 'Campaign updated successfully');
+      Alert.alert(t('editCampaign.updated'), t('editCampaign.campaign_updated_success'));
       navigation.goBack();
     } catch (err) {
       console.error('Update failed:', err);
-      Alert.alert('Error', 'Failed to update campaign');
+      Alert.alert(t('editCampaign.error'), t('editCampaign.failed_update'));
     } finally {
       setUpdating(false);
     }
@@ -191,23 +191,27 @@ export default function NgoEditCampaign() {
   const toggleCampaignStatus = async () => {
     const newStatus = status === 'closed' ? 'active' : 'closed';
     Alert.alert(
-      newStatus === 'closed' ? 'Close Campaign' : 'Reopen Campaign',
-      `Are you sure you want to ${newStatus === 'closed' ? 'close' : 'reopen'} this campaign?`,
+      newStatus === 'closed' ? t('editCampaign.close_campaign') : t('editCampaign.reopen_campaign'),
+      t(
+        newStatus === 'closed'
+          ? 'editCampaign.confirm_close_campaign'
+          : 'editCampaign.confirm_reopen_campaign'
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('editCampaign.cancel'), style: 'cancel' },
         {
-          text: newStatus === 'closed' ? 'Close' : 'Reopen',
+          text: newStatus === 'closed' ? t('editCampaign.close') : t('editCampaign.reopen'),
           style: 'destructive',
           onPress: async () => {
             try {
               const docRef = doc(db, 'campaigns', campaign.id);
               await updateDoc(docRef, { status: newStatus });
               setStatus(newStatus);
-              Alert.alert('Updated', `Campaign is now ${newStatus}`);
+              Alert.alert(t('editCampaign.updated'), t('editCampaign.campaign_now', { status: newStatus }));
               navigation.goBack();
             } catch (err) {
               console.error('Status update failed:', err);
-              Alert.alert('Error', 'Failed to update campaign status');
+              Alert.alert(t('editCampaign.error'), t('editCampaign.failed_update_status'));
             }
           },
         },
@@ -227,11 +231,11 @@ export default function NgoEditCampaign() {
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={24} color={colors.iconColor} />
             </TouchableOpacity>
-            <Text style={[styles.header, { color: colors.text }]}>Edit Campaign</Text>
+            <Text style={[styles.header, { color: colors.text }]}>{t('editCampaign.edit_campaign')}</Text>
             <View style={{ width: 24 }} />
           </View>
 
-          <Text style={[styles.label, { color: colors.text }]}>Images</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.images')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
             {[...images, ...(images.length < MAX_IMAGES ? [{}] : [])].map((item, index) => {
               if (!item?.uri && !item?.startsWith?.('http')) {
@@ -260,16 +264,16 @@ export default function NgoEditCampaign() {
             })}
           </ScrollView>
 
-          <Text style={[styles.label, { color: colors.text }]}>Campaign Title</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.campaign_title')}</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
             style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
-            placeholder="Enter campaign title"
+            placeholder={t('editCampaign.enter_campaign_title')}
             placeholderTextColor={colors.placeholder}
           />
 
-          <Text style={[styles.label, { color: colors.text }]}>Story</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.story')}</Text>
           <TextInput
             value={story}
             onChangeText={setStory}
@@ -278,27 +282,27 @@ export default function NgoEditCampaign() {
               styles.input,
               { height: 100, backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
             ]}
-            placeholder="Enter story or campaign details"
+            placeholder={t('editCampaign.enter_story')}
             placeholderTextColor={colors.placeholder}
           />
 
-          <Text style={[styles.label, { color: colors.text }]}>Goal Amount</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.goal_amount')}</Text>
           <TextInput
             value={goal}
             onChangeText={setGoal}
             keyboardType="numeric"
             style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
-            placeholder="Enter goal amount"
+            placeholder={t('editCampaign.enter_goal_amount')}
             placeholderTextColor={colors.placeholder}
           />
 
-          <Text style={[styles.label, { color: colors.text }]}>Campaign End Date</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.campaign_end_date')}</Text>
           <TouchableOpacity
             onPress={() => setShowDatePicker(true)}
             style={[styles.input, { justifyContent: 'center', backgroundColor: colors.inputBg, borderColor: colors.border }]}
           >
             <Text style={{ color: campaignDate ? colors.text : colors.placeholder }}>
-              {campaignDate || 'Select Campaign End Date'}
+              {campaignDate || t('editCampaign.select_end_date')}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -321,7 +325,7 @@ export default function NgoEditCampaign() {
           )}
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={{ flex: 1, fontSize: 15, color: colors.text }}>Mark as Urgent Donation</Text>
+            <Text style={{ flex: 1, fontSize: 15, color: colors.text }}>{t('editCampaign.mark_urgent')}</Text>
             <TouchableOpacity
               onPress={() => setUrgent(!urgent)}
               style={{
@@ -345,22 +349,21 @@ export default function NgoEditCampaign() {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.label, { color: colors.text }]}>Category</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.category')}</Text>
           <CustomDropdown
             data={[
-              { label: 'Donation', value: 'donation' },
-              { label: 'Charity', value: 'charity' },
-              { label: 'Campaign', value: 'campaign' },
-              { label: 'Support', value: 'support' },
-              { label: 'Fundraiser', value: 'Fundraiser' },
-              { label: 'Awareness', value: 'awareness' },
-              { label: 'Events', value: 'events' },
+              { label: t('editCampaign.categories.donation'), value: 'donation' },
+              { label: t('editCampaign.categories.charity'), value: 'charity' },
+              { label: t('editCampaign.categories.campaign'), value: 'campaign' },
+              { label: t('editCampaign.categories.support'), value: 'support' },
+              { label: t('editCampaign.categories.fundraiser'), value: 'fundraiser' },
+              { label: t('editCampaign.categories.awareness'), value: 'awareness' },
+              { label: t('editCampaign.categories.events'), value: 'events' },
             ]}
             value={category}
             onChange={setCategory}
-            placeholder="Select Category"
+            placeholder={t('editCampaign.select_category')}
             inputStyle={{
-              backgroundColor: colors.inputBg,
               borderColor: colors.border,
               color: colors.text,
               fontSize: 16,
@@ -370,25 +373,24 @@ export default function NgoEditCampaign() {
             }}
           />
 
-          <Text style={[styles.label, { color: colors.text }]}>Campaign Category</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('editCampaign.campaign_category')}</Text>
           <CustomDropdown
             data={[
-              { label: 'Medical Aid', value: 'medical_aid' },
-              { label: 'Disaster Relief', value: 'disaster_relief' },
-              { label: 'Child Welfare', value: 'child_welfare' },
-              { label: 'Women Empowerment', value: 'women_empowerment' },
-              { label: 'Education', value: 'education' },
-              { label: 'Environment', value: 'environment' },
-              { label: 'Animal Welfare', value: 'animal_welfare' },
-              { label: 'Community Development', value: 'community_development' },
-              { label: 'Elderly Support', value: 'elderly_support' },
-              { label: 'Livelihood Support', value: 'livelihood_support' },
+              { label: t('editCampaign.categories.medical_aid'), value: 'medical_aid' },
+              { label: t('editCampaign.categories.disaster_relief'), value: 'disaster_relief' },
+              { label: t('editCampaign.categories.child_welfare'), value: 'child_welfare' },
+              { label: t('editCampaign.categories.women_empowerment'), value: 'women_empowerment' },
+              { label: t('editCampaign.categories.education'), value: 'education' },
+              { label: t('editCampaign.categories.environment'), value: 'environment' },
+              { label: t('editCampaign.categories.animal_welfare'), value: 'animal_welfare' },
+              { label: t('editCampaign.categories.community_development'), value: 'community_development' },
+              { label: t('editCampaign.categories.elderly_support'), value: 'elderly_support' },
+              { label: t('editCampaign.categories.livelihood_support'), value: 'livelihood_support' },
             ]}
             value={campaignCategory}
             onChange={setCampaignCategory}
-            placeholder="Select Campaign Category"
+            placeholder={t('editCampaign.select_campaign_category')}
             inputStyle={{
-              backgroundColor: colors.inputBg,
               borderColor: colors.border,
               color: colors.text,
               fontSize: 16,
@@ -403,12 +405,14 @@ export default function NgoEditCampaign() {
             onPress={handleUpdate}
             disabled={updating}
           >
-            <Text style={[styles.saveText, { color: colors.buttonTextSubmit }]}>{updating ? 'Updating...' : 'Update Campaign'}</Text>
+            <Text style={[styles.saveText, { color: colors.buttonTextSubmit }]}>
+              {updating ? t('editCampaign.updating') : t('editCampaign.update_campaign')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.buttonCancelBg }]} onPress={toggleCampaignStatus}>
             <Text style={[styles.closeText, { color: colors.buttonTextCancel }]}>
-              {status === 'closed' ? 'Reopen Campaign' : 'Close Campaign'}
+              {status === 'closed' ? t('editCampaign.reopen_campaign') : t('editCampaign.close_campaign')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -461,19 +465,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  imageThumb: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-  },
+  imageThumb: { width: 78, height: 78, borderRadius: 12 },
   removeBtn: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
+    top: 2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
+    alignItems: 'center',
   },
 });

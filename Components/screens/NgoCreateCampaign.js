@@ -23,6 +23,7 @@ import { useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import CustomDropdown from "../Utilities/CustomDropdown";
 import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
@@ -40,11 +41,9 @@ function getMimeType(uri) {
 
 export default function NgoCreateCampaignScreen() {
   const navigation = useNavigation();
+  const { t } = useTranslation();
+  const { isDarkMode } = useContext(ThemeContext);
 
-  // Change this to your actual theme context or system preference
-  const { isDarkMode } = useContext(ThemeContext);// true = dark mode on, false = light mode
-
-  // Colors dynamic based on theme
   const colors = {
     background: isDarkMode ? "#121212" : "#FAF6F2",
     text: isDarkMode ? "#EEE" : "#2D3A4B",
@@ -57,6 +56,7 @@ export default function NgoCreateCampaignScreen() {
     buttonTextCancel: isDarkMode ? "#ddd" : "#000",
     buttonTextSubmit: "#000",
     removeBtnBg: "#D94141",
+    primary: "#F6B93B",
   };
 
   const [title, setTitle] = useState("");
@@ -92,13 +92,13 @@ export default function NgoCreateCampaignScreen() {
 
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) {
-      Alert.alert("Max image limit reached.");
+      Alert.alert(t('createCampaign.max_image_limit'));
       return;
     }
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== 'granted') {
-      Alert.alert("Permission denied", "Please allow access to your photo library.");
+      Alert.alert(t('createCampaign.permission_denied'), t('createCampaign.allow_photo_access'));
       return;
     }
 
@@ -131,7 +131,7 @@ export default function NgoCreateCampaignScreen() {
       )}&userId=${userId}&itemId=${itemId}&type=ngo`
     );
 
-    if (!res.ok) throw new Error("Failed to get S3 URL");
+    if (!res.ok) throw new Error(t('createCampaign.failed_get_s3_url'));
     const { uploadUrl, publicUrl } = await res.json();
 
     const imgRes = await fetch(img.uri);
@@ -149,7 +149,7 @@ export default function NgoCreateCampaignScreen() {
     if (!uploadRes.ok) {
       const errorText = await uploadRes.text();
       console.log("S3 upload error response:", errorText);
-      throw new Error("Failed to upload image to S3");
+      throw new Error(t('createCampaign.failed_upload_s3'));
     }
 
     return publicUrl;
@@ -169,12 +169,12 @@ export default function NgoCreateCampaignScreen() {
     const userId = auth.currentUser?.uid;
 
     if (!userId) {
-      Alert.alert("User not authenticated.");
+      Alert.alert(t('createCampaign.user_not_authenticated'));
       return;
     }
 
     if (!title || !campaignerName || !campaignDate || !totalDonation || !story || images.length === 0) {
-      Alert.alert("Please fill all required fields and add at least one image.");
+      Alert.alert(t('createCampaign.fill_all_fields'));
       return;
     }
 
@@ -199,21 +199,21 @@ export default function NgoCreateCampaignScreen() {
         createdAt: serverTimestamp(),
       });
 
-      Alert.alert("Campaign created!");
+      Alert.alert(t('createCampaign.campaign_created'));
       navigation.goBack();
     } catch (err) {
-      Alert.alert("Error", err.message);
+      Alert.alert(t('createCampaign.error'), err.message);
     }
     setLoading(false);
   };
 
   const handleCancel = () => {
     Alert.alert(
-      "Discard Changes?",
-      "Your progress will be lost.",
+      t('createCampaign.discard_changes'),
+      t('createCampaign.discard_warning'),
       [
-        { text: "Keep Editing", style: "cancel" },
-        { text: "Discard", style: "destructive", onPress: () => navigation.goBack() },
+        { text: t('createCampaign.keep_editing'), style: "cancel" },
+        { text: t('createCampaign.discard'), style: "destructive", onPress: () => navigation.goBack() },
       ]
     );
   };
@@ -230,11 +230,11 @@ export default function NgoCreateCampaignScreen() {
             <TouchableOpacity onPress={handleCancel}>
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.header, { color: colors.text }]}>Create Campaign</Text>
+            <Text style={[styles.header, { color: colors.text }]}>{t('createCampaign.create_campaign')}</Text>
             <View style={{ width: 24 }} />
           </View>
 
-          <Text style={[styles.label, { color: colors.text }]}>Upload Images</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t('createCampaign.upload_images')}</Text>
           <FlatList
             data={[...images, ...(images.length < MAX_IMAGES ? [{}] : [])]}
             renderItem={({ item, index }) => {
@@ -267,19 +267,19 @@ export default function NgoCreateCampaignScreen() {
           />
 
           <Text style={[styles.imageHint, { color: colors.placeholder }]}>
-            Prepare images before uploading. Upload images larger than 750px × 450px. Max number of images is 5. Max image size is 134MB.
+            {t('createCampaign.image_upload_hint')}
           </Text>
 
           <View style={styles.section}>
             <TextInput
-              placeholder="Title"
+              placeholder={t('createCampaign.title')}
               value={title}
               onChangeText={setTitle}
               placeholderTextColor={colors.placeholder}
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
             />
             <TextInput
-              placeholder="Campaigner Name"
+              placeholder={t('createCampaign.campaigner_name')}
               value={campaignerName}
               onChangeText={setCampaignerName}
               placeholderTextColor={colors.placeholder}
@@ -291,7 +291,7 @@ export default function NgoCreateCampaignScreen() {
               style={[styles.input, { justifyContent: "center", backgroundColor: colors.inputBg, borderColor: colors.border }]}
             >
               <Text style={{ color: campaignDate ? colors.text : colors.placeholder }}>
-                {campaignDate || "Select Campaign End Date"}
+                {campaignDate || t('createCampaign.select_campaign_end_date')}
               </Text>
             </TouchableOpacity>
 
@@ -321,7 +321,7 @@ export default function NgoCreateCampaignScreen() {
             )}
 
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <Text style={{ flex: 1, fontSize: 15, color: colors.text }}>Mark as Urgent Donation</Text>
+              <Text style={{ flex: 1, fontSize: 15, color: colors.text }}>{t('createCampaign.mark_as_urgent')}</Text>
               <TouchableOpacity
                 onPress={() => setUrgent(!urgent)}
                 style={{
@@ -347,41 +347,41 @@ export default function NgoCreateCampaignScreen() {
 
             <CustomDropdown
               data={[
-                { label: "Donation", value: "donation" },
-                { label: "Charity", value: "charity" },
-                { label: "Campaign", value: "campaign" },
-                { label: "Support", value: "support" },
-                { label: "Fundraiser", value: "Fundraiser" },
-                { label: "Awareness", value: "awareness" },
-                { label: "Events", value: "events" },
+                { label: t('createCampaign.donation'), value: "donation" },
+                { label: t('createCampaign.charity'), value: "charity" },
+                { label: t('createCampaign.campaign'), value: "campaign" },
+                { label: t('createCampaign.support'), value: "support" },
+                { label: t('createCampaign.fundraiser'), value: "fundraiser" },
+                { label: t('createCampaign.awareness'), value: "awareness" },
+                { label: t('createCampaign.events'), value: "events" },
               ]}
               value={category}
               onChange={setCategory}
-              placeholder="Select Category"
-              inputStyle={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+              placeholder={t('createCampaign.select_category')}
+              inputStyle={[styles.input, { borderColor: colors.border, color: colors.text }]}
             />
 
             <CustomDropdown
               data={[
-                { label: "Medical Aid", value: "medical_aid" },
-                { label: "Disaster Relief", value: "disaster_relief" },
-                { label: "Child Welfare", value: "child_welfare" },
-                { label: "Women Empowerment", value: "women_empowerment" },
-                { label: "Education", value: "education" },
-                { label: "Environment", value: "environment" },
-                { label: "Animal Welfare", value: "animal_welfare" },
-                { label: "Community Development", value: "community_development" },
-                { label: "Elderly Support", value: "elderly_support" },
-                { label: "Livelihood Support", value: "livelihood_support" },
+                { label: t('createCampaign.medical_aid'), value: "medical_aid" },
+                { label: t('createCampaign.disaster_relief'), value: "disaster_relief" },
+                { label: t('createCampaign.child_welfare'), value: "child_welfare" },
+                { label: t('createCampaign.women_empowerment'), value: "women_empowerment" },
+                { label: t('createCampaign.education'), value: "education" },
+                { label: t('createCampaign.environment'), value: "environment" },
+                { label: t('createCampaign.animal_welfare'), value: "animal_welfare" },
+                { label: t('createCampaign.community_development'), value: "community_development" },
+                { label: t('createCampaign.elderly_support'), value: "elderly_support" },
+                { label: t('createCampaign.livelihood_support'), value: "livelihood_support" },
               ]}
               value={campaignCategory}
               onChange={setCampaignCategory}
-              placeholder="Select Campaign Category"
-              inputStyle={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+              placeholder={t('createCampaign.select_campaign_category')}
+              inputStyle={[styles.input, { borderColor: colors.border, color: colors.text }]}
             />
 
             <TextInput
-              placeholder="Total Donation (e.g. 1000000)"
+              placeholder={t('createCampaign.total_donation')}
               value={totalDonation}
               onChangeText={setTotalDonation}
               keyboardType="numeric"
@@ -389,22 +389,26 @@ export default function NgoCreateCampaignScreen() {
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
             />
 
-            <CustomDropdown
-              data={[
-                { label: "CAD", value: "CAD" },
-                { label: "USD", value: "USD" },
-              ]}
-              value={currency}
-              onChange={setCurrency}
-              placeholder="Select Currency"
-              inputStyle={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
-            />
+           <CustomDropdown
+            data={[
+              { label: "CAD", value: "CAD" },
+              { label: "USD", value: "USD" },
+            ]}
+            value={currency}
+            onChange={setCurrency}
+            placeholder={t('createCampaign.select_currency')}
+          inputStyle={{ color: isDarkMode ? '#fff' : '#2d3a4b' }}
+          itemTextStyle={{ color: isDarkMode ? '#fff' : '#2d3a4b' }}
+          dropdownTextStyle={{ color: isDarkMode ? '#fff' : '#2d3a4b' }}
+          dropdownStyle={{ backgroundColor: isDarkMode ? '#232327' : '#fff' }}
+          />
+
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>Story / Campaign Details</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{t('createCampaign.story_campaign_details')}</Text>
             <TextInput
-              placeholder="Share the background and purpose of this campaign..."
+              placeholder={t('createCampaign.story_placeholder')}
               value={story}
               onChangeText={setStory}
               multiline
@@ -418,7 +422,7 @@ export default function NgoCreateCampaignScreen() {
               style={[styles.button, styles.cancelButton, { backgroundColor: colors.buttonCancelBg }]}
               onPress={handleCancel}
             >
-              <Text style={[styles.buttonText, { color: colors.buttonTextCancel }]}>Cancel</Text>
+              <Text style={[styles.buttonText, { color: colors.buttonTextCancel }]}>{t('createCampaign.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, styles.submitButton]}
@@ -428,7 +432,7 @@ export default function NgoCreateCampaignScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={[styles.buttonText, { color: colors.buttonTextSubmit }]}>Submit</Text>
+                <Text style={[styles.buttonText, { color: colors.buttonTextSubmit }]}>{t('createCampaign.submit')}</Text>
               )}
             </TouchableOpacity>
           </View>

@@ -1,9 +1,11 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ThemeContext } from '../Utilities/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function DonorsScreen() {
   const { isDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
 
   const bg = isDarkMode ? '#0B0B0B' : '#FFFFFF';
   const text = isDarkMode ? '#FFFFFF' : '#20222E';
@@ -11,8 +13,8 @@ export default function DonorsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <Text style={[styles.title, { color: text }]}>Recent Donors</Text>
-      <Text style={{ color: muted }}>You don't have any donors yet.</Text>
+      <Text style={[styles.title, { color: text }]}>{t('donors.recentDonors')}</Text>
+      <Text style={{ color: muted }}>{t('donors.noDonorsYet')}</Text>
     </View>
   );
 }
