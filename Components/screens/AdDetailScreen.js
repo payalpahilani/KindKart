@@ -444,53 +444,55 @@ export default function AdDetailsScreen({ route, navigation }) {
         >
           {adData.description || "No description provided."}
         </Text>
-
-        <View
-          style={
-            isDarkMode
-              ? darkStyles.userMessageCard
-              : lightStyles.userMessageCard
-          }
-        >
+        {!isOwner && (
           <View
             style={
-              isDarkMode ? darkStyles.userInfoRow : lightStyles.userInfoRow
+              isDarkMode
+                ? darkStyles.userMessageCard
+                : lightStyles.userMessageCard
             }
           >
-            <Image
-              source={{ uri: userAvatar || "https://via.placeholder.com/60" }}
+            <View
               style={
-                isDarkMode ? darkStyles.userAvatar : lightStyles.userAvatar
+                isDarkMode ? darkStyles.userInfoRow : lightStyles.userInfoRow
               }
-            />
-            <Text
-              style={isDarkMode ? darkStyles.userName : lightStyles.userName}
             >
-              {userName}
-            </Text>
-          </View>
-          <View
-            style={isDarkMode ? darkStyles.messageBox : lightStyles.messageBox}
-          >
-            <TextInput
-              style={isDarkMode ? darkStyles.input : lightStyles.input}
-              placeholder="Send seller a message"
-              placeholderTextColor={isDarkMode ? "#999" : "#aaa"}
-              value={message}
-              onChangeText={setMessage}
-              multiline={true}
-            />
-            <TouchableOpacity
+              <Image
+                source={{ uri: userAvatar || "https://via.placeholder.com/60" }}
+                style={
+                  isDarkMode ? darkStyles.userAvatar : lightStyles.userAvatar
+                }
+              />
+              <Text
+                style={isDarkMode ? darkStyles.userName : lightStyles.userName}
+              >
+                {userName}
+              </Text>
+            </View>
+            <View
               style={
-                isDarkMode ? darkStyles.sendButton : lightStyles.sendButton
+                isDarkMode ? darkStyles.messageBox : lightStyles.messageBox
               }
-              onPress={sendMessage}
             >
-              <Icon name="send" size={20} color="#fff" />
-            </TouchableOpacity>
+              <TextInput
+                style={isDarkMode ? darkStyles.input : lightStyles.input}
+                placeholder="Send seller a message"
+                placeholderTextColor={isDarkMode ? "#999" : "#aaa"}
+                value={message}
+                onChangeText={setMessage}
+                multiline={true}
+              />
+              <TouchableOpacity
+                style={
+                  isDarkMode ? darkStyles.sendButton : lightStyles.sendButton
+                }
+                onPress={sendMessage}
+              >
+                <Icon name="send" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
+        )}
         <View
           style={isDarkMode ? darkStyles.detailsCard : lightStyles.detailsCard}
         >
