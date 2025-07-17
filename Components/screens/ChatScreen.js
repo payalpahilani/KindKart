@@ -11,6 +11,7 @@ import {
   Modal,
   Pressable,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,13 +36,20 @@ import { ThemeContext } from "../Utilities/ThemeContext";
 
 export default function ChatScreen({ route, navigation }) {
   const { isDarkMode } = useContext(ThemeContext);
+  const styles = isDarkMode ? darkStyles : lightStyles;
 
   useLayoutEffect(() => {
     navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
     return () => navigation.getParent()?.setOptions({ tabBarStyle: undefined });
   }, [navigation]);
 
-  const { otherUserId, otherUserName: otherUserNameParam, roomId: passedRoomId } = route.params || {};
+  const {
+    otherUserId,
+    otherUserName: otherUserNameParam,
+    roomId: passedRoomId,
+    ad,
+  } = route.params || {};
+
   const currentUser = auth.currentUser;
   const [roomId, setRoomId] = useState(passedRoomId || null);
   const [messages, setMessages] = useState([]);
@@ -49,29 +57,30 @@ export default function ChatScreen({ route, navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [otherUserNameFetched, setOtherUserNameFetched] = useState(null);
-  const [otherUserAvatar, setOtherUserAvatar] = useState(null);
   const [deletionTime, setDeletionTime] = useState(null);
 
   // Fetch other user info
-  useEffect(() => {
-    if (!otherUserId) return;
-    (async () => {
-      try {
-        const userDoc = await getDoc(doc(db, "users", otherUserId));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setOtherUserNameFetched(userData.name || "User");
-          setOtherUserAvatar(userData.avatarUrl || null);
-        } else {
-          setOtherUserNameFetched("User");
-          setOtherUserAvatar(null);
-        }
-      } catch {
-        setOtherUserNameFetched("User");
-        setOtherUserAvatar(null);
+ useEffect(() => {
+  if (!otherUserId) return;
+  (async () => {
+    try {
+      console.log("Fetching user with ID:", otherUserId);
+      const userDoc = await getDoc(doc(db, "users", otherUserId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("User data fetched:", userData);
+        setOtherUserNameFetched(userData.name || "Unknown");
+      } else {
+        console.log("User document does not exist");
+        setOtherUserNameFetched("Unknown");
       }
-    })();
-  }, [otherUserId]);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setOtherUserNameFetched("Unknown");
+    }
+  })();
+}, [otherUserId]);
+
 
   // Find or create chat room
   useEffect(() => {
@@ -99,7 +108,7 @@ export default function ChatScreen({ route, navigation }) {
               [otherUserId]: otherUserNameParam || otherUserNameFetched || "User",
             },
             createdAt: serverTimestamp(),
-            unreadCounts: { // initialize unread counts
+            unreadCounts: {
               [currentUser.uid]: 0,
               [otherUserId]: 0,
             },
@@ -145,7 +154,6 @@ export default function ChatScreen({ route, navigation }) {
 
     const unsubFs = onSnapshot(messagesQuery, (snap) => {
       const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      msgs.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds);
       setMessages(msgs);
     });
 
@@ -263,7 +271,51 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
-  const styles = isDarkMode ? darkStyles : lightStyles;
+  // Find the index of first message from current user to show ad preview above it
+  const firstMyMsgIndex = messages.findIndex((msg) => msg.senderId === currentUser.uid);
+
+  // Fallback if user hasn't sent any message yet
+  const noMyMessages = firstMyMsgIndex === -1;
+
+  const renderItem = ({ item, index }) => {
+    const isMyMessage = item.senderId === currentUser.uid;
+
+    // Debug logs - remove after testing
+    // console.log("Render message", index, "isMyMessage:", isMyMessage, "firstMyMsgIndex:", firstMyMsgIndex);
+    // console.log("Ad preview condition:", ad && isMyMessage && index === firstMyMsgIndex);
+
+    const showAdPreviewHere = ad && isMyMessage && index === firstMyMsgIndex;
+
+    return (
+      <>
+        {showAdPreviewHere && (
+          <View style={styles.adPreviewBox}>
+            {(ad.imageUrl || (ad.imageUrls && ad.imageUrls.length > 0)) && (
+              <Image
+                source={{ uri: ad.imageUrl ?? ad.imageUrls[0] }}
+                style={styles.adImage}
+              />
+            )}
+            <View style={styles.adTextWrapper}>
+              <Text style={styles.adTitle}>{ad.title}</Text>
+              <Text style={styles.adPrice}>${ad.price}</Text>
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onLongPress={() => handleLongPress(item)}
+          style={[
+            styles.messageBubble,
+            isMyMessage ? styles.myMessage : styles.otherMessage,
+          ]}
+        >
+          <Text style={styles.messageText}>{item.text}</Text>
+        </TouchableOpacity>
+      </>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -274,7 +326,11 @@ export default function ChatScreen({ route, navigation }) {
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={navigation.goBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color={isDarkMode ? "#eee" : "#007AFF"} />
+            <Ionicons
+              name="arrow-back"
+              size={28}
+              color={isDarkMode ? "#eee" : "#007AFF"}
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {otherUserNameParam || otherUserNameFetched || "Chat"}
@@ -282,26 +338,29 @@ export default function ChatScreen({ route, navigation }) {
           <View style={{ width: 28 }} />
         </View>
 
+        {/* Show ad preview at top if no messages by current user */}
+        {ad && noMyMessages && (
+          <View style={styles.adPreviewBox}>
+            {(ad.imageUrl || (ad.imageUrls && ad.imageUrls.length > 0)) && (
+              <Image
+                source={{ uri: ad.imageUrl ?? ad.imageUrls[0] }}
+                style={styles.adImage}
+              />
+            )}
+            <View style={styles.adTextWrapper}>
+              <Text style={styles.adTitle}>{ad.title}</Text>
+              <Text style={styles.adPrice}>${ad.price}</Text>
+            </View>
+          </View>
+        )}
+
         <FlatList
           style={{ flex: 1 }}
           data={messages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
-          renderItem={({ item }) => {
-            const isMyMessage = item.senderId === currentUser.uid;
-            return (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onLongPress={() => handleLongPress(item)}
-                style={[
-                  styles.messageBubble,
-                  isMyMessage ? styles.myMessage : styles.otherMessage,
-                ]}
-              >
-                <Text style={styles.messageText}>{item.text}</Text>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={renderItem}
+          onContentSizeChange={() => {}}
         />
 
         <View style={styles.inputRow}>
@@ -467,6 +526,32 @@ const baseStyles = {
   modalDeleteButton: {
     borderTopWidth: 0,
   },
+  adPreviewBox: {
+    margin: 12,
+    padding: 12,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  adImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  adTextWrapper: {
+    flex: 1,
+  },
+  adTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#222",
+  },
+  adPrice: {
+    fontSize: 14,
+    color: "#444",
+  },
 };
 
 const lightStyles = StyleSheet.create({
@@ -480,23 +565,48 @@ const darkStyles = StyleSheet.create({
   headerTitle: { ...baseStyles.headerTitle, color: "#eee" },
   messageBubble: {
     ...baseStyles.messageBubble,
-    backgroundColor: "#EFAC3A",
-    alignSelf: "flex-end",
     shadowOpacity: 0.35,
   },
-  otherMessage: {
-    backgroundColor: "#444",
-    alignSelf: "flex-start",
+  myMessage: { ...baseStyles.myMessage, backgroundColor: "#efac3a" },
+  otherMessage: { ...baseStyles.otherMessage, backgroundColor: "#444" },
+  messageText: { ...baseStyles.messageText, color: "#eee" },
+  inputRow: {
+    ...baseStyles.inputRow,
+    borderTopColor: "#333",
+    backgroundColor: "#222",
   },
-  messageText: { ...baseStyles.messageText, color: "#fff" },
-  inputRow: { ...baseStyles.inputRow, borderTopColor: "#333", backgroundColor: "#1e1e1e" },
-  input: { ...baseStyles.input, backgroundColor: "#2a2a2a", borderColor: "#555", color: "#eee" },
-  sendButton: { ...baseStyles.sendButton, backgroundColor: "#EFAC3A" },
+  input: {
+    ...baseStyles.input,
+    backgroundColor: "#333",
+    color: "#eee",
+    borderColor: "#555",
+  },
+  sendButton: {
+    ...baseStyles.sendButton,
+    backgroundColor: "#efac3a",
+  },
   modalBox: {
     ...baseStyles.modalBox,
-    backgroundColor: "#2c2c2c",
-    shadowOpacity: 0.6,
+    backgroundColor: "#222",
   },
-  modalTitle: { ...baseStyles.modalTitle, color: "#eee" },
-  modalButtonText: { ...baseStyles.modalButtonText, color: "#ddd" },
+  modalTitle: {
+    ...baseStyles.modalTitle,
+    color: "#eee",
+  },
+  modalButtonText: {
+    ...baseStyles.modalButtonText,
+    color: "#ddd",
+  },
+  adPreviewBox: {
+    ...baseStyles.adPreviewBox,
+    backgroundColor: "#1e1e1e",
+  },
+  adTitle: {
+    ...baseStyles.adTitle,
+    color: "#eee",
+  },
+  adPrice: {
+    ...baseStyles.adPrice,
+    color: "#bbb",
+  },
 });

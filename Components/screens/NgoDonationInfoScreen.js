@@ -14,14 +14,16 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { ThemeContext } from '../Utilities/ThemeContext';  // import your ThemeContext
+import { ThemeContext } from '../Utilities/ThemeContext'; // your ThemeContext
+import { useTranslation } from 'react-i18next';  // import i18n
 
 export default function NgoDonationInfoScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { campaignId } = route.params;
 
-  const { isDarkMode } = useContext(ThemeContext);  // get dark mode status
+  const { isDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
 
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,9 @@ export default function NgoDonationInfoScreen() {
   if (!campaign) {
     return (
       <SafeAreaView style={[styles.centered, { backgroundColor: isDarkMode ? '#121212' : '#fff' }]}>
-        <Text style={{ color: isDarkMode ? '#fff' : '#000' }}>Campaign not found</Text>
+        <Text style={{ color: isDarkMode ? '#fff' : '#000' }}>
+          {t('ngoDonation.campaignNotFound')}
+        </Text>
       </SafeAreaView>
     );
   }
@@ -96,7 +100,7 @@ export default function NgoDonationInfoScreen() {
 
   const dateLabel = campaignDate
     ? new Date(campaignDate).toDateString()
-    : 'Date not available';
+    : t('ngoDonation.dateNotAvailable');
 
   const ngoInitials =
     ngoDetails?.ngoName?.split(' ').map((n) => n[0]).join('').toUpperCase() || 'NGO';
@@ -128,11 +132,11 @@ export default function NgoDonationInfoScreen() {
         {/* Back */}
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Icon name="chevron-left" size={26} color="#EFAC3A" />
-          <Text style={[styles.backText, { color: textColor }]}>Back</Text>
+          <Text style={[styles.backText, { color: textColor }]}>{t('common.back')}</Text>
         </TouchableOpacity>
 
         {/* Title */}
-        <Text style={[styles.pageTitle, { color: textColor }]}>Detail Info</Text>
+        <Text style={[styles.pageTitle, { color: textColor }]}>{t('ngoDonation.detailInfo')}</Text>
 
         {/* Main Image */}
         <Image
@@ -151,22 +155,28 @@ export default function NgoDonationInfoScreen() {
 
         <View style={styles.badgeRow}>
           <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-            <Text style={[styles.badgeText, { color: badgeTextColor }]}>{category || 'Campaign'}</Text>
+            <Text style={[styles.badgeText, { color: badgeTextColor }]}>
+              {category || t('ngoDonation.campaign')}
+            </Text>
           </View>
           {campaignCategory && (
             <View style={[styles.badge, { backgroundColor: '#FFDDCC' }]}>
-              <Text style={styles.badgeText}>{campaignCategory.replace('_', ' ')}</Text>
+              <Text style={styles.badgeText}>
+                {campaignCategory.replace('_', ' ')}
+              </Text>
             </View>
           )}
           {urgent && (
             <View style={[styles.badge, { backgroundColor: urgentBadgeBg }]}>
-              <Text style={[styles.badgeText, { color: urgentBadgeTextColor }]}>Urgent</Text>
+              <Text style={[styles.badgeText, { color: urgentBadgeTextColor }]}>
+                {t('ngoDonation.urgent')}
+              </Text>
             </View>
           )}
         </View>
 
         <Text style={[styles.raised, { color: raisedTextColor }]}>
-          {currency} {raisedAmount?.toLocaleString()} from {currency}{' '}
+          {currency} {raisedAmount?.toLocaleString()} {t('ngoDonation.from')} {currency}{' '}
           {totalDonation?.toLocaleString()}
         </Text>
 
@@ -175,7 +185,7 @@ export default function NgoDonationInfoScreen() {
         </View>
 
         {/* NGO Info */}
-        <Text style={[styles.sectionTitle, { color: textColor }]}>Campaigner</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{t('ngoDonation.campaigner')}</Text>
         <View style={[styles.ngoBox, { backgroundColor: ngoBoxBg, borderColor: ngoBorderColor }]}>
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
@@ -190,7 +200,7 @@ export default function NgoDonationInfoScreen() {
         </View>
 
         {/* Description */}
-        <Text style={[styles.sectionTitle, { color: textColor }]}>Campaign Story</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{t('ngoDonation.campaignStory')}</Text>
         <Text style={[styles.story, { color: textColor }]}>{story}</Text>
       </ScrollView>
     </SafeAreaView>

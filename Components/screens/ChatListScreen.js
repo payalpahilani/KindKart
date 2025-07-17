@@ -76,6 +76,7 @@ export default function ChatListScreen({ navigation }) {
             lastMessage: roomData.lastMessage || '',
             lastMessageTime: roomData.lastMessageTime || null,
             unreadCount: roomData.unreadCounts?.[currentUser.uid] || 0,  // Add unread count
+            otherUserId: otherUserId,
           };
         })
       );
@@ -143,17 +144,17 @@ export default function ChatListScreen({ navigation }) {
       >
         <TouchableOpacity
           style={styles.chatItem}
-          onPress={() =>
-            navigation.navigate('ChatScreen', {
-              roomId: item.id,
-              userName: item.name,
-              userAvatar: item.avatar,
-              otherUserId: item.id === currentUser.uid ? null : item.id, // Pass otherUserId if needed
-            })
-          }
-          onLongPress={() => handleLongPress(item)}
-          activeOpacity={0.7}
-        >
+            onPress={() => {
+              navigation.navigate('ChatScreen', {
+                roomId: item.id,
+                userName: item.name,
+                userAvatar: item.avatar,
+                otherUserId: item.otherUserId,
+              });
+            }}
+  onLongPress={() => handleLongPress(item)}
+  activeOpacity={0.7}
+>
           <Image
             source={
               item.avatar
@@ -244,6 +245,7 @@ export default function ChatListScreen({ navigation }) {
                 navigation.navigate('ChatScreen', {
                   roomId: selectedChat?.id,
                   userName: selectedChat?.name,
+                  otherUserId: item.otherUserId,
                   userAvatar: selectedChat?.avatar,
                 });
               }}
