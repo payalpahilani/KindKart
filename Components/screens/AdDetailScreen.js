@@ -706,10 +706,7 @@ const lightStyles = StyleSheet.create({
   galleryContainer: {
     backgroundColor: "#f6f6f6",
     borderRadius: 18,
-    paddingBottom: 12,
-    paddingTop: 30,
-    paddingLeft: 30,
-    paddingRight: 30,
+    padding: 20,
     alignItems: "center",
     overflow: "hidden",
   },
@@ -762,7 +759,7 @@ const lightStyles = StyleSheet.create({
   description: {
     fontSize: 16,
     color: "#444",
-    marginBottom: 8,
+    marginBottom: 12,
     paddingHorizontal: 18,
   },
   userMessageCard: {
