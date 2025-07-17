@@ -112,6 +112,7 @@ export default function SignUpScreen({ navigation }) {
         email: email,
         phone: phone,
         avatarUrl: "",
+        emailVerified: false,
         createdAt: serverTimestamp(),
       });
   
