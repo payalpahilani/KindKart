@@ -806,7 +806,7 @@ function AdGridCard({ ad, st, navigation }) {
         <Text style={st.gridTitle}>{ad.title}</Text>
         {/* Price with currency in green */}
         <Text style={[st.gridPrice, { color: "#2CB67D", marginBottom: 2 }]}>
-          {ad.price ? `${ad.currency.label || ""} ${ad.price}` : ""}
+          {ad.price ? `${ad.currency.label || ""} ${ad.salePrice}` : ""}
         </Text>
         {/* Location in red, below price */}
         {ad.pickupLocation ? (

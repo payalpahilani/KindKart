@@ -31,6 +31,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 import { GOOGLE_API_KEY } from "@env";
 
+// Constants
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
 const currencyOptions = [
@@ -85,6 +86,7 @@ export default function ListItemScreen() {
     return unsubscribe;
   }, []);
 
+  // Form states
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [ngo, setNgo] = useState(null);
@@ -97,42 +99,72 @@ export default function ListItemScreen() {
   const [loadingCauses, setLoadingCauses] = useState(true);
   const [salePrice, setSalePrice] = useState("");
   const [negotiable, setNegotiable] = useState(false);
-  const [currency, setCurrency] = useState(currencyOptions[0].value);
+  const [currency, setCurrency] = useState(null); // <-- Default: null so no pre-selection
   const [condition, setCondition] = useState(conditionOptions[0]);
   const [description, setDescription] = useState("");
   const [useAddress, setUseAddress] = useState(false);
   const [agree, setAgree] = useState(false);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const [pickupLocation, setPickupLocation] = useState("");
   const [pickupCoords, setPickupCoords] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [region, setRegion] = useState(null);
 
+  // Address autocomplete states
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const [selected, setSelected] = useState(null);
 
   const [category, setCategory] = useState(categoryOptions[0].value);
-  const currencyData = currencyOptions
+  const currencyData = currencyOptions;
   const conditionData = conditionOptions.map((opt) => ({
     label: opt,
     value: opt,
   }));
 
-  const pickImages = async () => {
-    if ((images || []).length >= MAX_IMAGES) {
-      Alert.alert(`Max number of images is ${MAX_IMAGES}.`);
+  // ActionSheet/Alert for image
+  const pickImageOption = () => {
+    Alert.alert(
+      "Upload Image",
+      "Choose an option",
+      [
+        { text: "Take Photo", onPress: pickCamera },
+        { text: "Choose From Gallery", onPress: pickGallery },
+        { text: "Cancel", style: "cancel" },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const pickCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Camera permission denied");
       return;
     }
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      const newImages = Array.isArray(result.assets)
+        ? result.assets
+        : [result.assets];
+      setImages((imgs) => [...(imgs || []), ...newImages].slice(0, MAX_IMAGES));
+    }
+  };
+
+  const pickGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.8,
       selectionLimit: MAX_IMAGES - (images || []).length,
     });
+
     if (!result.canceled) {
       const newImages = Array.isArray(result.assets)
         ? result.assets.slice(0, MAX_IMAGES - (images || []).length)
@@ -301,7 +333,7 @@ export default function ListItemScreen() {
       setPrice("");
       setSalePrice("");
       setNegotiable(false);
-      setCurrency(currencyOptions[0]);
+      setCurrency(null); // Reset to unselected
       setCondition(conditionOptions[0]);
       setCategory(categoryOptions[0]);
       setDescription("");
@@ -339,7 +371,7 @@ export default function ListItemScreen() {
   const renderAddImageBtn = () => (
     <TouchableOpacity
       style={styles.imageBox}
-      onPress={pickImages}
+      onPress={pickImageOption} // <--- Changed from pickImages
       disabled={(images || []).length >= MAX_IMAGES}
     >
       <Text style={{ fontSize: 32, color: "#bbb" }}>+</Text>
@@ -736,7 +768,7 @@ export default function ListItemScreen() {
                   setPrice("");
                   setSalePrice("");
                   setNegotiable(false);
-                  setCurrency(currencyOptions[0]);
+                  setCurrency(null); // Reset to unselected
                   setCondition(conditionOptions[0]);
                   setCategory(categoryOptions[0]);
                   setDescription("");
@@ -954,7 +986,7 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 18, 
+    fontSize: 18,
     letterSpacing: 0.5,
   },
   suggestion: {

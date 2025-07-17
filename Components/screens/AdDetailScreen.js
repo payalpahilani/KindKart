@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   StatusBar,
   Alert,
-  Linking
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import MapView, { Marker } from "react-native-maps";
@@ -273,32 +272,6 @@ export default function AdDetailsScreen({ route, navigation }) {
       </View>
     );
   }
-
-  //PAYMENT_DEEP_LINKING
-  useEffect(() => {
-    
-    const handleDeepLink = (event) => {
-      const url = event.url;
-      if (url && url.startsWith("kindkartpay://stripe-redirect")) {
-        Alert.alert("Payment complete!", "You were redirected by Stripe.");
-        
-      }
-    };
-
-    const subscription = Linking.addEventListener("url", handleDeepLink);
-
-    Linking.getInitialURL().then((url) => {
-      if (url && url.startsWith("kindkartpay://stripe-redirect")) {
-        Alert.alert("Payment complete!", "You were redirected by Stripe.");
-       
-      }
-    });
-
-   
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 
   // PAYMENT GATEWAY
   const handlePurchase = async () => {
