@@ -172,9 +172,22 @@ export default function DonationDetailScreen() {
         <Text style={styles.sectionTitle}>Campaign Story</Text>
         <Text style={styles.story}>{story}</Text>
 
-        <TouchableOpacity style={styles.donateButton} onPress={() => alert("Donate now!")}>
-          <Text style={styles.donateButtonText}>Donate Now</Text>
-        </TouchableOpacity>
+        <TouchableOpacity
+        style={styles.donateButton}
+        onPress={() =>
+          navigation.navigate('PaymentScreen', {
+            campaignId,
+            title,
+            ngoName: ngo?.ngoName,
+            currency,
+            imageUrls,
+          })
+        }
+      >
+  <Text style={styles.donateButtonText}>Donate Now</Text>
+</TouchableOpacity>
+
+
       </ScrollView>
     </SafeAreaView>
   );
