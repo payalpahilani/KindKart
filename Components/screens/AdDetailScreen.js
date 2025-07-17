@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   StatusBar,
   Alert,
+  Linking
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import MapView, { Marker } from "react-native-maps";
