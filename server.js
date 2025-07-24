@@ -18,7 +18,7 @@ if (!privateKeyBase64) {
 const privateKey = Buffer.from(privateKeyBase64, "base64").toString("utf8");
 
 
-console.log("PRIVATE KEY ENV:", process.env.GOOGLE_PRIVATE_KEY?.slice(0, 50));
+console.log("PRIVATE KEY ENV:", privateKey.slice(0, 200));
 
 if (!admin.apps.length) {
  admin.initializeApp({
