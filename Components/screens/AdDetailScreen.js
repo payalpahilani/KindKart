@@ -192,8 +192,17 @@ export default function AdDetailsScreen({ route, navigation }) {
             [adData.userId]: userName || "Seller",
           },
           createdAt: serverTimestamp(),
+          unreadCounts: {
+            [currentUser.uid]: 0,
+            [adData.userId]: 0,
+          },
+          adId: adData.id, 
         });
         existingRoomId = newRoom.id;
+      } else {
+        await updateDoc(doc(db, "chatRooms", existingRoomId), {
+          adId: adData.id,
+        });
       }
 
       await addDoc(collection(db, "chatRooms", existingRoomId, "messages"), {
@@ -212,6 +221,7 @@ export default function AdDetailsScreen({ route, navigation }) {
         roomId: existingRoomId,
         otherUserId: adData.userId,
         otherUserName: userName,
+        ad: adData,
       });
     } catch (error) {
       console.error("Message send error:", error);

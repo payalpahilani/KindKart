@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import socket from "../Utilities/Socket";
 import { auth, db } from "../../firebaseConfig";
 import {
   collection,
@@ -26,11 +25,9 @@ import {
   serverTimestamp,
   onSnapshot,
   query,
-  where,
-  getDocs,
   getDoc,
-  deleteDoc,
   orderBy,
+  deleteDoc,
 } from "firebase/firestore";
 import { ThemeContext } from "../Utilities/ThemeContext";
 
@@ -38,209 +35,108 @@ export default function ChatScreen({ route, navigation }) {
   const { isDarkMode } = useContext(ThemeContext);
   const styles = isDarkMode ? darkStyles : lightStyles;
 
+  const {
+    roomId: passedRoomId,
+    otherUserId,
+    otherUserName: otherUserNameParam,
+    adId,
+    ad: passedAd,
+  } = route.params || {};
+
+  const currentUser = auth.currentUser;
+
+  const [roomId, setRoomId] = useState(passedRoomId || null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [otherUserNameFetched, setOtherUserNameFetched] = useState(null);
+  const [isAdSold, setIsAdSold] = useState(false);
+  const [adData, setAdData] = useState(passedAd || null);
+
   useLayoutEffect(() => {
     navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
     return () => navigation.getParent()?.setOptions({ tabBarStyle: undefined });
   }, [navigation]);
 
-  const {
-    otherUserId,
-    otherUserName: otherUserNameParam,
-    roomId: passedRoomId,
-    ad,
-  } = route.params || {};
-
-  const currentUser = auth.currentUser;
-  const [roomId, setRoomId] = useState(passedRoomId || null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [otherUserNameFetched, setOtherUserNameFetched] = useState(null);
-  const [deletionTime, setDeletionTime] = useState(null);
-
-  // Fetch other user info
- useEffect(() => {
-  if (!otherUserId) return;
-  (async () => {
-    try {
-      console.log("Fetching user with ID:", otherUserId);
-      const userDoc = await getDoc(doc(db, "users", otherUserId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        console.log("User data fetched:", userData);
-        setOtherUserNameFetched(userData.name || "Unknown");
-      } else {
-        console.log("User document does not exist");
-        setOtherUserNameFetched("Unknown");
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      setOtherUserNameFetched("Unknown");
-    }
-  })();
-}, [otherUserId]);
-
-
-  // Find or create chat room
+  // Fetch other user's name if not passed
   useEffect(() => {
-    if (!roomId && otherUserId) {
-      (async () => {
-        const roomsRef = collection(db, "chatRooms");
-        const q = query(roomsRef, where("users", "array-contains", currentUser.uid));
-        const snap = await getDocs(q);
-        let existing = null;
-        snap.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data.users.includes(otherUserId) && data.users.length === 2) {
-            existing = { id: docSnap.id, ...data };
+    if (otherUserId) {
+      getDoc(doc(db, "users", otherUserId)).then((snap) => {
+        if (snap.exists()) setOtherUserNameFetched(snap.data().name);
+        else setOtherUserNameFetched("Unknown");
+      });
+    }
+  }, [otherUserId]);
+
+  // Fetch ad data by adId if full ad not passed
+  useEffect(() => {
+    if (!adData && adId) {
+      const fetchAd = async () => {
+        try {
+          const docSnap = await getDoc(doc(db, "items", adId));
+          if (docSnap.exists()) {
+            setAdData({ id: docSnap.id, ...docSnap.data() });
+            setIsAdSold(docSnap.data().sold === true);
+          } else {
+            setIsAdSold(true); // Ad removed
           }
-        });
-        if (existing) {
-          setRoomId(existing.id);
-        } else {
-          const newRoom = await addDoc(roomsRef, {
-            users: [currentUser.uid, otherUserId],
-            lastMessage: "",
-            lastUpdated: serverTimestamp(),
-            userNames: {
-              [currentUser.uid]: currentUser.displayName || "You",
-              [otherUserId]: otherUserNameParam || otherUserNameFetched || "User",
-            },
-            createdAt: serverTimestamp(),
-            unreadCounts: {
-              [currentUser.uid]: 0,
-              [otherUserId]: 0,
-            },
-          });
-          setRoomId(newRoom.id);
+        } catch {
+          setIsAdSold(true);
         }
-      })();
+      };
+      fetchAd();
+    } else if (adData) {
+      setIsAdSold(adData.sold === true);
     }
-  }, [currentUser.uid, otherUserId, otherUserNameParam, otherUserNameFetched]);
+  }, [adId, adData]);
 
-  // Handle message deletion time for filtering messages
+  // Listen for messages
   useEffect(() => {
     if (!roomId) return;
-    (async () => {
-      const roomSnap = await getDoc(doc(db, "chatRooms", roomId));
-      if (roomSnap.exists()) {
-        const data = roomSnap.data();
-        if (data.deletedFor && data.deletedFor[currentUser.uid]) {
-          setDeletionTime(data.deletedFor[currentUser.uid]);
-        } else {
-          setDeletionTime(null);
-        }
-      }
-    })();
-  }, [roomId]);
-
-  // Listen for messages with optional filtering by deletionTime
-  useEffect(() => {
-    if (!roomId) return;
-
-    let messagesRef = collection(db, "chatRooms", roomId, "messages");
-    let messagesQuery;
-
-    if (deletionTime) {
-      messagesQuery = query(
-        messagesRef,
-        where("createdAt", ">", deletionTime),
-        orderBy("createdAt", "asc")
-      );
-    } else {
-      messagesQuery = query(messagesRef, orderBy("createdAt", "asc"));
-    }
-
-    const unsubFs = onSnapshot(messagesQuery, (snap) => {
-      const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const messagesRef = collection(db, "chatRooms", roomId, "messages");
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const msgs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setMessages(msgs);
     });
-
-    return () => unsubFs();
-  }, [roomId, deletionTime]);
-
-  // Socket join/leave and receive message events
-  useEffect(() => {
-    if (!roomId) return;
-
-    socket.emit("joinRoom", roomId);
-
-    socket.on("receiveMessage", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
-    return () => {
-      socket.emit("leaveRoom", roomId);
-      socket.off("receiveMessage");
-    };
+    return () => unsubscribe();
   }, [roomId]);
 
-  // Reset unread count for current user when opening chat
+  // Reset unread count
   useEffect(() => {
     if (!roomId) return;
-    const chatRoomRef = doc(db, "chatRooms", roomId);
-    updateDoc(chatRoomRef, {
+    updateDoc(doc(db, "chatRooms", roomId), {
       [`unreadCounts.${currentUser.uid}`]: 0,
-    }).catch(console.error);
+    }).catch(() => {});
   }, [roomId]);
 
-  // Send message and update unread counts for other users
+  // Send message handler
   const sendMessage = async () => {
-    if (!input.trim() || !roomId) return;
+    if (!input.trim() || !roomId || isAdSold) return;
 
     const messageText = input.trim();
 
     try {
       const roomRef = doc(db, "chatRooms", roomId);
-
-      // Reset deletedFor for current user on sending new message
       await updateDoc(roomRef, {
-        [`deletedFor.${currentUser.uid}`]: null,
         lastMessage: messageText,
         lastUpdated: serverTimestamp(),
       });
 
-      // Add message to subcollection
       await addDoc(collection(db, "chatRooms", roomId, "messages"), {
         text: messageText,
         senderId: currentUser.uid,
         createdAt: serverTimestamp(),
       });
 
-      // Get current unreadCounts and increment others
-      const roomSnap = await getDoc(roomRef);
-      const unreadCounts = roomSnap.exists() ? roomSnap.data().unreadCounts || {} : {};
-
-      const newUnreadCounts = { ...unreadCounts };
-      for (const userId of Object.keys(newUnreadCounts)) {
-        if (userId !== currentUser.uid) {
-          newUnreadCounts[userId] = (newUnreadCounts[userId] || 0) + 1;
-        } else {
-          newUnreadCounts[userId] = 0; // reset for sender
-        }
-      }
-
-      await updateDoc(roomRef, {
-        unreadCounts: newUnreadCounts,
-      });
-
-      // Emit socket event
-      socket.emit("sendMessage", {
-        text: messageText,
-        senderId: currentUser.uid,
-        createdAt: new Date().toISOString(),
-        roomId,
-      });
-
       setInput("");
-      setDeletionTime(null);
     } catch {
       Alert.alert("Error", "Failed to send message.");
     }
   };
 
-  // Modal & message actions
+  // Message options modal handlers
   const handleLongPress = (message) => {
     setSelectedMessage(message);
     setModalVisible(true);
@@ -253,63 +149,46 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const deleteMessage = async (msgId) => {
-    if (!roomId || !msgId) return;
     try {
       await deleteDoc(doc(db, "chatRooms", roomId, "messages", msgId));
-
-      const messagesSnapshot = await getDocs(collection(db, "chatRooms", roomId, "messages"));
-      if (messagesSnapshot.empty) {
-        await deleteDoc(doc(db, "chatRooms", roomId));
-        setModalVisible(false);
-        navigation.goBack();
-        return;
-      }
-
       setModalVisible(false);
     } catch {
-      Alert.alert("Error", "Failed to delete the message.");
+      Alert.alert("Error", "Failed to delete message.");
     }
   };
 
-  // Find the index of first message from current user to show ad preview above it
+  // Find index of first message by current user to show ad preview above it
   const firstMyMsgIndex = messages.findIndex((msg) => msg.senderId === currentUser.uid);
 
-  // Fallback if user hasn't sent any message yet
-  const noMyMessages = firstMyMsgIndex === -1;
-
+  // Render chat message with optional ad preview above first message you sent
   const renderItem = ({ item, index }) => {
     const isMyMessage = item.senderId === currentUser.uid;
-
-    // Debug logs - remove after testing
-    // console.log("Render message", index, "isMyMessage:", isMyMessage, "firstMyMsgIndex:", firstMyMsgIndex);
-    // console.log("Ad preview condition:", ad && isMyMessage && index === firstMyMsgIndex);
-
-    const showAdPreviewHere = ad && isMyMessage && index === firstMyMsgIndex;
+    const showAdPreview = isMyMessage && index === firstMyMsgIndex && adData;
 
     return (
       <>
-        {showAdPreviewHere && (
-          <View style={styles.adPreviewBox}>
-            {(ad.imageUrl || (ad.imageUrls && ad.imageUrls.length > 0)) && (
+        {showAdPreview && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.adPreviewBox}
+            onPress={() => navigation.navigate("AdDetails", { ad: adData })}
+          >
+            {(adData.imageUrl || (adData.imageUrls && adData.imageUrls.length)) && (
               <Image
-                source={{ uri: ad.imageUrl ?? ad.imageUrls[0] }}
+                source={{ uri: adData.imageUrl ?? adData.imageUrls[0] }}
                 style={styles.adImage}
               />
             )}
             <View style={styles.adTextWrapper}>
-              <Text style={styles.adTitle}>{ad.title}</Text>
-              <Text style={styles.adPrice}>${ad.price}</Text>
+              <Text style={styles.adTitle}>{adData.title}</Text>
+              <Text style={styles.adPrice}>${adData.price}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
-
         <TouchableOpacity
           activeOpacity={0.8}
           onLongPress={() => handleLongPress(item)}
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessage : styles.otherMessage,
-          ]}
+          style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.otherMessage]}
         >
           <Text style={styles.messageText}>{item.text}</Text>
         </TouchableOpacity>
@@ -321,16 +200,12 @@ export default function ChatScreen({ route, navigation }) {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS == "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={navigation.goBack} style={styles.backButton}>
-            <Ionicons
-              name="arrow-back"
-              size={28}
-              color={isDarkMode ? "#eee" : "#007AFF"}
-            />
+            <Ionicons name="arrow-back" size={28} color={isDarkMode ? "#eee" : "#007AFF"} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {otherUserNameParam || otherUserNameFetched || "Chat"}
@@ -338,83 +213,66 @@ export default function ChatScreen({ route, navigation }) {
           <View style={{ width: 28 }} />
         </View>
 
-        {/* Show ad preview at top if no messages by current user */}
-        {ad && noMyMessages && (
-          <View style={styles.adPreviewBox}>
-            {(ad.imageUrl || (ad.imageUrls && ad.imageUrls.length > 0)) && (
-              <Image
-                source={{ uri: ad.imageUrl ?? ad.imageUrls[0] }}
-                style={styles.adImage}
-              />
-            )}
-            <View style={styles.adTextWrapper}>
-              <Text style={styles.adTitle}>{ad.title}</Text>
-              <Text style={styles.adPrice}>${ad.price}</Text>
-            </View>
+        {isAdSold ? (
+          <View style={styles.soldMessageContainer}>
+            <Text style={styles.soldMessageText}>This item has been sold and chat is closed.</Text>
           </View>
+        ) : (
+          <>
+            <FlatList
+              style={{ flex: 1 }}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              contentContainerStyle={styles.messageList}
+              keyboardShouldPersistTaps="handled"
+            />
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Type a message"
+                placeholderTextColor={isDarkMode ? "#aaa" : "#999"}
+                multiline
+                editable={!isAdSold}
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, isAdSold && { backgroundColor: "#999" }]}
+                onPress={sendMessage}
+                disabled={isAdSold}
+              >
+                <Ionicons name="send" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </>
         )}
-
-        <FlatList
-          style={{ flex: 1 }}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messageList}
-          renderItem={renderItem}
-          onContentSizeChange={() => {}}
-        />
-
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Type a message"
-            placeholderTextColor={isDarkMode ? "#aaa" : "#999"}
-            multiline
-          />
-          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <Ionicons name="send" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
       </KeyboardAvoidingView>
 
-      <Modal
-        visible={modalVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
+      {/* Modal for message options */}
+      <Modal visible={modalVisible} animationType="fade" transparent onRequestClose={() => setModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Message Options</Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => copyToClipboard(selectedMessage?.text || "")}
-            >
+            <TouchableOpacity style={styles.modalButton} onPress={() => copyToClipboard(selectedMessage?.text || "")}>
               <Text style={styles.modalButtonText}>Copy Text</Text>
             </TouchableOpacity>
             {selectedMessage?.senderId === currentUser.uid && (
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalDeleteButton]}
-                onPress={() => {
+                onPress={() =>
                   Alert.alert(
                     "Delete Message",
                     "Are you sure you want to delete this message?",
                     [
                       { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => deleteMessage(selectedMessage?.id),
-                      },
+                      { text: "Delete", style: "destructive", onPress: () => deleteMessage(selectedMessage.id) },
                     ],
                     { cancelable: true }
-                  );
-                }}
+                  )
+                }
               >
-                <Text style={[styles.modalButtonText, { color: "#e33057" }]}>
-                  Delete Message
-                </Text>
+                <Text style={[styles.modalButtonText, { color: "#e33057" }]}>Delete Message</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -432,7 +290,7 @@ const baseStyles = {
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderColor: "#eee",
     justifyContent: "space-between",
   },
   backButton: { padding: 6 },
@@ -552,11 +410,20 @@ const baseStyles = {
     fontSize: 14,
     color: "#444",
   },
+  soldMessageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  soldMessageText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
+  },
 };
 
-const lightStyles = StyleSheet.create({
-  ...baseStyles,
-});
+const lightStyles = StyleSheet.create(baseStyles);
 
 const darkStyles = StyleSheet.create({
   ...baseStyles,
@@ -607,6 +474,10 @@ const darkStyles = StyleSheet.create({
   },
   adPrice: {
     ...baseStyles.adPrice,
+    color: "#bbb",
+  },
+  soldMessageText: {
+    ...baseStyles.soldMessageText,
     color: "#bbb",
   },
 });
