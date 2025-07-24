@@ -5,39 +5,6 @@ const cors = require("cors");
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-
-const admin = require("firebase-admin");
-const { getFirestore } = require("firebase-admin/firestore");
-
-// Decode base64 private key from env var
-const privateKeyBase64 = process.env.GOOGLE_PRIVATE_KEY_BASE64;
-if (!privateKeyBase64) {
-  console.error("Missing GOOGLE_PRIVATE_KEY_BASE64 environment variable");
-  process.exit(1);
-}
-const privateKey = Buffer.from(privateKeyBase64, "base64").toString("utf8");
-
-
-console.log("PRIVATE KEY ENV:", privateKey.slice(0, 200));
-
-if (!admin.apps.length) {
- admin.initializeApp({
-   credential: admin.credential.cert({
-     type: process.env.GOOGLE_TYPE,
-     project_id: process.env.GOOGLE_PROJECT_ID,
-     private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-     private_key: privateKey,
-     client_email: process.env.GOOGLE_CLIENT_EMAIL,
-     client_id: process.env.GOOGLE_CLIENT_ID,
-     auth_uri: process.env.GOOGLE_AUTH_URI,
-     token_uri: process.env.GOOGLE_TOKEN_URI,
-     auth_provider_x509_cert_url: process.env.GOOGLE_AUTH_PROVIDER_CERT_URL,
-     client_x509_cert_url: process.env.GOOGLE_CLIENT_CERT_URL,
-   }),
- });
-}
-
-const db = getFirestore(); // Now `db` is available for Firestore access
 const app = express();
 app.use(cors());
 
@@ -120,52 +87,6 @@ app.post("/create-payment-intent", express.json(), async (req, res) => {
    });
    res.json({ clientSecret: paymentIntent.client_secret });
  } catch (error) {
-   res.status(500).json({ error: error.message });
- }
-});
-
-app.post("/create-stripe-account-link", express.json(), async (req, res) => {
- const { ngoId, email } = req.body;
- if (!ngoId || !email) {
-   return res.status(400).json({ error: "Missing ngoId or email" });
- }
- try {
-   // 1. Create Stripe Express account
-   const account = await stripe.accounts.create({
-     type: "express",
-     email,
-     country: "CA", // or "US", "IN", etc.
-     capabilities: {
-       card_payments: { requested: true },
-       transfers: { requested: true },
-     },
-   });
-   // 2. Save to Firestore
-   await db.collection("ngo").doc(ngoId).set({ stripeAccountId: account.id }, { merge: true });
-   // 3. Create onboarding link
-   const accountLink = await stripe.accountLinks.create({
-     account: account.id,
-     refresh_url: "https://kindkart.com/reauth", // use your actual return/refresh links
-     return_url: "https://kindkart.com/profile",
-     type: "account_onboarding",
-   });
-   res.json({ url: accountLink.url });
- } catch (error) {
-   console.error("Stripe account creation error:", error);
-   res.status(500).json({ error: error.message });
- }
-});
-
-app.post("/create-login-link", express.json(), async (req, res) => {
- const { stripeAccountId } = req.body;
- if (!stripeAccountId) {
-   return res.status(400).json({ error: "Missing stripeAccountId" });
- }
- try {
-   const loginLink = await stripe.accounts.createLoginLink(stripeAccountId);
-   res.json({ url: loginLink.url });
- } catch (error) {
-   console.error("Stripe login link error:", error);
    res.status(500).json({ error: error.message });
  }
 });

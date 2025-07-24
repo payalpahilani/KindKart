@@ -84,51 +84,6 @@ export default function NgongoProfileScreen() {
    fetchNgoDetails();
  }, []);
 
-
- const handleConnectStripe = async () => {
-   try {
-     const response = await fetch(`${BACKEND_URL}/create-stripe-account-link`, {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({
-         ngoId: auth.currentUser.uid,
-         email: ngo?.email,
-       }),
-     });
-      const text = await response.text();
-     console.log("Stripe account link raw response:", text);
-      const json = JSON.parse(text); // Try parsing after checking raw
-     const { url } = json;
-     if (url) {
-       Linking.openURL(url);
-     } else {
-       Alert.alert("Error", "Could not start Stripe onboarding.");
-     }
-   } catch (error) {
-     Alert.alert("Error", error.message);
-   }
- };
- 
- const handleViewStripeDashboard = async () => {
-   try {
-     const response = await fetch(`${BACKEND_URL}/create-login-link`, {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ stripeAccountId: ngo?.stripeAccountId }),
-     });
-      const text = await response.text();
-     console.log("Stripe dashboard link raw response:", text);
-      const json = JSON.parse(text);
-     const { url } = json;
-     if (url) {
-       Linking.openURL(url);
-     } else {
-       Alert.alert("Error", "Could not open Stripe dashboard.");
-     }
-   } catch (error) {
-     Alert.alert("Error", error.message);
-   }
- };
  
  const bg = isDarkMode ? '#0B0B0B' : '#FFFFFF';
  const cardBg = isDarkMode ? '#1A1A1C' : '#FFFFFF';
@@ -242,17 +197,6 @@ export default function NgongoProfileScreen() {
 
        {/* Actions */}
        <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.actions')}</Text>
-             {!ngo?.stripeAccountId ? (
-       <TouchableOpacity style={styles.option} onPress={handleConnectStripe}>
-         <Icon name="credit-card-plus-outline" size={20} color={text} />
-         <Text style={[styles.optionText, { color: text }]}>Connect Stripe to Receive Donations</Text>
-       </TouchableOpacity>
-     ) : (
-       <TouchableOpacity style={styles.option} onPress={handleViewStripeDashboard}>
-         <Icon name="credit-card-outline" size={20} color={text} />
-         <Text style={[styles.optionText, { color: text }]}>View Stripe Dashboard</Text>
-       </TouchableOpacity>
-     )}
 
 
        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('NgoEditProfile')}>
