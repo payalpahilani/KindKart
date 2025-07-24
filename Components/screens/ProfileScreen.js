@@ -88,7 +88,7 @@ export default function ProfileScreen() {
   const handleRowPress = (action) => {
     switch (action) {
       case "settings":   navigation.navigate("SettingsScreen"); break;
-      case "faq":        navigation.navigate("FAQScreen");      break;
+      case "faq":        navigation.navigate("FAQ");      break;
       case "likedAds":   navigation.navigate("LikedAdsScreen"); break;
       case "yourAds":    navigation.navigate("YourAdsScreen");  break;
       case "exit":
