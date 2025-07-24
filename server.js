@@ -9,6 +9,15 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const admin = require("firebase-admin");
 const { getFirestore } = require("firebase-admin/firestore");
 
+// Decode base64 private key from env var
+const privateKeyBase64 = process.env.GOOGLE_PRIVATE_KEY_BASE64;
+if (!privateKeyBase64) {
+  console.error("Missing GOOGLE_PRIVATE_KEY_BASE64 environment variable");
+  process.exit(1);
+}
+const privateKey = Buffer.from(privateKeyBase64, "base64").toString("utf8");
+
+
 console.log("PRIVATE KEY ENV:", process.env.GOOGLE_PRIVATE_KEY?.slice(0, 50));
 
 if (!admin.apps.length) {
@@ -17,7 +26,7 @@ if (!admin.apps.length) {
      type: process.env.GOOGLE_TYPE,
      project_id: process.env.GOOGLE_PROJECT_ID,
      private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+     private_key: privateKey,
      client_email: process.env.GOOGLE_CLIENT_EMAIL,
      client_id: process.env.GOOGLE_CLIENT_ID,
      auth_uri: process.env.GOOGLE_AUTH_URI,
@@ -28,22 +37,13 @@ if (!admin.apps.length) {
  });
 }
 
-
-
-
 const db = getFirestore(); // Now `db` is available for Firestore access
-
-
-
-
 const app = express();
 app.use(cors());
-
 
 app.get("/", (req, res) => {
  res.send("Backend is running!");
 });
-
 
 const s3 = new AWS.S3({
  region: process.env.AWS_REGION,
@@ -51,10 +51,8 @@ const s3 = new AWS.S3({
  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
-
 app.get("/get-presigned-url", async (req, res) => {
  let { fileName, fileType, userId, itemId, type } = req.query;
-
 
  // Validate required query params
  if (!fileName || !fileType || !userId || !itemId) {
@@ -64,13 +62,11 @@ app.get("/get-presigned-url", async (req, res) => {
      .json({ error: "Missing required query parameters." });
  }
 
-
  // Validate bucket name
  if (!process.env.S3_BUCKET) {
    console.log("Bucket name is missing or undefined in env.");
    return res.status(500).json({ error: "Bucket name is undefined." });
  }
-
 
  // Ensure fileType is a valid MIME type
  const validMimeTypes = [
@@ -88,13 +84,11 @@ app.get("/get-presigned-url", async (req, res) => {
    fileType = "image/png";
  }
 
-
  const folderPrefix = type === "ngo" ? "items/ngocampaign" : "items";
  const key = `${folderPrefix}/${userId}/${itemId}/${fileName}`;
  console.log("Bucket name:", process.env.S3_BUCKET);
  console.log("Key:", key);
  console.log("fileType:", fileType);
-
 
  const uploadParams = {
    Bucket: process.env.S3_BUCKET,
@@ -103,7 +97,6 @@ app.get("/get-presigned-url", async (req, res) => {
    ContentType: fileType,
    ServerSideEncryption: "AES256",
  };
-
 
  try {
    const uploadUrl = await s3.getSignedUrlPromise("putObject", uploadParams);
@@ -114,7 +107,6 @@ app.get("/get-presigned-url", async (req, res) => {
    res.status(500).json({ error: err.message, details: err });
  }
 });
-
 
 app.post("/create-payment-intent", express.json(), async (req, res) => {
  try {
@@ -132,16 +124,11 @@ app.post("/create-payment-intent", express.json(), async (req, res) => {
  }
 });
 
-
 app.post("/create-stripe-account-link", express.json(), async (req, res) => {
  const { ngoId, email } = req.body;
-
-
  if (!ngoId || !email) {
    return res.status(400).json({ error: "Missing ngoId or email" });
  }
-
-
  try {
    // 1. Create Stripe Express account
    const account = await stripe.accounts.create({
@@ -153,12 +140,8 @@ app.post("/create-stripe-account-link", express.json(), async (req, res) => {
        transfers: { requested: true },
      },
    });
-
-
    // 2. Save to Firestore
    await db.collection("ngo").doc(ngoId).set({ stripeAccountId: account.id }, { merge: true });
-
-
    // 3. Create onboarding link
    const accountLink = await stripe.accountLinks.create({
      account: account.id,
@@ -166,8 +149,6 @@ app.post("/create-stripe-account-link", express.json(), async (req, res) => {
      return_url: "https://kindkart.com/profile",
      type: "account_onboarding",
    });
-
-
    res.json({ url: accountLink.url });
  } catch (error) {
    console.error("Stripe account creation error:", error);
@@ -175,16 +156,11 @@ app.post("/create-stripe-account-link", express.json(), async (req, res) => {
  }
 });
 
-
 app.post("/create-login-link", express.json(), async (req, res) => {
  const { stripeAccountId } = req.body;
-
-
  if (!stripeAccountId) {
    return res.status(400).json({ error: "Missing stripeAccountId" });
  }
-
-
  try {
    const loginLink = await stripe.accounts.createLoginLink(stripeAccountId);
    res.json({ url: loginLink.url });
@@ -193,8 +169,6 @@ app.post("/create-login-link", express.json(), async (req, res) => {
    res.status(500).json({ error: error.message });
  }
 });
-
-
 
 
 const PORT = 4000;
