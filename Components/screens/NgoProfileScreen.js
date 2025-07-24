@@ -38,6 +38,38 @@ export default function NgongoProfileScreen() {
  const [campaignStats, setCampaignStats] = useState({ count: 0, total: 0 });
 
 
+const handleConnectStripe = async () => {
+  try {
+    if (!ngo?.email) {
+      Alert.alert("Error", "Email not available for Stripe onboarding.");
+      return;
+    }
+    const response = await fetch(`${BACKEND_URL}/create-stripe-account-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ngoId: auth.currentUser.uid,
+        email: ngo.email,
+      }),
+    });
+
+    const text = await response.text();
+
+    // Debugging log if needed
+    console.log("Stripe account link raw response:", text);
+
+    const json = JSON.parse(text);
+    const { url } = json;
+
+    if (url) {
+      Linking.openURL(url);
+    } else {
+      Alert.alert("Error", "Could not start Stripe onboarding.");
+    }
+  } catch (error) {
+    Alert.alert("Error", error.message);
+  }
+};
 
 
  const fetchNgoDetails = async () => {
@@ -125,10 +157,15 @@ export default function NgongoProfileScreen() {
 
  return (
    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
-     <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={bg} />
+     <StatusBar
+       barStyle={isDarkMode ? "light-content" : "dark-content"}
+       backgroundColor={bg}
+     />
      <ScrollView
        contentContainerStyle={styles.scroll}
-       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchNgoDetails} />}
+       refreshControl={
+         <RefreshControl refreshing={refreshing} onRefresh={fetchNgoDetails} />
+       }
      >
        {/* Header */}
        <View style={styles.header}>
@@ -139,77 +176,170 @@ export default function NgongoProfileScreen() {
              <Text style={styles.initialsText}>
                {ngo?.ngoName
                  ? ngo.ngoName
-                     .split(' ')
+                     .split(" ")
                      .map((word) => word[0])
-                     .join('')
+                     .join("")
                      .toUpperCase()
-                 : 'NGO'}
+                 : "NGO"}
              </Text>
            </View>
          )}
-         <Text style={[styles.name, { color: text }]}>{ngo?.ngoName || 'NGO Name'}</Text>
+         <Text style={[styles.name, { color: text }]}>
+           {ngo?.ngoName || "NGO Name"}
+         </Text>
          <Text style={[styles.email, { color: muted }]}>{ngo?.email}</Text>
        </View>
 
-
        {/* Info Section */}
-       <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.contactInfo')}</Text>
-       <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBor }]}>
-         <InfoRow icon="phone" label={t('ngoProfile.contact')} value={ngo?.contact} textColor={text} mutedColor={muted} />
-         <InfoRow icon="identifier" label={t('ngoProfile.ngoCode')} value={ngo?.ngoCode} textColor={text} mutedColor={muted} />
-         <InfoRow icon="email" label={t('ngoProfile.email')} value={ngo?.email} textColor={text} mutedColor={muted} />
+       <Text style={[styles.sectionTitle, { color: text }]}>
+         {t("ngoProfile.contactInfo")}
+       </Text>
+       <View
+         style={[
+           styles.card,
+           { backgroundColor: cardBg, borderColor: cardBor },
+         ]}
+       >
+         <InfoRow
+           icon="phone"
+           label={t("ngoProfile.contact")}
+           value={ngo?.contact}
+           textColor={text}
+           mutedColor={muted}
+         />
+         <InfoRow
+           icon="identifier"
+           label={t("ngoProfile.ngoCode")}
+           value={ngo?.ngoCode}
+           textColor={text}
+           mutedColor={muted}
+         />
+         <InfoRow
+           icon="email"
+           label={t("ngoProfile.email")}
+           value={ngo?.email}
+           textColor={text}
+           mutedColor={muted}
+         />
        </View>
-
 
        {/* Campaign Statistics */}
-       <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.campaignOverview')}</Text>
-       <View style={[styles.card, styles.statsCard, { backgroundColor: isDarkMode ? '#302B27' : '#F3E8DD' }]}>
-         <InfoRow icon="bullhorn" label={t('ngoProfile.activeCampaigns')} value={campaignStats.count} textColor={text} mutedColor={muted} />
-         <InfoRow icon="currency-usd" label={t('ngoProfile.totalRaised')} value={`$${campaignStats.total}`} textColor={text} mutedColor={muted} />
+       <Text style={[styles.sectionTitle, { color: text }]}>
+         {t("ngoProfile.campaignOverview")}
+       </Text>
+       <View
+         style={[
+           styles.card,
+           styles.statsCard,
+           { backgroundColor: isDarkMode ? "#302B27" : "#F3E8DD" },
+         ]}
+       >
+         <InfoRow
+           icon="bullhorn"
+           label={t("ngoProfile.activeCampaigns")}
+           value={campaignStats.count}
+           textColor={text}
+           mutedColor={muted}
+         />
+         <InfoRow
+           icon="currency-usd"
+           label={t("ngoProfile.totalRaised")}
+           value={`$${campaignStats.total}`}
+           textColor={text}
+           mutedColor={muted}
+         />
        </View>
 
-
        {/* Appearance Settings */}
-       <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.preferences')}</Text>
-       <View style={[styles.prefRow, { backgroundColor: cardBg, borderColor: cardBor }]}>
+       <Text style={[styles.sectionTitle, { color: text }]}>
+         {t("ngoProfile.preferences")}
+       </Text>
+       <View
+         style={[
+           styles.prefRow,
+           { backgroundColor: cardBg, borderColor: cardBor },
+         ]}
+       >
          <View style={styles.prefLabel}>
            <Icon name="palette-swatch" size={20} color={accent} />
-           <Text style={[styles.prefText, { color: text }]}>{t('settings.dark_mode')}</Text>
+           <Text style={[styles.prefText, { color: text }]}>
+             {t("settings.dark_mode")}
+           </Text>
          </View>
          <Switch
            value={isDarkMode}
            onValueChange={toggleDarkMode}
-           trackColor={{ false: '#767577', true: '#2CB67D' }}
-           thumbColor={isDarkMode ? '#fff' : '#f4f3f4'}
+           trackColor={{ false: "#767577", true: "#2CB67D" }}
+           thumbColor={isDarkMode ? "#fff" : "#f4f3f4"}
          />
        </View>
-       <View style={[styles.prefRow, { backgroundColor: cardBg, borderColor: cardBor }]}>
+       <View
+         style={[
+           styles.prefRow,
+           { backgroundColor: cardBg, borderColor: cardBor },
+         ]}
+       >
          <View style={styles.prefLabel}>
            <Icon name="translate" size={20} color={accent} />
-           <Text style={[styles.prefText, { color: text }]}>{t('settings.select_language')}</Text>
+           <Text style={[styles.prefText, { color: text }]}>
+             {t("settings.select_language")}
+           </Text>
          </View>
-         <View style={{ flexDirection: 'row' }}>
+         <View style={{ flexDirection: "row" }}>
            <LangChip code="en" label="English" />
            <LangChip code="fr" label="Français" />
          </View>
        </View>
 
-
        {/* Actions */}
-       <Text style={[styles.sectionTitle, { color: text }]}>{t('ngoProfile.actions')}</Text>
+       <Text style={[styles.sectionTitle, { color: text }]}>
+         {t("ngoProfile.actions")}
+       </Text>
+       {!ngo?.stripeAccountId ? (
+         <TouchableOpacity style={styles.option} onPress={handleConnectStripe}>
+           <Icon name="credit-card-plus-outline" size={20} color={text} />
+           <Text style={[styles.optionText, { color: text }]}>
+             Connect Stripe to Receive Donations
+           </Text>
+         </TouchableOpacity>
+       ) : (
+         <TouchableOpacity
+           style={styles.option}
+           onPress={() => {
+             // Optionally open Stripe dashboard URL if you have it
+             Alert.alert("Info", "Stripe account already connected.");
+           }}
+         >
+           <Icon name="credit-card-outline" size={20} color={text} />
+           <Text style={[styles.optionText, { color: text }]}>
+             Stripe Account Connected
+           </Text>
+         </TouchableOpacity>
+       )}
 
-
-       <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('NgoEditProfile')}>
+       <TouchableOpacity
+         style={styles.option}
+         onPress={() => navigation.navigate("NgoEditProfile")}
+       >
          <Icon name="account-edit" size={20} color={text} />
-         <Text style={[styles.optionText, { color: text }]}>{t('ngoProfile.editngoProfile')}</Text>
+         <Text style={[styles.optionText, { color: text }]}>
+           {t("ngoProfile.editngoProfile")}
+         </Text>
        </TouchableOpacity>
-       <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('AboutUsScreen')}>
+       <TouchableOpacity
+         style={styles.option}
+         onPress={() => navigation.navigate("AboutUsScreen")}
+       >
          <Icon name="information-outline" size={20} color={text} />
-         <Text style={[styles.optionText, { color: text }]}>{t('ngoProfile.aboutUs')}</Text>
+         <Text style={[styles.optionText, { color: text }]}>
+           {t("ngoProfile.aboutUs")}
+         </Text>
        </TouchableOpacity>
        <TouchableOpacity style={styles.option} onPress={handleLogout}>
          <Icon name="exit-to-app" size={20} color="#e74c3c" />
-         <Text style={[styles.optionText, { color: '#e74c3c' }]}>{t('ngoProfile.logout')}</Text>
+         <Text style={[styles.optionText, { color: "#e74c3c" }]}>
+           {t("ngoProfile.logout")}
+         </Text>
        </TouchableOpacity>
      </ScrollView>
    </SafeAreaView>

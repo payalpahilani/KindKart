@@ -91,6 +91,44 @@ app.post("/create-payment-intent", express.json(), async (req, res) => {
  }
 });
 
+app.post("/create-stripe-account-link", express.json(), async (req, res) => {
+  const { ngoId, email } = req.body;
+
+  if (!ngoId || !email) {
+    return res.status(400).json({ error: "Missing ngoId or email" });
+  }
+
+  try {
+    // Create Stripe Express account
+    const account = await stripe.accounts.create({
+      type: "express",
+      email,
+      country: "CA", // adjust as needed
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+
+    // Save the Stripe account ID to your DB here
+    // Example with Firestore (if you have Firebase Admin initialized):
+    // await db.collection("ngo").doc(ngoId).set({ stripeAccountId: account.id }, { merge: true });
+
+    // Create onboarding link
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: "https://kindkart.com/reauth", // your reauth URL
+      return_url: "https://kindkart.com/profile", // your success return URL
+      type: "account_onboarding",
+    });
+
+    res.json({ url: accountLink.url });
+  } catch (error) {
+    console.error("Stripe account creation error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 const PORT = 4000;
 app.listen(PORT, "0.0.0.0", () =>
