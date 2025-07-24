@@ -11,10 +11,13 @@ import {
   SafeAreaView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { ThemeContext } from "../Utilities/ThemeContext"; // Adjust import path accordingly
+import { ThemeContext } from "../Utilities/ThemeContext";
 
 // Enable LayoutAnimation for Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -95,7 +98,7 @@ export default function FAQScreen({ navigation }) {
           style={styles.questionContainer}
           accessibilityRole="button"
           accessibilityState={{ expanded }}
-          accessibilityLabel={`FAQ question: ${item.question}`}
+          accessibilityLabel={`FAQ question: ${item.question || ""}`}
         >
           <Text
             style={[
@@ -103,7 +106,7 @@ export default function FAQScreen({ navigation }) {
               { color: isDarkMode ? "#FFF" : "#222" },
             ]}
           >
-            {item.question}
+            {item.question || "Question missing"}
           </Text>
           <Icon
             name={expanded ? "minus-circle-outline" : "plus-circle-outline"}
@@ -115,9 +118,12 @@ export default function FAQScreen({ navigation }) {
         {expanded && (
           <View style={styles.answerContainer}>
             <Text
-              style={[styles.answerText, { color: isDarkMode ? "#CCC" : "#555" }]}
+              style={[
+                styles.answerText,
+                { color: isDarkMode ? "#CCC" : "#555" },
+              ]}
             >
-              {item.answer}
+              {item.answer || "No answer available."}
             </Text>
           </View>
         )}
@@ -140,29 +146,20 @@ export default function FAQScreen({ navigation }) {
         ]}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation?.goBack?.()}
           style={styles.backButton}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Icon
-            name="arrow-left"
-            size={28}
-            color={isDarkMode ? "#F6B93B" : "#F6B93B"}
-          />
+          <Icon name="arrow-left" size={28} color="#F6B93B" />
         </TouchableOpacity>
-
         <Text
-          style={[
-            styles.headerTitle,
-            { color: isDarkMode ? "#F6B93B" : "#F6B93B" },
-          ]}
+          style={[styles.headerTitle, { color: "#F6B93B" }]}
           accessibilityRole="header"
         >
-          Frequently Asked Questions
+          {"Frequently Asked Questions"}
         </Text>
-
-        <View style={{ width: 28 }} /> {/* Placeholder for centering */}
+        <View style={{ width: 28 }} />
       </View>
 
       <FlatList

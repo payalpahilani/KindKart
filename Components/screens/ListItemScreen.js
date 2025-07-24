@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import { collection, addDoc, serverTimestamp, onSnapshot,doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  onSnapshot,
+  doc,
+  getDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
 import CustomDropdown from "../Utilities/CustomDropdown";
@@ -25,8 +33,9 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 import { GOOGLE_API_KEY } from "@env";
-import { checkAndAwardBadges } from '../Utilities/firebaseHelpers';
-import ConfettiCannon from 'react-native-confetti-cannon';
+import { checkAndAwardBadges } from "../Utilities/firebaseHelpers";
+import ConfettiCannon from "react-native-confetti-cannon";
+import { ThemeContext } from "../Utilities/ThemeContext";
 
 // Constants
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
@@ -73,6 +82,25 @@ function getMimeType(uri) {
 }
 
 export default function ListItemScreen() {
+  const { isDarkMode } = useContext(ThemeContext);
+
+  // Theme colors
+  const colorBackground = isDarkMode ? "#191B1C" : "#fff";
+  const colorCard = isDarkMode ? "#242426" : "#fff";
+  const colorText = isDarkMode ? "#fff" : "#222";
+  const colorMuted = isDarkMode ? "#AAA" : "#888";
+  const colorBorder = isDarkMode ? "#353546" : "#DCE3E9";
+  const colorInputBG = isDarkMode ? "#25282D" : "#f8fafb";
+  const colorInputBorder = isDarkMode ? "#333" : "#DCE3E9";
+  const colorLabel = isDarkMode ? "#f0c164" : "#888";
+  const colorHint = isDarkMode ? "#bbb" : "#888";
+  const colorPrimary = "#F6B93B";
+  const colorButton = isDarkMode ? "#373749" : "#DCE3E9";
+  const colorButtonDisabled = isDarkMode ? "#555151" : "#F7DCA5";
+  const colorBadgeBG = isDarkMode ? "#23253A" : "#fff";
+  const colorBadgeText = isDarkMode ? "#FFFACD" : "#222";
+  const colorApplyBtn = "#F6B93B";
+
   const [userEmail, setUserEmail] = useState(null);
 
   useEffect(() => {
@@ -96,7 +124,7 @@ export default function ListItemScreen() {
   const [loadingCauses, setLoadingCauses] = useState(true);
   const [salePrice, setSalePrice] = useState("");
   const [negotiable, setNegotiable] = useState(false);
-  const [currency, setCurrency] = useState(null); // <-- Default: null so no pre-selection
+  const [currency, setCurrency] = useState(null); // Default: null so no pre-selection
   const [condition, setCondition] = useState(conditionOptions[0]);
   const [description, setDescription] = useState("");
   const [useAddress, setUseAddress] = useState(false);
@@ -124,7 +152,7 @@ export default function ListItemScreen() {
   const [unlockedBadge, setUnlockedBadge] = useState(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
 
-  // ActionSheet/Alert for image
+  // Image Picker Functions
   const pickImageOption = () => {
     Alert.alert(
       "Upload Image",
@@ -324,53 +352,52 @@ export default function ListItemScreen() {
         createdAt: serverTimestamp(),
       });
 
-  if (userId) {
-  const userRef = doc(db, 'users', userId);
-  const userSnap = await getDoc(userRef);
+      if (userId) {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
 
-  if (userSnap.exists()) {
-    const userData = userSnap.data();
-    const currentListingCount = userData.listingCount || 0;
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const currentListingCount = userData.listingCount || 0;
+          const newListingCount = currentListingCount + 1;
 
-    const newListingCount = currentListingCount + 1;
+          await updateDoc(userRef, {
+            listingCount: newListingCount,
+          });
+          // Pass updated userData
+          const updatedUserData = {
+            ...userData,
+            listingCount: newListingCount,
+          };
+          const unlocked = await checkAndAwardBadges(userId, updatedUserData);
 
-    await updateDoc(userRef, {
-      listingCount: newListingCount,
-    });
-    // Pass updated userData
-    const updatedUserData = {
-      ...userData,
-      listingCount: newListingCount,
-    };
-    const unlocked = await checkAndAwardBadges(userId, updatedUserData);
-
-if (unlocked.length > 0) {
-  setUnlockedBadge(unlocked[0]); // or handle multiple
-  setShowBadgeModal(true);
-} else {
-  Alert.alert("Ad listed successfully!");
-}
-      setTitle("");
-      setNgo("");
-      setNgoLabel("");
-      setCause("");
-      setCauseLabel("");
-      setPrice("");
-      setSalePrice("");
-      setNegotiable(false);
-      setCurrency(null); // Reset to unselected
-      setCondition(conditionOptions[0]);
-      setCategory(categoryOptions[0]);
-      setDescription("");
-      setUseAddress(false);
-      setImages([]);
-      setAgree(false);
-      setPickupLocation("");
-      setPickupCoords(null);
-    } 
-  }
-}
-catch (err) {
+          if (unlocked.length > 0) {
+            setUnlockedBadge(unlocked[0]); // or handle multiple
+            setShowBadgeModal(true);
+          } else {
+            Alert.alert("Ad listed successfully!");
+          }
+          // Reset Form
+          setTitle("");
+          setNgo("");
+          setNgoLabel("");
+          setCause("");
+          setCauseLabel("");
+          setPrice("");
+          setSalePrice("");
+          setNegotiable(false);
+          setCurrency(null);
+          setCondition(conditionOptions[0]);
+          setCategory(categoryOptions[0]);
+          setDescription("");
+          setUseAddress(false);
+          setImages([]);
+          setAgree(false);
+          setPickupLocation("");
+          setPickupCoords(null);
+        }
+      }
+    } catch (err) {
       Alert.alert("Error", err.message);
     }
     setLoading(false);
@@ -399,7 +426,7 @@ catch (err) {
   const renderAddImageBtn = () => (
     <TouchableOpacity
       style={styles.imageBox}
-      onPress={pickImageOption} // <--- Changed from pickImages
+      onPress={pickImageOption}
       disabled={(images || []).length >= MAX_IMAGES}
     >
       <Text style={{ fontSize: 32, color: "#bbb" }}>+</Text>
@@ -518,7 +545,7 @@ catch (err) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colorBackground }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -527,9 +554,15 @@ catch (err) {
           contentContainerStyle={{ flexGrow: 1, paddingTop: 12 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.container}>
-            <Text style={styles.header}>List your Ad</Text>
-            <Text style={styles.label}>Ad Images/Video</Text>
+          <View
+            style={[styles.container, { backgroundColor: colorBackground }]}
+          >
+            <Text style={[styles.header, { color: colorText }]}>
+              List your Ad
+            </Text>
+            <Text style={[styles.label, { color: colorText }]}>
+              Ad Images/Video
+            </Text>
             <View>
               <FlatList
                 data={[
@@ -546,33 +579,54 @@ catch (err) {
                 contentContainerStyle={{ marginBottom: 6 }}
                 showsHorizontalScrollIndicator={false}
               />
-              <Text style={styles.imageHint}>
+              <Text style={[styles.imageHint, { color: colorHint }]}>
                 Prepare images before uploading. Upload images larger than 750px
                 × 450px. Max number of images is 5. Max image size is 134MB.
               </Text>
             </View>
 
-            <Text style={styles.inputLabel}>CATEGORY</Text>
+            <Text style={[styles.inputLabel, { color: colorLabel }]}>
+              CATEGORY
+            </Text>
             <CustomDropdown
               data={categoryData}
               value={category}
               onChange={setCategory}
               placeholder="Select Category"
               testID="categoryDropdown"
+              style={{
+                backgroundColor: colorInputBG,
+                color: colorText,
+                borderColor: colorInputBorder,
+              }}
+              placeholderTextColor={colorMuted}
             />
 
             <Text style={styles.sectionHeader}>Tell us about your item</Text>
-            <Text style={styles.inputLabel}>TITLE</Text>
+
+            <Text style={[styles.inputLabel, { color: colorLabel }]}>
+              TITLE
+            </Text>
             <TextInput
               placeholder="The item's title"
+              placeholderTextColor={colorMuted}
               value={title}
               onChangeText={setTitle}
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colorInputBG,
+                  borderColor: colorInputBorder,
+                  color: colorText,
+                },
+              ]}
             />
 
-            <Text style={styles.inputLabel}>Select NGO</Text>
+            <Text style={[styles.inputLabel, { color: colorLabel }]}>
+              Select NGO
+            </Text>
             {loadingNgos ? (
-              <ActivityIndicator size="small" color="#2CB67D" />
+              <ActivityIndicator size="small" color={colorPrimary} />
             ) : (
               <CustomDropdown
                 data={ngoOptions}
@@ -585,12 +639,20 @@ catch (err) {
                 }}
                 placeholder="Select NGO"
                 testID="ngoDropdown"
+                style={{
+                  backgroundColor: colorInputBG,
+                  color: colorText,
+                  borderColor: colorInputBorder,
+                }}
+                placeholderTextColor={colorMuted}
               />
             )}
 
-            <Text style={styles.inputLabel}>Select Cause</Text>
+            <Text style={[styles.inputLabel, { color: colorLabel }]}>
+              Select Cause
+            </Text>
             {loadingCauses ? (
-              <ActivityIndicator size="small" color="#2CB67D" />
+              <ActivityIndicator size="small" color={colorPrimary} />
             ) : (
               <CustomDropdown
                 data={causeOptions}
@@ -608,28 +670,54 @@ catch (err) {
                 }
                 testID="causeDropdown"
                 disabled={!ngo}
+                style={{
+                  backgroundColor: colorInputBG,
+                  color: colorText,
+                  borderColor: colorInputBorder,
+                }}
+                placeholderTextColor={colorMuted}
               />
             )}
 
             <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>PRICE</Text>
+                <Text style={[styles.inputLabel, { color: colorLabel }]}>
+                  PRICE
+                </Text>
                 <TextInput
                   placeholder="0.00"
+                  placeholderTextColor={colorMuted}
                   value={price}
                   onChangeText={setPrice}
                   keyboardType="numeric"
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colorInputBG,
+                      borderColor: colorInputBorder,
+                      color: colorText,
+                    },
+                  ]}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>SALE PRICE</Text>
+                <Text style={[styles.inputLabel, { color: colorLabel }]}>
+                  SALE PRICE
+                </Text>
                 <TextInput
                   placeholder="0.00"
+                  placeholderTextColor={colorMuted}
                   value={salePrice}
                   onChangeText={setSalePrice}
                   keyboardType="numeric"
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colorInputBG,
+                      borderColor: colorInputBorder,
+                      color: colorText,
+                    },
+                  ]}
                 />
               </View>
             </View>
@@ -638,50 +726,79 @@ catch (err) {
               <Checkbox
                 value={negotiable}
                 onValueChange={setNegotiable}
-                color={negotiable ? "#F6B93B" : undefined}
+                color={negotiable ? colorPrimary : undefined}
                 style={styles.checkbox}
               />
-              <Text style={styles.checkboxLabel}>Is price negotiable?</Text>
+              <Text style={[styles.checkboxLabel, { color: colorText }]}>
+                Is price negotiable?
+              </Text>
             </View>
 
             <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>CURRENCY</Text>
+                <Text style={[styles.inputLabel, { color: colorLabel }]}>
+                  CURRENCY
+                </Text>
                 <CustomDropdown
                   data={currencyData}
                   value={currency}
                   onChange={setCurrency}
                   placeholder="Select Currency"
                   testID="currencyDropdown"
+                  style={{
+                    backgroundColor: colorInputBG,
+                    color: colorText,
+                    borderColor: colorInputBorder,
+                  }}
+                  placeholderTextColor={colorMuted}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>CONDITION</Text>
+                <Text style={[styles.inputLabel, { color: colorLabel }]}>
+                  CONDITION
+                </Text>
                 <CustomDropdown
                   data={conditionData}
                   value={condition}
                   onChange={setCondition}
                   placeholder="Select Condition"
                   testID="conditionDropdown"
+                  style={{
+                    backgroundColor: colorInputBG,
+                    color: colorText,
+                    borderColor: colorInputBorder,
+                  }}
+                  placeholderTextColor={colorMuted}
                 />
               </View>
             </View>
 
-            <Text style={styles.inputLabel}>DESCRIPTION</Text>
+            <Text style={[styles.inputLabel, { color: colorLabel }]}>
+              DESCRIPTION
+            </Text>
             <TextInput
               placeholder="Description"
+              placeholderTextColor={colorMuted}
               value={description}
               onChangeText={setDescription}
               multiline
               style={[
                 styles.input,
-                { minHeight: 60, textAlignVertical: "top" },
+                {
+                  minHeight: 60,
+                  textAlignVertical: "top",
+                  backgroundColor: colorInputBG,
+                  borderColor: colorInputBorder,
+                  color: colorText,
+                },
               ]}
             />
 
             <View style={styles.pickupRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
+                <Text style={[styles.inputLabel, { color: colorLabel }]}>
+                  PICKUP LOCATION
+                </Text>
                 <TouchableOpacity
                   onPress={openLocationModal}
                   activeOpacity={0.7}
@@ -691,19 +808,38 @@ catch (err) {
                     value={pickupLocation}
                     editable={false}
                     pointerEvents="none"
-                    style={[styles.input, { backgroundColor: "#f7f7f7" }]}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: isDarkMode ? "#444" : "#f7f7f7",
+                        color: colorText,
+                      },
+                    ]}
+                    placeholderTextColor={colorMuted}
                   />
                 </TouchableOpacity>
               </View>
             </View>
+
             <Modal
               visible={modalVisible}
               animationType="slide"
               transparent={true}
               onRequestClose={() => setModalVisible(false)}
             >
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalCard}>
+              <View
+                style={[
+                  styles.modalOverlay,
+                  {
+                    backgroundColor: isDarkMode
+                      ? "rgba(28,28,28,0.8)"
+                      : "rgba(0,0,0,0.26)",
+                  },
+                ]}
+              >
+                <View
+                  style={[styles.modalCard, { backgroundColor: colorCard }]}
+                >
                   <View style={styles.dragIndicator} />
                   <TouchableOpacity
                     style={styles.closeIcon}
@@ -714,12 +850,22 @@ catch (err) {
                   </TouchableOpacity>
                   <TextInput
                     placeholder="Search address"
+                    placeholderTextColor={colorMuted}
                     value={search}
                     onChangeText={fetchSuggestions}
-                    style={styles.modalSearch}
+                    style={[
+                      styles.modalSearch,
+                      {
+                        backgroundColor: colorInputBG,
+                        borderColor: colorInputBorder,
+                        color: colorText,
+                      },
+                    ]}
                     autoFocus
                   />
-                  {autocompleteLoading && <ActivityIndicator size="small" />}
+                  {autocompleteLoading && (
+                    <ActivityIndicator size="small" color={colorPrimary} />
+                  )}
                   <FlatList
                     data={suggestions || []}
                     keyExtractor={(item) => item.place_id}
@@ -728,18 +874,23 @@ catch (err) {
                         style={styles.suggestion}
                         onPress={() => handleSelect(item)}
                       >
-                        <Text>{item.description}</Text>
+                        <Text style={{ color: colorText }}>
+                          {item.description}
+                        </Text>
                       </TouchableOpacity>
                     )}
                     style={{
                       maxHeight: 160,
                       marginBottom: 8,
-                      backgroundColor: "#fff",
+                      backgroundColor: colorCard,
                       borderRadius: 6,
                     }}
                     keyboardShouldPersistTaps="handled"
                   />
-                  <View style={styles.mapContainer}>
+
+                  <View
+                    style={[styles.mapContainer, { borderColor: colorBorder }]}
+                  >
                     {region && (
                       <MapView
                         style={styles.map}
@@ -763,7 +914,10 @@ catch (err) {
                     )}
                   </View>
                   <TouchableOpacity
-                    style={styles.applyButton}
+                    style={[
+                      styles.applyButton,
+                      { backgroundColor: colorApplyBtn },
+                    ]}
                     onPress={handleApplyLocation}
                     disabled={!pickupLocation}
                   >
@@ -772,27 +926,30 @@ catch (err) {
                 </View>
               </View>
             </Modal>
+
             <View style={styles.checkboxRow}>
               <Checkbox
                 value={agree}
                 onValueChange={setAgree}
-                color={agree ? "#F6B93B" : undefined}
+                color={agree ? colorPrimary : undefined}
                 style={styles.checkbox}
               />
-              <Text style={styles.checkboxLabel}>
+              <Text style={[styles.checkboxLabel, { color: colorText }]}>
                 I agree to{" "}
-                <Text style={{ color: "#F6B93B" }}>terms & conditions</Text>
+                <Text style={{ color: colorPrimary }}>terms & conditions</Text>
               </Text>
             </View>
+
             <View
               style={{ flexDirection: "row", marginTop: 16, marginBottom: 32 }}
             >
               <TouchableOpacity
                 style={[
                   styles.button,
-                  { backgroundColor: "#DCE3E9", marginRight: 8 },
+                  { backgroundColor: colorButton, marginRight: 8 },
                 ]}
                 onPress={() => {
+                  // Reset all fields
                   setTitle("");
                   setNgo("");
                   setNgoLabel("");
@@ -801,7 +958,7 @@ catch (err) {
                   setPrice("");
                   setSalePrice("");
                   setNegotiable(false);
-                  setCurrency(null); // Reset to unselected
+                  setCurrency(null);
                   setCondition(conditionOptions[0]);
                   setCategory(categoryOptions[0]);
                   setDescription("");
@@ -813,7 +970,12 @@ catch (err) {
                 }}
                 disabled={loading}
               >
-                <Text style={[styles.buttonText, { color: "#2d3a4b" }]}>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: isDarkMode ? "#fff" : "#2d3a4b" },
+                  ]}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -821,7 +983,7 @@ catch (err) {
                 style={[
                   styles.button,
                   {
-                    backgroundColor: agree ? "#F6B93B" : "#F7DCA5",
+                    backgroundColor: agree ? colorPrimary : colorButtonDisabled,
                     flex: 1,
                   },
                 ]}
@@ -835,30 +997,37 @@ catch (err) {
                 )}
               </TouchableOpacity>
             </View>
+
             {showBadgeModal && (
               <>
-  <View style={styles.badgeModalOverlay}>
-    <View style={styles.badgeModal}>
-      <Text style={styles.badgeTitle}>🎉 Badge Unlocked!</Text>
-      <Text style={styles.badgeName}>
-        {unlockedBadge === 'firstListing'
-          ? 'First Listing 🧾'
-          : unlockedBadge === 'communitySeller'
-          ? 'Community Seller 👥'
-          : unlockedBadge}
-      </Text>
-      <TouchableOpacity
-        onPress={() => setShowBadgeModal(false)}
-        style={styles.badgeButton}
-      >
-        <Text style={styles.badgeButtonText}>Awesome!</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-  <ConfettiCannon count={100} origin={{ x: -10, y: 0 }} fadeOut />
-  </>
-)}
-
+                <View style={styles.badgeModalOverlay}>
+                  <View
+                    style={[
+                      styles.badgeModal,
+                      { backgroundColor: colorBadgeBG },
+                    ]}
+                  >
+                    <Text style={[styles.badgeTitle, { color: colorPrimary }]}>
+                      🎉 Badge Unlocked!
+                    </Text>
+                    <Text style={[styles.badgeName, { color: colorBadgeText }]}>
+                      {unlockedBadge === "firstListing"
+                        ? "First Listing 🧾"
+                        : unlockedBadge === "communitySeller"
+                        ? "Community Seller 👥"
+                        : unlockedBadge}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setShowBadgeModal(false)}
+                      style={styles.badgeButton}
+                    >
+                      <Text style={styles.badgeButtonText}>Awesome!</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <ConfettiCannon count={100} origin={{ x: -10, y: 0 }} fadeOut />
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -869,7 +1038,6 @@ catch (err) {
 const styles = StyleSheet.create({
   container: {
     padding: 18,
-    backgroundColor: "#fff",
     flex: 1,
   },
   header: {
@@ -885,7 +1053,6 @@ const styles = StyleSheet.create({
   },
   imageHint: {
     fontSize: 12,
-    color: "#888",
     marginBottom: 10,
     marginTop: 8,
   },
@@ -896,19 +1063,16 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    color: "#888",
     marginTop: 12,
     marginBottom: 2,
     fontWeight: "600",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#DCE3E9",
     borderRadius: 6,
     padding: 10,
     marginBottom: 2,
     fontSize: 15,
-    backgroundColor: "#f8fafb",
   },
   pickupRow: {
     flexDirection: "row",
@@ -922,7 +1086,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: "#f2f2f2",
     marginRight: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -956,7 +1119,6 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
-    color: "#2d3a4b",
   },
   button: {
     flex: 1,
@@ -973,11 +1135,9 @@ const styles = StyleSheet.create({
   // Modal UI
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.32)",
     justifyContent: "flex-end",
   },
   modalCard: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -1008,11 +1168,9 @@ const styles = StyleSheet.create({
   },
   modalSearch: {
     borderWidth: 1,
-    borderColor: "#DCE3E9",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#f8fafb",
     marginBottom: 8,
     marginTop: 8,
     elevation: 1,
@@ -1021,7 +1179,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#eee",
     marginTop: 8,
     marginBottom: 16,
     height: 220,
@@ -1031,7 +1188,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   applyButton: {
-    backgroundColor: "#F6B93B",
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -1053,40 +1209,39 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
   badgeModalOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 999,
   },
   badgeModal: {
-    backgroundColor: '#fff',
     padding: 30,
     borderRadius: 20,
-    alignItems: 'center',
+    alignItems: "center",
     width: 280,
   },
   badgeTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 10,
-    color: '#4C9F70',
   },
   badgeName: {
     fontSize: 18,
     marginBottom: 20,
-    color: '#222',
   },
   badgeButton: {
-    backgroundColor: '#4C9F70',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
+    backgroundColor: "#4C9F70",
   },
   badgeButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
-  
 });
