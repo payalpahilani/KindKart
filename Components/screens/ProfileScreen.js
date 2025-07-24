@@ -83,7 +83,7 @@ export default function ProfileScreen() {
         navigation.navigate("SettingsScreen");
         break;
       case "faq":
-        navigation.navigate("FAQScreen");
+        navigation.navigate("FAQ");
         break;
       case "exit":
         signOut(auth)

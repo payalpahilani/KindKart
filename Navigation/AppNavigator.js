@@ -43,6 +43,7 @@ import YourAdsScreen from "../Components/screens/YourAdsScreen";
 import EditListingScreen from "../Components/screens/EditListingScreen";
 import CategoryAdsScreen from "../Components/screens/CategoryAdsScreen";
 import PaymentScreen from '../Components/screens/PaymentScreen';
+import FAQScreen from "../Components/screens/FAQScreen";
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -202,6 +203,7 @@ export default function AppNavigator() {
         <RootStack.Screen name="Login" component={LoginScreen} />
         <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen}/>
         <RootStack.Screen name="SignUp" component={SignUpScreen} />
+        <RootStack.Screen name="FAQ" component={FAQScreen} />
         <RootStack.Screen name="MainTabs" component={MainTabs} />
         <RootStack.Screen name="NgoLogin" component={NgoLoginScreen} />
         <RootStack.Screen name="NgoSignUp" component={NgoSignUpScreen} />
