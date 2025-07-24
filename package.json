@@ -40,6 +40,7 @@
     "expo-web-browser": "~14.1.6",
     "express": "^5.1.0",
     "firebase": "^11.8.1",
+    "firebase-admin": "^13.4.0",
     "i18next": "^25.3.0",
     "kindkart": "file:",
     "parse": "^6.1.1",

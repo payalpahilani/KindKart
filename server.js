@@ -10,8 +10,6 @@ const admin = require("firebase-admin");
 const { getFirestore } = require("firebase-admin/firestore");
 
 
-
-
 if (!admin.apps.length) {
  admin.initializeApp({
    credential: admin.credential.cert({
