@@ -19,6 +19,9 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { auth } from '../../firebaseConfig';
 import { ThemeContext } from '../Utilities/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
+import { checkAndAwardBadges } from '../Utilities/firebaseHelpers'; 
 
 export default function PaymentScreen() {
   const [amount, setAmount] = useState('');
@@ -28,6 +31,9 @@ export default function PaymentScreen() {
 
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [unlockedBadge, setUnlockedBadge] = useState(null);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+
 
   const { isDarkMode } = useContext(ThemeContext);
   const { t } = useTranslation();
@@ -48,45 +54,74 @@ export default function PaymentScreen() {
       Alert.alert(t('payment.invalidAmountTitle'), t('payment.invalidAmountMessage'));
       return;
     }
-
+  
     setPaymentLoading(true);
     try {
       const response = await fetch('https://kindkart-0l245p6y.b4a.run/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: numAmount * 100, // Convert to cents
+          amount: numAmount * 100,
           currency,
           description: `Donation to ${title}`,
           userId: auth.currentUser?.uid || 'anonymous',
           campaignId,
         }),
       });
-
+  
       const { clientSecret } = await response.json();
-
+  
       const init = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: 'KindKart',
         returnURL: 'kindkartpay://stripe-redirect',
       });
-
+  
       if (init.error) throw init.error;
-
+  
       const result = await presentPaymentSheet();
       if (result.error) throw result.error;
+  
+      const userId = auth.currentUser?.uid;
+  
+      if (userId) {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+  
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const currentDonationCount = userData.donationCount || 0;
+          const currentTotalDonated = userData.totalDonated || 0;
 
+          await updateDoc(userRef, {
+            donationCount: currentDonationCount + 1,
+            totalDonated: currentTotalDonated + parseFloat(amount),
+          });
+  
+          const unlocked = await checkAndAwardBadges(userId);
+  
+          if (unlocked && unlocked.length > 0) {
+            setUnlockedBadge(unlocked[0]);
+            setShowBadgeModal(true);
+            return; // prevent goBack below
+          }
+        }
+      }
+  
+      // Only show alert if no badge modal is shown
       Alert.alert(
-        t('payment.thankYouTitle'),
-        t('payment.successMessage', { amount: numAmount.toFixed(2), currency, title })
+        "🎉 Donation Successful!",
+        `You donated ${currency} ${numAmount.toFixed(2)} Thank you for your kindness!`
       );
+  
       navigation.goBack();
     } catch (err) {
       Alert.alert(t('payment.failedTitle'), err.message);
     }
-
+  
     setPaymentLoading(false);
   };
+  
 
   const thumbnails = imageUrls.map((url, index) => (
     <TouchableOpacity key={index} onPress={() => setSelectedImage({ uri: url })}>
@@ -95,6 +130,7 @@ export default function PaymentScreen() {
   ));
 
   return (
+    <>
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor={isDarkMode ? '#121212' : '#fff'} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
@@ -141,7 +177,26 @@ export default function PaymentScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
+    {showBadgeModal && (
+      <View style={styles.badgeModalOverlay}>
+        <View style={styles.badgeModal}>
+          <Text style={styles.badgeTitle}>🎉 Badge Unlocked!</Text>
+          <Text style={styles.badgeName}>
+            {unlockedBadge === 'firstDonation'
+              ? 'First Donation 🥉'
+              : unlockedBadge}
+          </Text>
+          <TouchableOpacity onPress={() => {
+            setShowBadgeModal(false);
+            navigation.goBack();
+          }} style={styles.badgeButton}>
+            <Text style={styles.badgeButtonText}>Awesome!</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    )}
+  </>
+);
 }
 
 const baseStyles = {
@@ -177,6 +232,43 @@ const baseStyles = {
     fontWeight: 'bold',
     fontSize: 16,
   },
+  badgeModalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  badgeModal: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: 280,
+  },
+  badgeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#F6B93B',
+  },
+  badgeName: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: '#222',
+  },
+  badgeButton: {
+    backgroundColor: '#F6B93B',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  badgeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  
 };
 
 const lightStyles = StyleSheet.create({

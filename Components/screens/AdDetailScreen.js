@@ -34,6 +34,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { db, auth } from "../../firebaseConfig";
 import { ThemeContext } from "../Utilities/ThemeContext";
 import { useStripe } from "@stripe/stripe-react-native";
+import { checkAndAwardBadges } from "../Utilities/firebaseHelpers"; // Add this at the top if not already
 
 const { width } = Dimensions.get("window");
 
@@ -71,6 +72,10 @@ export default function AdDetailsScreen({ route, navigation }) {
   const [liked, setLiked] = useState(false);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  const [unlockedBadge, setUnlockedBadge] = useState([]);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+
 
   // Track current user ID for ownership check
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -226,10 +231,38 @@ export default function AdDetailsScreen({ route, navigation }) {
         url: selectedImage,
         title: adData.title,
       });
+  
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const currentCount = userData.sharedCount || 0;
+          const newCount = currentCount + 1;
+  
+          const updatedUserData = {
+            ...userData,
+            sharedCount: newCount,
+          };
+  
+          await updateDoc(userRef, {
+            sharedCount: newCount,
+          });
+  
+          const unlocked = await checkAndAwardBadges(currentUser.uid, updatedUserData);
+          if (unlocked.length > 0) {
+            setUnlockedBadge(unlocked);
+            setShowBadgeModal(true);
+        }
+        }
+      }
     } catch (error) {
       alert("Error sharing: " + error.message);
     }
   };
+  
+
 
   const handleDelete = async () => {
     // Confirm delete (cross-platform)
@@ -665,6 +698,48 @@ export default function AdDetailsScreen({ route, navigation }) {
           )}
         </View>
       </ScrollView>
+      {showBadgeModal && (
+  <View
+    style={
+      isDarkMode
+        ? darkStyles.badgeModalOverlay
+        : lightStyles.badgeModalOverlay
+    }>
+    <View
+      style={
+        isDarkMode ? darkStyles.badgeModal : lightStyles.badgeModal
+      }>
+      <Text style={isDarkMode ? darkStyles.badgeTitle : lightStyles.badgeTitle}>
+        🎉 Badge Unlocked!
+      </Text>
+
+      {unlockedBadge.map((badgeKey) => (
+        <Text
+          key={badgeKey}
+          style={isDarkMode ? darkStyles.badgeName : lightStyles.badgeName}>
+          {badgeKey === 'helperBee'
+            ? 'Helper Bee 🐝'
+            : badgeKey === 'firstDonation'
+            ? 'First Donation 💖'
+            : badgeKey}
+        </Text>
+      ))}
+
+      <TouchableOpacity
+        onPress={() => setShowBadgeModal(false)}
+        style={isDarkMode ? darkStyles.badgeButton : lightStyles.badgeButton}>
+        <Text
+          style={
+            isDarkMode ? darkStyles.badgeButtonText : lightStyles.badgeButtonText
+          }>
+          Awesome!
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+
+
     </SafeAreaView>
   );
 }
@@ -876,6 +951,44 @@ const lightStyles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
   },
+  badgeModalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  badgeModal: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: 280,
+  },
+  badgeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#4C9F70',
+  },
+  badgeName: {
+    fontSize: 18,
+    marginBottom: 6,
+    color: '#222',
+  },
+  badgeButton: {
+    backgroundColor: '#4C9F70',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  badgeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  
 });
 
 const darkStyles = StyleSheet.create({
@@ -1087,4 +1200,42 @@ const darkStyles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
   },
+  badgeModalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  badgeModal: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: 280,
+  },
+  badgeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#4C9F70',
+  },
+  badgeName: {
+    fontSize: 18,
+    marginBottom: 6,
+    color: '#222',
+  },
+  badgeButton: {
+    backgroundColor: '#4C9F70',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  badgeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  
 });
