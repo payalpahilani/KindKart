@@ -23,6 +23,8 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemeContext } from "../Utilities/ThemeContext";
 import { db } from "../../firebaseConfig";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { LinearGradient } from "expo-linear-gradient";
+
 
 const { width } = Dimensions.get("window");
 
@@ -801,29 +803,44 @@ function AdGridCard({ ad, st, navigation }) {
       onPress={() => navigation.navigate("AdDetails", { ad })}
       style={{ flex: 1 }}
     >
-      <View style={st.gridCard}>
-        <Image source={{ uri: ad.firstImage }} style={st.gridImage} />
+    
+      <LinearGradient
+        colors={["#F5EEE6", "#E9F6F8", "#CDE7F0"]} // Light gradient
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={st.gridCard}
+      >
+       <Image source={{ uri: ad.firstImage }} style={st.gridImage} />
         <Text style={st.gridTitle}>{ad.title}</Text>
-        {/* Price with currency in green */}
         <Text style={[st.gridPrice, { color: "#2CB67D", marginBottom: 2 }]}>
+  
           {ad.price ? `${ad.currency.label || ""} ${ad.salePrice}` : ""}
         </Text>
-        {/* Location in red, below price */}
+        
         {ad.pickupLocation ? (
           <Text style={{ color: "#FF4D4F", fontSize: 13, marginBottom: 4 }}>
-            {ad.pickupLocation}
+        {ad.pickupLocation}
           </Text>
         ) : null}
+       
         <TouchableOpacity
           onPress={() => handleShare(ad)}
-          style={{ position: "absolute", top: 8, right: 8 }}
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+          }}
         >
           <Icon name="share-variant" size={18} color="#A0A0A0" />
+         
         </TouchableOpacity>
-      </View>
+    
+      </LinearGradient>
+   
     </TouchableOpacity>
   );
 }
+
 
 const common = StyleSheet.create({
   safe: { flex: 1 },

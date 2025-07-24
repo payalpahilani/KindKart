@@ -26,7 +26,7 @@ import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
 import CustomDropdown from "../Utilities/CustomDropdown";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 import { GOOGLE_API_KEY } from "@env";
@@ -716,6 +716,11 @@ export default function ListItemScreen() {
                       <MapView
                         style={styles.map}
                         region={region}
+                        provider={
+                          Platform.OS === "android"
+                            ? PROVIDER_GOOGLE
+                            : undefined
+                        }
                         showsUserLocation={true}
                       >
                         {pickupCoords && (

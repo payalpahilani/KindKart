@@ -43,6 +43,9 @@ import YourAdsScreen from "../Components/screens/YourAdsScreen";
 import EditListingScreen from "../Components/screens/EditListingScreen";
 import CategoryAdsScreen from "../Components/screens/CategoryAdsScreen";
 import PaymentScreen from '../Components/screens/PaymentScreen';
+import SellerDetailScreen from '../Components/screens/SellerDetailScreen'
+import SellerReviewScreen from "../Components/screens/SellerReviewScreen";
+import AllReviewsScreen from "../Components/screens/AllReviewsScreen"
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -231,6 +234,9 @@ export default function AppNavigator() {
         <RootStack.Screen name="LikedAdsScreen" component={LikedAdsScreen} />
         <RootStack.Screen name="EditListingScreen" component={EditListingScreen} />
         <RootStack.Screen name="CategoryAdsScreen" component={CategoryAdsScreen} />
+        <RootStack.Screen name="SellerDetailScreen" component={SellerDetailScreen} />
+        <RootStack.Screen name="SellerReviewScreen" component={SellerReviewScreen} />
+        <RootStack.Screen name="AllReviewsScreen" component={AllReviewsScreen} />
         <RootStack.Screen
           name="NgoEditProfile"
           component={NgoEditProfileScreen}

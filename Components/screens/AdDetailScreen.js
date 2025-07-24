@@ -15,7 +15,7 @@ import {
   Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import {
   doc,
   onSnapshot,
@@ -71,6 +71,8 @@ export default function AdDetailsScreen({ route, navigation }) {
   const [liked, setLiked] = useState(false);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [sellerReviews, setSellerReviews] = useState([]);
+
 
   // Track current user ID for ownership check
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -83,6 +85,15 @@ export default function AdDetailsScreen({ route, navigation }) {
 
   // Ownership check
   const isOwner = currentUserId && adData && adData.userId === currentUserId;
+
+  const sellerReviewCount = sellerReviews.length;
+  const sellerAverageRating = sellerReviewCount
+    ? (
+        sellerReviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+        sellerReviewCount
+      ).toFixed(1)
+    : null;
+
 
   useEffect(() => {
     setLoading(true);
@@ -100,9 +111,13 @@ export default function AdDetailsScreen({ route, navigation }) {
       setLoading(false);
     });
 
+    const userId = ad.userId || (adData && adData.userId); // ⬅️ Moved here
+
     let unsubscribeUser = () => {};
-    const userId = ad.userId || (adData && adData.userId);
+    let unsubscribeReviews = () => {};
+
     if (userId) {
+      // Fetch seller info
       unsubscribeUser = onSnapshot(doc(db, "users", userId), (userSnap) => {
         if (userSnap.exists()) {
           const userData = userSnap.data();
@@ -113,9 +128,13 @@ export default function AdDetailsScreen({ route, navigation }) {
           setUserAvatar(null);
         }
       });
-    } else {
-      setUserName("Seller");
-      setUserAvatar(null);
+
+      // Fetch seller reviews
+      const reviewsRef = collection(db, "users", userId, "reviews");
+      unsubscribeReviews = onSnapshot(reviewsRef, (snap) => {
+        const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setSellerReviews(data);
+      });
     }
 
     const checkIfLiked = async () => {
@@ -131,9 +150,9 @@ export default function AdDetailsScreen({ route, navigation }) {
 
     return () => {
       unsubscribeAd();
-      unsubscribeUser();
+      unsubscribeUser?.();
+      unsubscribeReviews?.();
     };
-    // eslint-disable-next-line
   }, [ad.id, ad.userId, adData?.userId]);
 
   const toggleLike = async () => {
@@ -304,6 +323,7 @@ export default function AdDetailsScreen({ route, navigation }) {
       if (paymentResult.error) throw paymentResult.error;
 
       alert("Payment successful!");
+      navigation.replace("SellerReviewScreen", { sellerId: adData.userId });
       // Optionally update your app state or Firestore here
     } catch (error) {
       alert(`Payment failed: ${error.message}`);
@@ -463,11 +483,57 @@ export default function AdDetailsScreen({ route, navigation }) {
                   isDarkMode ? darkStyles.userAvatar : lightStyles.userAvatar
                 }
               />
-              <Text
-                style={isDarkMode ? darkStyles.userName : lightStyles.userName}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
               >
-                {userName}
-              </Text>
+                <Text
+                  style={
+                    isDarkMode ? darkStyles.userName : lightStyles.userName
+                  }
+                >
+                  {userName}
+                </Text>
+
+                {sellerAverageRating && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginLeft: 6,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "600",
+                        color: isDarkMode ? "#fff" : "#23253A",
+                      }}
+                    >
+                      {sellerAverageRating}
+                    </Text>
+                    <Icon
+                      name="star"
+                      size={16}
+                      color="#f6c700"
+                      style={{ marginLeft: 2, marginTop: 1 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        marginLeft: 4,
+                        color: isDarkMode ? "#aaa" : "#666",
+                        fontWeight: "400",
+                      }}
+                    >
+                      ({sellerReviewCount})
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
             <View
               style={
@@ -491,6 +557,31 @@ export default function AdDetailsScreen({ route, navigation }) {
                 <Icon name="send" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginLeft: 5,
+                marginTop: 8,
+                marginBottom: 8,
+              }}
+              onPress={() =>
+                navigation.replace("SellerDetailScreen", {
+                  userId: adData.userId,
+                })
+              }
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "#2CB67D",
+                  fontWeight: "600",
+                  textDecorationLine: "underline",
+                }}
+              >
+                View Seller Info
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
         <View
@@ -576,6 +667,7 @@ export default function AdDetailsScreen({ route, navigation }) {
 
         <View style={isDarkMode ? darkStyles.mapCard : lightStyles.mapCard}>
           <MapView
+            provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
             style={isDarkMode ? darkStyles.map : lightStyles.map}
             initialRegion={{
               latitude:
@@ -585,8 +677,8 @@ export default function AdDetailsScreen({ route, navigation }) {
               latitudeDelta: 0.01,
               longitudeDelta: 0.01,
             }}
-            scrollEnabled={false}
-            zoomEnabled={false}
+            scrollEnabled={true}
+            zoomEnabled={true}
           >
             <Marker
               coordinate={{
