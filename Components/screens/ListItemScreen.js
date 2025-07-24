@@ -16,12 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  onSnapshot,
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, onSnapshot,doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import Checkbox from "expo-checkbox";
 import CustomDropdown from "../Utilities/CustomDropdown";
@@ -30,6 +25,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 import { GOOGLE_API_KEY } from "@env";
+import { checkAndAwardBadges } from '../Utilities/firebaseHelpers';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 // Constants
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
@@ -123,6 +120,9 @@ export default function ListItemScreen() {
     label: opt,
     value: opt,
   }));
+
+  const [unlockedBadge, setUnlockedBadge] = useState(null);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
 
   // ActionSheet/Alert for image
   const pickImageOption = () => {
@@ -324,7 +324,32 @@ export default function ListItemScreen() {
         createdAt: serverTimestamp(),
       });
 
-      Alert.alert("Ad listed successfully!");
+  if (userId) {
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+
+  if (userSnap.exists()) {
+    const userData = userSnap.data();
+    const currentListingCount = userData.listingCount || 0;
+
+    const newListingCount = currentListingCount + 1;
+
+    await updateDoc(userRef, {
+      listingCount: newListingCount,
+    });
+    // Pass updated userData
+    const updatedUserData = {
+      ...userData,
+      listingCount: newListingCount,
+    };
+    const unlocked = await checkAndAwardBadges(userId, updatedUserData);
+
+if (unlocked.length > 0) {
+  setUnlockedBadge(unlocked[0]); // or handle multiple
+  setShowBadgeModal(true);
+} else {
+  Alert.alert("Ad listed successfully!");
+}
       setTitle("");
       setNgo("");
       setNgoLabel("");
@@ -342,7 +367,10 @@ export default function ListItemScreen() {
       setAgree(false);
       setPickupLocation("");
       setPickupCoords(null);
-    } catch (err) {
+    } 
+  }
+}
+catch (err) {
       Alert.alert("Error", err.message);
     }
     setLoading(false);
@@ -807,6 +835,30 @@ export default function ListItemScreen() {
                 )}
               </TouchableOpacity>
             </View>
+            {showBadgeModal && (
+              <>
+  <View style={styles.badgeModalOverlay}>
+    <View style={styles.badgeModal}>
+      <Text style={styles.badgeTitle}>🎉 Badge Unlocked!</Text>
+      <Text style={styles.badgeName}>
+        {unlockedBadge === 'firstListing'
+          ? 'First Listing 🧾'
+          : unlockedBadge === 'communitySeller'
+          ? 'Community Seller 👥'
+          : unlockedBadge}
+      </Text>
+      <TouchableOpacity
+        onPress={() => setShowBadgeModal(false)}
+        style={styles.badgeButton}
+      >
+        <Text style={styles.badgeButtonText}>Awesome!</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+  <ConfettiCannon count={100} origin={{ x: -10, y: 0 }} fadeOut />
+  </>
+)}
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1000,4 +1052,41 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
+  badgeModalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  badgeModal: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: 280,
+  },
+  badgeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#4C9F70',
+  },
+  badgeName: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: '#222',
+  },
+  badgeButton: {
+    backgroundColor: '#4C9F70',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  badgeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  
 });
