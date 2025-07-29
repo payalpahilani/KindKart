@@ -22,13 +22,13 @@ import { sendEmailVerification } from "firebase/auth";
 
 /* ──────────────────  BADGE META  ────────────────── */
 const badgeDisplayMap = {
-  firstDonation:   { label: "First Donation",   icon: "hand-extended-outline", color: "#97D2FB" },
-  kindSoul:        { label: "Kind Soul",        icon: "hand-heart",            color: "#B8D6DF" },
-  firstListing:    { label: "First Listing",    icon: "format-list-bulleted",  color: "#4C9F70" },
-  communitySeller: { label: "Community Seller", icon: "account-group",         color: "#993333" },
-  generousHeart:   { label: "Generous Heart",   icon: "heart-multiple",        color: "#FF9AA2" },
-  profilePro:      { label: "Profile Pro",      icon: "account-star",          color: "#A8D1DF" },
-  helperBee:       { label: "Helper Bee",       icon: "share-variant",         color: "#ECCBD9" },
+  firstDonation:   { label: "First Donation",   image: require('../../assets/first-donation.png'),    icon: "hand-extended-outline",  color: "#97D2FB"  },
+  kindSoul:        { label: "Kind Soul",        image: require('../../assets/kind-soul.png'),         icon: "hand-heart",             color: "#B8D6DF" },
+  firstListing:    { label: "First Listing",    image: require('../../assets/first-listing.png'),     icon: "format-list-bulleted",   color: "#4C9F70"  },
+  communitySeller: { label: "Community Seller", image: require('../../assets/community-seller.png'),  icon: "account-group" ,         color: "#993333"},
+  generousHeart:   { label: "Generous Heart",   image: require('../../assets/generous-heart.png'),    icon: "heart-multiple",         color: "#FF9AA2"},  
+  profilePro:      { label: "Profile Pro",      image: require('../../assets/profile-pro.png'),       icon: "account-star",           color: "#A8D1DF" },
+  helperBee:       { label: "Helper Bee",       image: require('../../assets/helper-bee.png'),        icon: "share-variant",          color: "#ECCBD9" },
 };
 
 const badgeSpec = {
@@ -223,14 +223,18 @@ export default function ProfileScreen() {
                     }}
                     style={[
                       styles.badgeCard,
-                      { backgroundColor: earned ? badge.color : "#E0E0E0" },
+                      { backgroundColor: earned ?"transparent" : "#E0E0E0" },
                     ]}
                   >
-                    <Icon
-                      name={earned ? badge.icon : "lock"}
-                      size={28}
-                      color={earned ? "#333" : "#999"}
+                    {earned ? (
+                    <Image
+                      source={badge.image}
+                      style={{ width: 90, height: 90, borderRadius: 5 }}
+                      resizeMode="contain"
                     />
+                  ) : (
+                    <Icon name="lock" size={28} color="#999" />
+                  )}
                     <Text style={[styles.badgeLabel, { color: earned ? "#333" : "#999" }]}>
                       {badge.label}
                     </Text>
@@ -332,7 +336,7 @@ const sharedBadge = {
     flexWrap: "wrap",
     justifyContent: "flex-start",
     marginBottom: 10,
-    gap: 20,
+    gap: 25,
   },
   badgeCard: {
     width: 90,
