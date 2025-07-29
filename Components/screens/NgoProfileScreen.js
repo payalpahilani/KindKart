@@ -326,6 +326,16 @@ const handleConnectStripe = async () => {
            {t("ngoProfile.editngoProfile")}
          </Text>
        </TouchableOpacity>
+
+       <TouchableOpacity
+         style = {styles.option}
+         onPress={ () => navigation.navigate("NgoFaqScreen")}>
+          <Icon name= "comment-question-outline" size={20} color={text} />
+         <Text style={[styles.optionText, { color: text }]}>
+          FAQ
+         </Text>
+       </TouchableOpacity>
+
        <TouchableOpacity
          style={styles.option}
          onPress={() => navigation.navigate("AboutUsScreen")}
