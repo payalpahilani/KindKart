@@ -20,6 +20,7 @@ import { auth, db } from "../../firebaseConfig";
 import { ThemeContext } from "../Utilities/ThemeContext";
 import { sendEmailVerification } from "firebase/auth";
 
+
 /* ──────────────────  BADGE META  ────────────────── */
 const badgeDisplayMap = {
   firstDonation:   { label: "First Donation",   icon: "hand-extended-outline", color: "#97D2FB" },
@@ -43,6 +44,7 @@ const badgeSpec = {
 };
 /* ──────────────────────────────────────────────── */
 
+
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { isDarkMode } = useContext(ThemeContext);
@@ -54,7 +56,7 @@ export default function ProfileScreen() {
   const [infoOpen, setInfoOpen]       = useState(false);
   const [focusKey, setFocusKey]       = useState(null);
 
-  /* ---------- pull user ---------- */
+  /* ---------- Pull user ---------- */
   const readProfile = async () => {
     try {
       setLoading(true);
@@ -62,12 +64,18 @@ export default function ProfileScreen() {
       if (!uid) return;
       const snap = await getDoc(doc(db, "users", uid));
       if (snap.exists()) setUser(snap.data());
-    } catch (e) { console.warn("read profile error:", e); }
-    finally      { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.warn("read profile error:", e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
-  useEffect(() => { readProfile(); }, []);
+  useEffect(() => {
+    readProfile();
+  }, []);
 
-  /* ---------- sync email‑verified flag ---------- */
+  /* ---------- Sync email-verified flag ---------- */
   useEffect(() => {
     const sync = async () => {
       const cur = auth.currentUser;
@@ -81,22 +89,34 @@ export default function ProfileScreen() {
     sync();
   }, [user]);
 
-  /* ---------- pull‑to‑refresh ---------- */
-  const onRefresh = useCallback(() => { setRefreshing(true); readProfile(); }, []);
+  /* ---------- Pull-to-refresh ---------- */
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    readProfile();
+  }, []);
 
-  /* ---------- sign‑out / misc nav ---------- */
+  /* ---------- Sign-out / misc nav ---------- */
   const handleRowPress = (action) => {
     switch (action) {
-      case "settings":   navigation.navigate("SettingsScreen"); break;
-      case "faq":        navigation.navigate("FAQ");      break;
-      case "likedAds":   navigation.navigate("LikedAdsScreen"); break;
-      case "yourAds":    navigation.navigate("YourAdsScreen");  break;
+      case "settings":
+        navigation.navigate("SettingsScreen");
+        break;
+      case "faq":
+        navigation.navigate("FAQ");
+        break;
+      case "likedAds":
+        navigation.navigate("LikedAdsScreen");
+        break;
+      case "yourAds":
+        navigation.navigate("YourAdsScreen");
+        break;
       case "exit":
         signOut(auth)
           .then(() => navigation.reset({ index: 0, routes: [{ name: "Launch" }] }))
           .catch(() => Alert.alert("Error", "Failed to sign out."));
         break;
-      default: break;
+      default:
+        break;
     }
   };
 
@@ -107,15 +127,15 @@ export default function ProfileScreen() {
     try {
       await sendEmailVerification(cur);
       Alert.alert("Verification email sent", "Check your inbox and spam folder.");
-    } catch (err) { Alert.alert("Error", err.message); }
+    } catch (err) {
+      Alert.alert("Error", err.message);
+    }
   };
 
-  /* ---------- theme / style ---------- */
   const styles = isDarkMode ? darkStyles : lightStyles;
   const barStyle = isDarkMode ? "light-content" : "dark-content";
-  const barBg    = isDarkMode ? "#121212" : "#fff";
+  const barBg = isDarkMode ? "#121212" : "#fff";
 
-  /* ---------- loading ---------- */
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -124,11 +144,12 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
+
   if (!user) {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle={barStyle} backgroundColor={barBg} />
-        <View style={[styles.safe,{justifyContent:"center",alignItems:"center"}]}>
+        <View style={[styles.safe, { justifyContent: "center", alignItems: "center" }]}>
           <Text style={styles.noUserText}>No user data found.</Text>
           <TouchableOpacity style={styles.reloadButton} onPress={readProfile}>
             <Text style={{ color: "#fff" }}>Reload Profile</Text>
@@ -138,7 +159,7 @@ export default function ProfileScreen() {
     );
   }
 
-  /* ---------- main render ---------- */
+  /* ---------- Main render ---------- */
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle={barStyle} backgroundColor={barBg} />
@@ -147,11 +168,7 @@ export default function ProfileScreen() {
         style={styles.body}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={isDarkMode ? "#fff" : "#000"}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDarkMode ? "#fff" : "#000"} />
         }
       >
         {/* -------- header -------- */}
@@ -184,15 +201,8 @@ export default function ProfileScreen() {
               </View>
             ) : (
               <TouchableOpacity onPress={sendVerificationEmail} style={styles.verifiedRow}>
-                <Text style={[styles.verifiedText, { color: "#F6B93B" }]}>
-                  Verify your email
-                </Text>
-                <Icon
-                  name="email-check-outline"
-                  size={18}
-                  color="#F6B93B"
-                  style={{ marginLeft: 6 }}
-                />
+                <Text style={[styles.verifiedText, { color: "#F6B93B" }]}>Verify your email</Text>
+                <Icon name="email-check-outline" size={18} color="#F6B93B" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
             )}
           </View>
@@ -209,34 +219,46 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.badgesGrid}>
-              {(showAllBadges
-                ? Object.entries(badgeDisplayMap)
-                : Object.entries(badgeDisplayMap).slice(0, 3)
-              ).map(([key, badge]) => {
-                const earned = user.badges?.[key] === true;
-                return (
-                  <TouchableOpacity
-                    key={key}
-                    onPress={() => {
-                      setFocusKey(key);
-                      setInfoOpen(true);
-                    }}
-                    style={[
-                      styles.badgeCard,
-                      { backgroundColor: earned ? badge.color : "#E0E0E0" },
-                    ]}
-                  >
-                    <Icon
-                      name={earned ? badge.icon : "lock"}
-                      size={28}
-                      color={earned ? "#333" : "#999"}
-                    />
-                    <Text style={[styles.badgeLabel, { color: earned ? "#333" : "#999" }]}>
-                      {badge.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {(showAllBadges ? Object.entries(badgeDisplayMap) : Object.entries(badgeDisplayMap).slice(0, 3)).map(
+                ([key, badge]) => {
+                  const earned = user.badges?.[key] === true;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => {
+                        setFocusKey(key);
+                        setInfoOpen(true);
+                      }}
+                      style={[
+                        styles.badgeCard,
+                        {
+                          backgroundColor: earned
+                            ? isDarkMode
+                              ? badge.color + "77"
+                              : badge.color + "bb"
+                            : isDarkMode
+                            ? "#2c2c2c"
+                            : "#E0E0E0",
+                        },
+                      ]}
+                    >
+                      <Icon
+                        name={earned ? badge.icon : "lock"}
+                        size={28}
+                        color={earned ? (isDarkMode ? "#eee" : "#333") : isDarkMode ? "#888" : "#999"}
+                      />
+                      <Text
+                        style={[
+                          styles.badgeLabel,
+                          { color: earned ? (isDarkMode ? "#eee" : "#333") : isDarkMode ? "#888" : "#999" },
+                        ]}
+                      >
+                        {badge.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }
+              )}
             </View>
           </View>
         )}
@@ -251,17 +273,9 @@ export default function ProfileScreen() {
         ].map((o) => {
           const isExit = o.action === "exit";
           return (
-            <TouchableOpacity
-              key={o.action}
-              style={styles.optionCard}
-              onPress={() => handleRowPress(o.action)}
-            >
+            <TouchableOpacity key={o.action} style={styles.optionCard} onPress={() => handleRowPress(o.action)}>
               <View style={styles.cardLeft}>
-                <Icon
-                  name={o.icon}
-                  size={22}
-                  color={isExit ? "red" : isDarkMode ? "#fff" : "#000"}
-                />
+                <Icon name={o.icon} size={22} color={isExit ? "red" : isDarkMode ? "#fff" : "#000"} />
                 <Text style={[styles.optionText, isExit && { color: "red" }]}>{o.label}</Text>
               </View>
               <Icon
@@ -307,7 +321,8 @@ export default function ProfileScreen() {
   );
 }
 
-/* ────────────────── styles ───────────────── */
+
+/* ────────────────── Styles ────────────────── */
 
 const base = {
   safe: { flex: 1 },
@@ -315,10 +330,24 @@ const base = {
   profileHeader: { flexDirection: "row", alignItems: "center", marginBottom: 32 },
   avatar: { width: 72, height: 72, borderRadius: 36, marginRight: 18 },
   cardLeft: { flexDirection: "row", alignItems: "center", flexShrink: 1 },
+  initialAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    marginRight: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE9DA",
+  },
+  initialText: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#B89630",
+  },
 };
 
 const sharedBadge = {
-  badgeSection: { paddingHorizontal: 16, marginBottom: 20 },
+  badgeSection: { paddingHorizontal: 16, marginBottom: 20, borderRadius: 12 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -344,7 +373,8 @@ const sharedBadge = {
   badgeLabel: { fontSize: 10, marginTop: 6, textAlign: "center", fontWeight: "600" },
 };
 
-/* light */
+
+/* Light styles */
 const lightStyles = StyleSheet.create({
   ...base,
   ...sharedBadge,
@@ -371,7 +401,7 @@ const lightStyles = StyleSheet.create({
   },
   noUserText: { fontSize: 16, color: "#444" },
 
-  /* modal */
+  /* Modal */
   infoOverlay: {
     position: "absolute",
     top: 0,
@@ -383,20 +413,71 @@ const lightStyles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1000,
   },
-  infoBox: { width: 300, padding: 24, borderRadius: 20, backgroundColor: "#fff", alignItems: "center" },
-  infoTitle: { fontSize: 20, fontWeight: "700", marginBottom: 4, color: "#000" },
-  infoDesc: { fontSize: 14, textAlign: "center", marginBottom: 12, color: "#333" },
-  infoProgress: { fontSize: 16, fontWeight: "600", marginBottom: 18, color: "#4A90E2" },
+  infoBox: {
+    width: 300,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    alignItems: "center",
+  },
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#000",
+  },
+  infoDesc: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
+    color: "#333",
+  },
+  infoProgress: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 18,
+    color: "#4A90E2",
+  },
   infoBtn: {
     backgroundColor: "#F6B93B",
     borderRadius: 18,
     paddingHorizontal: 24,
     paddingVertical: 10,
   },
-  infoBtnText: { color: "#121212", fontWeight: "700" },
+  infoBtnText: {
+    color: "#121212",
+    fontWeight: "700",
+  },
+
+  /* Badges colors */
+  badgeSection: {
+    ...sharedBadge.badgeSection,
+    backgroundColor: "#f7f7f7",
+  },
+  badgeHeading: {
+    ...sharedBadge.badgeHeading,
+    color: "#222",
+  },
+  seeAll: {
+    ...sharedBadge.seeAll,
+    color: "#4A90E2",
+  },
+  badgeCard: {
+    ...sharedBadge.badgeCard,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  badgeLabel: {
+    ...sharedBadge.badgeLabel,
+    color: "#333",
+  },
 });
 
-/* dark */
+/* Dark styles */
 const darkStyles = StyleSheet.create({
   ...base,
   ...sharedBadge,
@@ -423,27 +504,78 @@ const darkStyles = StyleSheet.create({
   },
   noUserText: { fontSize: 16, color: "#ccc" },
 
-  /* modal */
+  /* Modal */
   infoOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.85)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
   },
-  infoBox: { width: 300, padding: 24, borderRadius: 20, backgroundColor: "#1E1E1E", alignItems: "center" },
-  infoTitle: { fontSize: 20, fontWeight: "700", marginBottom: 4, color: "#fff" },
-  infoDesc: { fontSize: 14, textAlign: "center", marginBottom: 12, color: "#ccc" },
-  infoProgress: { fontSize: 16, fontWeight: "600", marginBottom: 18, color: "#F6B93B" },
+  infoBox: {
+    width: 300,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: "#222222",
+    alignItems: "center",
+  },
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#F6B93B",
+  },
+  infoDesc: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
+    color: "#ccc",
+  },
+  infoProgress: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 18,
+    color: "#F6B93B",
+  },
   infoBtn: {
     backgroundColor: "#F6B93B",
     borderRadius: 18,
     paddingHorizontal: 24,
     paddingVertical: 10,
   },
-  infoBtnText: { color: "#121212", fontWeight: "700" },
+  infoBtnText: {
+    color: "#121212",
+    fontWeight: "700",
+  },
+
+  /* Badges colors */
+  badgeSection: {
+    ...sharedBadge.badgeSection,
+    backgroundColor: "#1e1e1e",
+  },
+  badgeHeading: {
+    ...sharedBadge.badgeHeading,
+    color: "#F6B93B",
+  },
+  seeAll: {
+    ...sharedBadge.seeAll,
+    color: "#59D4E8",
+  },
+  badgeCard: {
+    ...sharedBadge.badgeCard,
+    backgroundColor: "#2c2c2c",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  badgeLabel: {
+    ...sharedBadge.badgeLabel,
+    color: "#ddd",
+  },
 });

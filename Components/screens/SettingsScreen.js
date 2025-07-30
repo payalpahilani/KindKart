@@ -118,7 +118,7 @@ export default function SettingsScreen() {
         {
           text: t('common.ok'),
           onPress: () => {
-            Linking.openURL('https://appstore.com/yourapp'); // Replace with your app store URL
+            Linking.openURL('https://appstore.com/yourapp'); 
           },
         },
       ],

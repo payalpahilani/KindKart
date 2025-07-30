@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 import { GOOGLE_API_KEY } from "@env";
+import { ThemeContext } from "../Utilities/ThemeContext";
 
 const BACKEND_URL = "https://kindkart-0l245p6y.b4a.run";
 const MAX_IMAGES = 5;
@@ -75,9 +76,12 @@ function getMimeType(uri) {
 }
 
 export default function EditListingScreen({ route, navigation }) {
+  const { isDarkMode } = useContext(ThemeContext);
+  const styles = isDarkMode ? darkStyles : lightStyles;
+
   const { ad } = route.params;
 
-  // Pre-fill state with ad data
+  // States, pre-filled with ad data
   const [title, setTitle] = useState(ad.title || "");
   const [price, setPrice] = useState(ad.price ? ad.price.toString() : "");
   const [ngo, setNgo] = useState(ad.ngo || null);
@@ -88,21 +92,15 @@ export default function EditListingScreen({ route, navigation }) {
   const [causeOptions, setCauseOptions] = useState([]);
   const [loadingNgos, setLoadingNgos] = useState(true);
   const [loadingCauses, setLoadingCauses] = useState(false);
-  const [salePrice, setSalePrice] = useState(
-    ad.salePrice ? ad.salePrice.toString() : ""
-  );
+  const [salePrice, setSalePrice] = useState(ad.salePrice ? ad.salePrice.toString() : "");
   const [negotiable, setNegotiable] = useState(ad.negotiable || false);
   const [currency, setCurrency] = useState(
     ad.currency?.value || ad.currency || currencyOptions[0].value
   );
-  const [condition, setCondition] = useState(
-    ad.condition || conditionOptions[0]
-  );
+  const [condition, setCondition] = useState(ad.condition || conditionOptions[0]);
   const [description, setDescription] = useState(ad.description || "");
   const [useAddress, setUseAddress] = useState(ad.useAddress || false);
-  const [images, setImages] = useState(
-    ad.imageUrls ? ad.imageUrls.map((url) => ({ uri: url })) : []
-  );
+  const [images, setImages] = useState(ad.imageUrls ? ad.imageUrls.map((url) => ({ uri: url })) : []);
   const [loading, setLoading] = useState(false);
 
   const [pickupLocation, setPickupLocation] = useState(ad.pickupLocation || "");
@@ -124,16 +122,9 @@ export default function EditListingScreen({ route, navigation }) {
   const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  const [category, setCategory] = useState(
-    ad.category || categoryOptions[0].value
-  );
-  const currencyData = currencyOptions;
-  const conditionData = conditionOptions.map((opt) => ({
-    label: opt,
-    value: opt,
-  }));
+  const [category, setCategory] = useState(ad.category || categoryOptions[0]);
 
-  // Pick images
+  // Pick images from gallery
   const pickImages = async () => {
     if ((images || []).length >= MAX_IMAGES) {
       Alert.alert(`Max number of images is ${MAX_IMAGES}.`);
@@ -146,6 +137,7 @@ export default function EditListingScreen({ route, navigation }) {
       selectionLimit: MAX_IMAGES - (images || []).length,
     });
     if (!result.canceled) {
+      // Result.assets is array
       const newImages = Array.isArray(result.assets)
         ? result.assets.slice(0, MAX_IMAGES - (images || []).length)
         : result.assets
@@ -155,28 +147,22 @@ export default function EditListingScreen({ route, navigation }) {
     }
   };
 
+  // Remove image at index
   const removeImage = (idx) => {
-    setImages((imgs) =>
-      Array.isArray(imgs) ? imgs.filter((_, i) => i !== idx) : []
-    );
+    setImages((imgs) => (Array.isArray(imgs) ? imgs.filter((_, i) => i !== idx) : []));
   };
 
+  // Upload single image to S3 via backend pre-signed URL
   const uploadImageToS3 = async (img, userId, itemId) => {
-    // If already a url (not a local file), just return it
     if (img.uri && img.uri.startsWith("http")) return img.uri;
 
     const fileName = img.fileName || img.uri.split("/").pop();
-    const fileType =
-      img.type && img.type.startsWith("image/")
-        ? img.type
-        : getMimeType(img.uri);
+    const fileType = img.type && img.type.startsWith("image/") ? img.type : getMimeType(img.uri);
 
     const res = await fetch(
       `${BACKEND_URL}/get-presigned-url?fileName=${encodeURIComponent(
         fileName
-      )}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${
-        ad.id
-      }`
+      )}&fileType=${encodeURIComponent(fileType)}&userId=${userId}&itemId=${itemId}`
     );
     if (!res.ok) throw new Error("Failed to get S3 URL");
     const { uploadUrl, publicUrl } = await res.json();
@@ -193,12 +179,13 @@ export default function EditListingScreen({ route, navigation }) {
     });
     if (!uploadRes.ok) {
       const errorText = await uploadRes.text();
-      console.log("S3 upload error response:", errorText);
+      console.error("S3 upload error response:", errorText);
       throw new Error("Failed to upload image to S3");
     }
     return publicUrl;
   };
 
+  // Upload all images in array
   const uploadAllImages = async (userId, itemId) => {
     const uploadedUrls = [];
     for (const img of images || []) {
@@ -208,7 +195,7 @@ export default function EditListingScreen({ route, navigation }) {
     return uploadedUrls;
   };
 
-  // Fetch NGOs and causes
+  // Load NGOs from Firestore
   useEffect(() => {
     setLoadingNgos(true);
     const unsubscribe = onSnapshot(collection(db, "ngo"), (snapshot) => {
@@ -224,6 +211,7 @@ export default function EditListingScreen({ route, navigation }) {
     return () => unsubscribe();
   }, []);
 
+  // Load Causes for selected NGO
   useEffect(() => {
     if (!ngo) {
       setCauseOptions([]);
@@ -239,8 +227,7 @@ export default function EditListingScreen({ route, navigation }) {
         const causes = snapshot.docs
           .filter((doc) => {
             const createdBy = doc.data().createdBy;
-            const ngoValue =
-              typeof ngo === "object" && ngo !== null ? ngo.value : ngo;
+            const ngoValue = typeof ngo === "object" && ngo !== null ? ngo.value : ngo;
             return createdBy === ngoValue;
           })
           .map((doc) => ({
@@ -251,14 +238,14 @@ export default function EditListingScreen({ route, navigation }) {
         setCauseOptions(causes);
         setLoadingCauses(false);
       },
-      (error) => {
+      () => {
         setLoadingCauses(false);
       }
     );
     return () => unsubscribe();
   }, [ngo]);
 
-  // Location logic (same as ListItemScreen)
+  // Request location permission and set region for map
   const openLocationModal = async () => {
     setModalVisible(true);
     try {
@@ -275,11 +262,12 @@ export default function EditListingScreen({ route, navigation }) {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       });
-    } catch (err) {
+    } catch {
       setModalVisible(false);
     }
   };
 
+  // Fetch autocomplete suggestions for places
   const fetchSuggestions = async (text) => {
     setSearch(text);
     if (!text) {
@@ -288,48 +276,45 @@ export default function EditListingScreen({ route, navigation }) {
     }
     setAutocompleteLoading(true);
     try {
-      const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json`,
-        {
-          params: {
-            key: GOOGLE_API_KEY,
-            input: text,
-            language: "en",
-            types: "address",
-          },
-        }
-      );
+      const res = await axios.get(`https://maps.googleapis.com/maps/api/place/autocomplete/json`, {
+        params: {
+          key: GOOGLE_API_KEY,
+          input: text,
+          language: "en",
+          types: "address",
+        },
+      });
       setSuggestions(res.data.predictions || []);
-    } catch (err) {
+    } catch {
       setSuggestions([]);
     }
     setAutocompleteLoading(false);
   };
 
+  // Fetch place details and update state accordingly after a suggestion is selected
   const fetchPlaceDetails = async (placeId) => {
     try {
-      const res = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/details/json`,
-        {
-          params: {
-            key: GOOGLE_API_KEY,
-            place_id: placeId,
-            fields: "geometry,formatted_address,address_components",
-          },
-        }
-      );
+      const res = await axios.get(`https://maps.googleapis.com/maps/api/place/details/json`, {
+        params: {
+          key: GOOGLE_API_KEY,
+          place_id: placeId,
+          fields: "geometry,formatted_address,address_components",
+        },
+      });
       return res.data.result;
-    } catch (err) {
+    } catch {
       return null;
     }
   };
 
+  // Extract postal code from address components
   const getPostalCode = (components) => {
     if (!components) return "";
     const pc = components.find((c) => c.types.includes("postal_code"));
     return pc ? pc.long_name : "";
   };
 
+  // Handle selection of an autocomplete suggestion
   const handleSelect = async (item) => {
     setAutocompleteLoading(true);
     const details = await fetchPlaceDetails(item.place_id);
@@ -364,11 +349,12 @@ export default function EditListingScreen({ route, navigation }) {
     setAutocompleteLoading(false);
   };
 
+  // Close location modal, keeping the current selection
   const handleApplyLocation = () => {
     setModalVisible(false);
   };
 
-  // Save changes
+  // Save changes to Firestore, after uploading images
   const handleUpdate = async () => {
     if (
       !title.trim() ||
@@ -414,7 +400,6 @@ export default function EditListingScreen({ route, navigation }) {
       await updateDoc(doc(db, "items", ad.id), updateObj);
 
       Alert.alert("Ad updated successfully!");
-      // Navigate back to AdDetails with updated data
       navigation.replace("AdDetails", {
         ad: { ...ad, ...updateObj, imageUrls },
       });
@@ -424,6 +409,7 @@ export default function EditListingScreen({ route, navigation }) {
     setLoading(false);
   };
 
+  // Render selected image with remove button
   const renderImageItem = ({ item, index }) => (
     <View style={styles.imageBox}>
       <Image
@@ -435,15 +421,13 @@ export default function EditListingScreen({ route, navigation }) {
         }}
         style={styles.imageThumb}
       />
-      <TouchableOpacity
-        style={styles.removeBtn}
-        onPress={() => removeImage(index)}
-      >
+      <TouchableOpacity style={styles.removeBtn} onPress={() => removeImage(index)}>
         <Text style={{ color: "#fff", fontWeight: "bold" }}>×</Text>
       </TouchableOpacity>
     </View>
   );
 
+  // Render "add image" button
   const renderAddImageBtn = () => (
     <TouchableOpacity
       style={styles.imageBox}
@@ -457,7 +441,7 @@ export default function EditListingScreen({ route, navigation }) {
   const safeImages = Array.isArray(images) ? images : [];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView style={[styles.safeArea]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -465,6 +449,7 @@ export default function EditListingScreen({ route, navigation }) {
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingTop: 12 }}
           keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}
         >
           <View style={styles.container}>
             <Text style={styles.header}>Edit your Ad</Text>
@@ -476,9 +461,7 @@ export default function EditListingScreen({ route, navigation }) {
                   ...(safeImages.length < MAX_IMAGES ? [{}] : []),
                 ]}
                 renderItem={({ item, index }) =>
-                  item.uri
-                    ? renderImageItem({ item, index })
-                    : renderAddImageBtn()
+                  item.uri ? renderImageItem({ item, index }) : renderAddImageBtn()
                 }
                 keyExtractor={(_, idx) => idx.toString()}
                 horizontal
@@ -487,7 +470,7 @@ export default function EditListingScreen({ route, navigation }) {
               />
               <Text style={styles.imageHint}>
                 Prepare images before uploading. Upload images larger than 750px
-                × 450px. Max number of images is 5. Max image size is 134MB.
+                × 450px. Max number of images is {MAX_IMAGES}. Max image size is 134MB.
               </Text>
             </View>
 
@@ -498,6 +481,8 @@ export default function EditListingScreen({ route, navigation }) {
               onChange={setCategory}
               placeholder="Select Category"
               testID="categoryDropdown"
+              dropdownStyle={isDarkMode && { backgroundColor: "#2c2c2c" }}
+              labelStyle={isDarkMode && { color: "#ddd" }}
             />
 
             <Text style={styles.sectionHeader}>Tell us about your item</Text>
@@ -507,6 +492,7 @@ export default function EditListingScreen({ route, navigation }) {
               value={title}
               onChangeText={setTitle}
               style={styles.input}
+              placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
             />
 
             <Text style={styles.inputLabel}>Select NGO</Text>
@@ -524,6 +510,8 @@ export default function EditListingScreen({ route, navigation }) {
                 }}
                 placeholder="Select NGO"
                 testID="ngoDropdown"
+                dropdownStyle={isDarkMode && { backgroundColor: "#2c2c2c" }}
+                labelStyle={isDarkMode && { color: "#ddd" }}
               />
             )}
 
@@ -539,14 +527,12 @@ export default function EditListingScreen({ route, navigation }) {
                   setCauseLabel(item.label);
                 }}
                 placeholder={
-                  ngo
-                    ? loadingCauses
-                      ? "Loading causes..."
-                      : "Select Cause"
-                    : "Select NGO first"
+                  ngo ? (loadingCauses ? "Loading causes..." : "Select Cause") : "Select NGO first"
                 }
                 testID="causeDropdown"
                 disabled={!ngo}
+                dropdownStyle={isDarkMode && { backgroundColor: "#2c2c2c" }}
+                labelStyle={isDarkMode && { color: "#ddd" }}
               />
             )}
 
@@ -559,6 +545,7 @@ export default function EditListingScreen({ route, navigation }) {
                   onChangeText={setPrice}
                   keyboardType="numeric"
                   style={styles.input}
+                  placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -569,6 +556,7 @@ export default function EditListingScreen({ route, navigation }) {
                   onChangeText={setSalePrice}
                   keyboardType="numeric"
                   style={styles.input}
+                  placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
                 />
               </View>
             </View>
@@ -587,21 +575,25 @@ export default function EditListingScreen({ route, navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>CURRENCY</Text>
                 <CustomDropdown
-                  data={currencyData}
+                  data={currencyOptions}
                   value={currency}
                   onChange={setCurrency}
                   placeholder="Select Currency"
                   testID="currencyDropdown"
+                  dropdownStyle={isDarkMode && { backgroundColor: "#2c2c2c" }}
+                  labelStyle={isDarkMode && { color: "#ddd" }}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>CONDITION</Text>
                 <CustomDropdown
-                  data={conditionData}
+                  data={conditionOptions.map((opt) => ({ label: opt, value: opt }))}
                   value={condition}
                   onChange={setCondition}
                   placeholder="Select Condition"
                   testID="conditionDropdown"
+                  dropdownStyle={isDarkMode && { backgroundColor: "#2c2c2c" }}
+                  labelStyle={isDarkMode && { color: "#ddd" }}
                 />
               </View>
             </View>
@@ -612,29 +604,26 @@ export default function EditListingScreen({ route, navigation }) {
               value={description}
               onChangeText={setDescription}
               multiline
-              style={[
-                styles.input,
-                { minHeight: 60, textAlignVertical: "top" },
-              ]}
+              style={[styles.input, { minHeight: 60, textAlignVertical: "top" }]}
+              placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
             />
 
             <View style={styles.pickupRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
-                <TouchableOpacity
-                  onPress={openLocationModal}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={openLocationModal} activeOpacity={0.7}>
                   <TextInput
                     placeholder="Pickup Location"
                     value={pickupLocation}
                     editable={false}
                     pointerEvents="none"
-                    style={[styles.input, { backgroundColor: "#f7f7f7" }]}
+                    style={[styles.input, { backgroundColor: isDarkMode ? "#333" : "#f7f7f7" }]}
+                    placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
                   />
                 </TouchableOpacity>
               </View>
             </View>
+
             <Modal
               visible={modalVisible}
               animationType="slide"
@@ -642,49 +631,43 @@ export default function EditListingScreen({ route, navigation }) {
               onRequestClose={() => setModalVisible(false)}
             >
               <View style={styles.modalOverlay}>
-                <View style={styles.modalCard}>
+                <View style={[styles.modalCard, isDarkMode && styles.modalCardDark]}>
                   <View style={styles.dragIndicator} />
                   <TouchableOpacity
                     style={styles.closeIcon}
                     onPress={() => setModalVisible(false)}
                     hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
                   >
-                    <Text style={{ fontSize: 22, color: "#888" }}>×</Text>
+                    <Text style={{ fontSize: 22, color: isDarkMode ? "#aaa" : "#888" }}>×</Text>
                   </TouchableOpacity>
                   <TextInput
                     placeholder="Search address"
                     value={search}
                     onChangeText={fetchSuggestions}
-                    style={styles.modalSearch}
+                    style={[styles.modalSearch, isDarkMode && styles.modalSearchDark]}
                     autoFocus
+                    placeholderTextColor={isDarkMode ? "#aaa" : "#888"}
                   />
-                  {autocompleteLoading && <ActivityIndicator size="small" />}
+                  {autocompleteLoading && <ActivityIndicator size="small" color="#2CB67D" />}
                   <FlatList
                     data={suggestions || []}
                     keyExtractor={(item) => item.place_id}
                     renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.suggestion}
-                        onPress={() => handleSelect(item)}
-                      >
-                        <Text>{item.description}</Text>
+                      <TouchableOpacity style={styles.suggestion} onPress={() => handleSelect(item)}>
+                        <Text style={isDarkMode ? { color: "#eee" } : undefined}>{item.description}</Text>
                       </TouchableOpacity>
                     )}
                     style={{
                       maxHeight: 160,
                       marginBottom: 8,
-                      backgroundColor: "#fff",
+                      backgroundColor: isDarkMode ? "#222" : "#fff",
                       borderRadius: 6,
                     }}
                     keyboardShouldPersistTaps="handled"
                   />
                   <View style={styles.mapContainer}>
                     {region && (
-                      <MapView
-                        style={styles.map}
-                        region={region}
-                        showsUserLocation={true}
-                      >
+                      <MapView style={styles.map} region={region} showsUserLocation={true}>
                         {pickupCoords && (
                           <Marker
                             coordinate={{
@@ -706,37 +689,21 @@ export default function EditListingScreen({ route, navigation }) {
                 </View>
               </View>
             </Modal>
-            <View
-              style={{ flexDirection: "row", marginTop: 16, marginBottom: 32 }}
-            >
+
+            <View style={{ flexDirection: "row", marginTop: 16, marginBottom: 32 }}>
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  { backgroundColor: "#DCE3E9", marginRight: 8 },
-                ]}
+                style={[styles.button, { backgroundColor: "#DCE3E9", marginRight: 8 }]}
                 onPress={() => navigation.goBack()}
                 disabled={loading}
               >
-                <Text style={[styles.buttonText, { color: "#2d3a4b" }]}>
-                  Cancel
-                </Text>
+                <Text style={[styles.buttonText, { color: "#2d3a4b" }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: "#F6B93B",
-                    flex: 1,
-                  },
-                ]}
+                style={[styles.button, { backgroundColor: "#F6B93B", flex: 1 }]}
                 disabled={loading}
                 onPress={handleUpdate}
               >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Done</Text>
-                )}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Done</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -746,10 +713,15 @@ export default function EditListingScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = {
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
   container: {
     padding: 18,
-    backgroundColor: "#fff",
     flex: 1,
   },
   header: {
@@ -757,11 +729,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     alignSelf: "center",
     marginVertical: 12,
+    color: "#000",
   },
   label: {
     fontWeight: "600",
     fontSize: 18,
     marginBottom: 10,
+    color: "#000",
   },
   imageHint: {
     fontSize: 12,
@@ -773,22 +747,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 18,
     marginVertical: 8,
+    color: "#000",
   },
   inputLabel: {
     fontSize: 12,
-    color: "#888",
     marginTop: 12,
     marginBottom: 2,
     fontWeight: "600",
+    color: "#000",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#DCE3E9",
     borderRadius: 6,
     padding: 10,
     marginBottom: 2,
     fontSize: 15,
     backgroundColor: "#f8fafb",
+    borderColor: "#DCE3E9",
+    color: "#000",
   },
   pickupRow: {
     flexDirection: "row",
@@ -850,7 +826,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  // Modal UI
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.32)",
@@ -871,6 +846,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     position: "relative",
+  },
+  modalCardDark: {
+    backgroundColor: "#222",
   },
   dragIndicator: {
     width: 40,
@@ -896,6 +874,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 8,
     elevation: 1,
+    color: "#000",
+  },
+  modalSearchDark: {
+    backgroundColor: "#333",
+    borderColor: "#555",
+    color: "#ddd",
   },
   mapContainer: {
     borderRadius: 16,
@@ -931,5 +915,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+  },
+};
+
+/* Dark styles */
+const darkStyles = StyleSheet.create({
+  ...baseStyles,
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#121212",
+  },
+  container: {
+    backgroundColor: "#121212",
+    padding: 18,
+    flex: 1,
+  },
+  header: {
+    color: "#eee",
+  },
+  label: {
+    color: "#ccc",
+  },
+  imageHint: {
+    color: "#888",
+  },
+  sectionHeader: {
+    color: "#eee",
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: "#aaa",
+    marginTop: 12,
+    marginBottom: 2,
+    fontWeight: "600",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#555",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 2,
+    fontSize: 15,
+    backgroundColor: "#222",
+    color: "#eee",
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: "#ccc",
+  },
+  buttonText: {
+    color: "#222",
+  },
+  modalOverlay: {
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+  },
+  suggestion: {
+    borderBottomColor: "#444",
+  },
+  mapContainer: {
+    borderColor: "#444",
+  },
+  applyButton: {
+    backgroundColor: "#F6B93B",
+  },
+  applyButtonText: {
+    color: "#222",
   },
 });
