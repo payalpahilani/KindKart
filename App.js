@@ -76,7 +76,8 @@ function NotificationHandler() {
         });
       }
     } else {
-      Alert.alert('Must use physical device for push notifications');
+       console.log('Push notifications are not supported on simulators. Skipping registration.');
+        return;
     }
     return token;
   }
