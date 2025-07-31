@@ -28,7 +28,8 @@ import {
   serverTimestamp,
   getDoc,
   setDoc,
-  deleteDoc,
+  deleteDoc, 
+  increment,
 } from "firebase/firestore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db, auth } from "../../firebaseConfig";
@@ -339,41 +340,103 @@ export default function AdDetailsScreen({ route, navigation }) {
   const handlePurchase = async () => {
     setPaymentLoading(true);
     try {
-      // Call your backend to create a PaymentIntent
+      // 1) create Stripe PaymentIntent
       const response = await fetch(
         "https://kindkart-0l245p6y.b4a.run/create-payment-intent",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: adData.salePrice * 100, // Stripe uses cents
+            amount: adData.salePrice * 100, // in cents
             currency: adData.currency?.value || adData.currency || "usd",
           }),
         }
       );
-      const { clientSecret } = await response.json();
-
-      // Initialize the payment sheet
+      const { clientSecret, paymentIntentId } = await response.json();
+  
+      // 2) init & present payment sheet
       const initSheet = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: "Kindkart",
         returnURL: "kindkartpay://stripe-redirect",
       });
       if (initSheet.error) throw initSheet.error;
-
-      // Present the payment sheet
+  
       const paymentResult = await presentPaymentSheet();
       if (paymentResult.error) throw paymentResult.error;
+  
+      // 3) record everything in Firestore
+      const buyerId = auth.currentUser.uid;
+      const amountNum = adData.salePrice;
+      const currencyLabel = adData.currency?.value || adData.currency;
+      
+      console.log("🔍 marketplace purchase — campaignId =", adData.campaignId);
 
-      alert("Payment successful!");
+      // a) donations collection
+      await addDoc(collection(db, "donations"), {
+        itemId: adData.id,
+        ...(adData.campaignId && { campaignId: adData.campaignId }),
+        ...(adData.ngoId      && { ngoId:      adData.ngoId      }),
+        userId: buyerId,
+        sellerId: adData.userId,
+        amount: amountNum,
+        currency: currencyLabel,
+        paymentIntentId: paymentIntentId || "manual",
+        source:       "marketplace",          
+        timestamp: serverTimestamp(),
+      });
+  
+      // b) bump user.totalDonated
+      await updateDoc(doc(db, "users", buyerId), {
+        totalDonated: increment(amountNum),
+      });
+  
+      // c) update campaign’s raisedAmount & isEnded
+      let campaignId = adData.campaignId;
+
+// if the item didn’t carry a campaignId, find an active campaign by ngoId
+if (!campaignId && adData.ngoId) {
+  const q = query(
+    collection(db, "campaigns"),
+    where("ngoId", "==", adData.ngoId),
+    where("status", "==", "active")
+  );
+  const campQ = await getDocs(q);
+  if (!campQ.empty) {
+    campaignId = campQ.docs[0].id;
+  }
+}
+
+if (campaignId) {
+  const campRef = doc(db, "campaigns", campaignId);
+
+  // 1) atomically bump (creates raisedAmount if missing)
+  await updateDoc(campRef, {
+    raisedAmount: increment(amountNum),
+  });
+
+  // 2) recompute isEnded
+  const updated = await getDoc(campRef);
+  if (updated.exists()) {
+    const { raisedAmount = 0, totalDonation = Infinity } = updated.data();
+    await updateDoc(campRef, {
+      isEnded: raisedAmount >= totalDonation,
+    });
+  }
+}
+  
+      Alert.alert("Payment successful!", "Thank you for your donation 🎉");
       navigation.replace("SellerReviewScreen", { sellerId: adData.userId });
-      // Optionally update your app state or Firestore here
     } catch (error) {
-      alert(`Payment failed: ${error.message}`);
+      Alert.alert(
+        "Payment failed",
+        error?.message || String(error) || "An unknown error occurred."
+      );
+    } finally {
+      setPaymentLoading(false);
     }
-    setPaymentLoading(false);
   };
-
+  
   function getCurrencyLabel(currency) {
     if (!currency) return "";
     if (typeof currency === "object") {
