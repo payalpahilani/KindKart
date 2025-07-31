@@ -82,45 +82,41 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      // If no campaigns are loaded, fetch them again
-      if (allCampaigns.length === 0) {
-        const fetchCampaigns = async () => {
-          try {
-            const querySnapshot = await getDocs(collection(db, "campaigns"));
-            const campaigns = [];
+      const fetchCampaigns = async () => {
+        try {
+          const querySnapshot = await getDocs(collection(db, "campaigns"));
+          const campaigns = [];
   
-            querySnapshot.forEach((docSnap) => {
-              const data = docSnap.data();
-              const campaign = {
-                id: docSnap.id,
-                title: data.title || "",
-                description: data.story || "",
-                imageUrl: data.imageUrls?.[0] || null,
-                raised: `$${data.totalDonation?.toLocaleString() || "0"}`,
-                daysLeft: calculateDaysLeft(data.campaignDate),
-                fullStory: data.story || "",
-                isUrgent: data.urgent === true,
-                category: data.category || "Uncategorized",
-              };
-              campaigns.push(campaign);
-            });
+          querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const campaign = {
+              id: docSnap.id,
+              title: data.title || "",
+              description: data.story || "",
+              imageUrl: data.imageUrls?.[0] || null,
+              raised: `$${(data.raisedAmount || 0).toLocaleString()}`,
+              raisedRaw: data.raisedAmount || 0,
+              total: data.totalDonation || 0,
+              daysLeft: calculateDaysLeft(data.campaignDate),
+              fullStory: data.story || "",
+              isUrgent: data.urgent === true,
+              category: data.category || "Uncategorized",
+            };
+            campaigns.push(campaign);
+          });
   
-            setAllCampaigns(campaigns);
-            setRandomBanner(campaigns[Math.floor(Math.random() * campaigns.length)]);
-            filterCampaigns(searchQuery, "Show all");
-          } catch (error) {
-            console.error("Error fetching campaigns on refocus:", error);
-          }
-        };
+          setAllCampaigns(campaigns);
+          setRandomBanner(campaigns[Math.floor(Math.random() * campaigns.length)]);
+          filterCampaigns(searchQuery, "Show all");
+        } catch (error) {
+          console.error("Error fetching campaigns on refocus:", error);
+        }
+      };
   
-        fetchCampaigns();
-      } else {
-        filterCampaigns(searchQuery, "Show all");
-      }
-  
+      fetchCampaigns();
       setSelectedCategory("Show all");
       setSearchQuery("");
-    }, [allCampaigns])
+    }, [])
   );
   
 
@@ -138,7 +134,7 @@ export default function HomeScreen({ navigation }) {
             title: data.title || "",
             description: data.story || "",
             imageUrl: data.imageUrls?.[0] || null,
-            raised: `$${data.totalDonation?.toLocaleString() || "0"}`,
+            raised: `$${(data.raisedAmount || 0).toLocaleString()}`,
             daysLeft: calculateDaysLeft(data.campaignDate),
             fullStory: data.story || "",
             isUrgent: data.urgent === true,
@@ -167,7 +163,7 @@ export default function HomeScreen({ navigation }) {
   
   const calculateDaysLeft = (dateStr) => {
     try {
-      const target = new Date(dateStr);
+      const target = new Date(dateStr?.seconds ? dateStr.seconds * 1000 : dateStr);
       const now = new Date();
       const diff = target - now;
       return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);

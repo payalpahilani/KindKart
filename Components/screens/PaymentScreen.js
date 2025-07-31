@@ -61,15 +61,34 @@ export default function PaymentScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: numAmount * 100,
+          amount: Math.round(numAmount * 100),
           currency,
           description: `Donation to ${title}`,
           userId: auth.currentUser?.uid || 'anonymous',
           campaignId,
         }),
       });
-  
-      const { clientSecret } = await response.json();
+      
+      const raw = await response.text();
+      console.log("🧾 Raw response from backend:", raw);
+      
+      let clientSecret;
+      try {
+        const parsed = JSON.parse(raw);
+        clientSecret = parsed.clientSecret;
+      } catch (err) {
+        Alert.alert("Stripe Error", "Invalid response from server. Try again.");
+        setPaymentLoading(false);
+        return;
+      }
+      
+      if (!clientSecret) {
+        Alert.alert("Stripe Error", "Client secret not received.");
+        setPaymentLoading(false);
+        return;
+      }
+      console.log("✅ Using clientSecret:", clientSecret);
+      
   
       const init = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
@@ -87,26 +106,45 @@ export default function PaymentScreen() {
       if (userId) {
         const userRef = doc(db, "users", userId);
         const userSnap = await getDoc(userRef);
-  
+      
         if (userSnap.exists()) {
           const userData = userSnap.data();
           const currentDonationCount = userData.donationCount || 0;
           const currentTotalDonated = userData.totalDonated || 0;
-
+      
           await updateDoc(userRef, {
             donationCount: currentDonationCount + 1,
             totalDonated: currentTotalDonated + parseFloat(amount),
           });
-  
+      
+          // 🏆 Badge logic
           const unlocked = await checkAndAwardBadges(userId);
-  
+      
+          // 🧮 Update campaign totalDonation
+          const campaignRef = doc(db, "campaigns", campaignId);
+          const campaignSnap = await getDoc(campaignRef);
+      
+          if (campaignSnap.exists()) {
+            const campaignData = campaignSnap.data();
+            const previousDonation = campaignData.totalDonation || 0;
+            const donationGoal = campaignData.donationGoal || 0;
+            const updatedRaised = (campaignData.raisedAmount || 0) + numAmount;
+
+            await updateDoc(campaignRef, {
+              raisedAmount: updatedRaised,
+              isEnded: updatedRaised >= campaignData.totalDonation, // don't rename totalDonation
+            });
+
+          }
+      
           if (unlocked && unlocked.length > 0) {
             setUnlockedBadge(unlocked[0]);
             setShowBadgeModal(true);
-            return; // prevent goBack below
+            return;
           }
         }
       }
+      
   
       // Only show alert if no badge modal is shown
       Alert.alert(

@@ -76,20 +76,34 @@ app.get("/get-presigned-url", async (req, res) => {
 });
 
 app.post("/create-payment-intent", express.json(), async (req, res) => {
- try {
-   const { amount, currency } = req.body;
-   if (!amount || !currency) {
-     return res.status(400).json({ error: "Missing amount or currency" });
-   }
-   const paymentIntent = await stripe.paymentIntents.create({
-     amount,
-     currency,
-   });
-   res.json({ clientSecret: paymentIntent.client_secret });
- } catch (error) {
-   res.status(500).json({ error: error.message });
- }
+  try {
+    const { amount, currency, description, userId, campaignId } = req.body;
+
+    if (!amount || !currency) {
+      return res.status(400).json({ error: "Missing amount or currency" });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount), // Always round to avoid float issues
+      currency,
+      description: description || "KindKart Donation",
+      metadata: {
+        userId: userId || "anonymous",
+        campaignId: campaignId || "unknown",
+      },
+    });
+
+    console.log("✅ PaymentIntent created:", paymentIntent.id);
+
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    console.error("❌ Error creating PaymentIntent:", error.message);
+    res.status(500).json({ error: error.message });
+  }
 });
+
 
 app.post("/create-stripe-account-link", express.json(), async (req, res) => {
   const { ngoId, email } = req.body;

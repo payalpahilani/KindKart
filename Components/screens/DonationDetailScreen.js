@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { doc, getDoc } from 'firebase/firestore';
@@ -32,36 +34,39 @@ export default function DonationDetailScreen() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCampaignAndNgo = async () => {
-      try {
-        const campaignRef = doc(db, 'campaigns', campaignId);
-        const campaignSnap = await getDoc(campaignRef);
-
-        if (campaignSnap.exists()) {
-          const data = campaignSnap.data();
-          setCampaign(data);
-          if (data.imageUrls?.length > 0) {
-            setSelectedImage({ uri: data.imageUrls[0] });
-          }
-
-          if (data.createdBy) {
-            const ngoRef = doc(db, 'ngo', data.createdBy);
-            const ngoSnap = await getDoc(ngoRef);
-            if (ngoSnap.exists()) {
-              setNgo(ngoSnap.data());
+  useFocusEffect(
+    useCallback(() => {
+      const fetchCampaignAndNgo = async () => {
+        setLoading(true);
+        try {
+          const campaignRef = doc(db, 'campaigns', campaignId);
+          const campaignSnap = await getDoc(campaignRef);
+  
+          if (campaignSnap.exists()) {
+            const data = campaignSnap.data();
+            setCampaign(data);
+            if (data.imageUrls?.length > 0) {
+              setSelectedImage({ uri: data.imageUrls[0] });
+            }
+  
+            if (data.createdBy) {
+              const ngoRef = doc(db, 'ngo', data.createdBy);
+              const ngoSnap = await getDoc(ngoRef);
+              if (ngoSnap.exists()) {
+                setNgo(ngoSnap.data());
+              }
             }
           }
+        } catch (err) {
+          console.warn('Error fetching campaign/NGO:', err);
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.warn('Error fetching campaign/NGO:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCampaignAndNgo();
-  }, [campaignId]);
+      };
+  
+      fetchCampaignAndNgo();
+    }, [campaignId])
+  );
 
   if (loading) {
     return (
@@ -93,9 +98,8 @@ export default function DonationDetailScreen() {
     campaignDate,
   } = campaign;
 
-  const progress = totalDonation
-    ? Math.min((raisedAmount / totalDonation) * 100, 100)
-    : 0;
+  const progress = totalDonation ? Math.min((raisedAmount / totalDonation) * 100, 100) : 0;
+
 
   const ngoInitials = ngo?.ngoName
     ?.split(' ')
