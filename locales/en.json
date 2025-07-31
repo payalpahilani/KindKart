@@ -196,7 +196,9 @@
   },
   "donors": {
     "recentDonors": "Recent Donors",
-    "noDonorsYet": "You don't have any donors yet."
+    "noDonorsYet": "You don't have any donors yet.",
+    "topDonors": "Top Donors",
+    "noDonorsYet": "No donations yet."
   },
   "NgoHome": {
   "welcome": "Welcome",
@@ -355,5 +357,4 @@
     "donations_overview": "Donations Overview",
     "top_donor_today": "Top Donor Today"
   }
-
 }

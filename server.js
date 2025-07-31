@@ -76,58 +76,34 @@ app.get("/get-presigned-url", async (req, res) => {
 });
 
 app.post("/create-payment-intent", express.json(), async (req, res) => {
- try {
-   const { amount, currency } = req.body;
-   if (!amount || !currency) {
-     return res.status(400).json({ error: "Missing amount or currency" });
-   }
-   const paymentIntent = await stripe.paymentIntents.create({
-     amount,
-     currency,
-   });
-   res.json({ clientSecret: paymentIntent.client_secret });
- } catch (error) {
-   res.status(500).json({ error: error.message });
- }
-});
-
-app.post("/create-stripe-account-link", express.json(), async (req, res) => {
-  const { ngoId, email } = req.body;
-
-  if (!ngoId || !email) {
-    return res.status(400).json({ error: "Missing ngoId or email" });
-  }
-
   try {
-    // Create Stripe Express account
-    const account = await stripe.accounts.create({
-      type: "express",
-      email,
-      country: "CA", // adjust as needed
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
+    const { amount, currency, description, userId, campaignId } = req.body;
+
+    if (!amount || !currency) {
+      return res.status(400).json({ error: "Missing amount or currency" });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount), // Always round to avoid float issues
+      currency,
+      description: description || "KindKart Donation",
+      metadata: {
+        userId: userId || "anonymous",
+        campaignId: campaignId || "unknown",
       },
     });
 
-    // Save the Stripe account ID to your DB here
-    // Example with Firestore (if you have Firebase Admin initialized):
-    // await db.collection("ngo").doc(ngoId).set({ stripeAccountId: account.id }, { merge: true });
+    console.log("✅ PaymentIntent created:", paymentIntent.id);
 
-    // Create onboarding link
-    const accountLink = await stripe.accountLinks.create({
-      account: account.id,
-      refresh_url: "https://kindkart.com/reauth", // your reauth URL
-      return_url: "https://kindkart.com/profile", // your success return URL
-      type: "account_onboarding",
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
     });
-
-    res.json({ url: accountLink.url });
   } catch (error) {
-    console.error("Stripe account creation error:", error);
+    console.error("❌ Error creating PaymentIntent:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 const PORT = 4000;

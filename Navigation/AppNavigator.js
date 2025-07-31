@@ -47,6 +47,7 @@ import FAQScreen from "../Components/screens/FAQScreen";
 import SellerDetailScreen from '../Components/screens/SellerDetailScreen'
 import SellerReviewScreen from "../Components/screens/SellerReviewScreen";
 import AllReviewsScreen from "../Components/screens/AllReviewsScreen"
+import NgoFAQScreen from "../Components/screens/NgoFaqScreem";
 
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -239,6 +240,8 @@ export default function AppNavigator() {
         <RootStack.Screen name="SellerDetailScreen" component={SellerDetailScreen} />
         <RootStack.Screen name="SellerReviewScreen" component={SellerReviewScreen} />
         <RootStack.Screen name="AllReviewsScreen" component={AllReviewsScreen} />
+        <RootStack.Screen name="NgoFaqScreen" component={NgoFAQScreen} />
+      
         <RootStack.Screen
           name="NgoEditProfile"
           component={NgoEditProfileScreen}
@@ -252,6 +255,7 @@ export default function AppNavigator() {
           component={PaymentScreen}
         />
       </RootStack.Navigator>
+      
     </NavigationContainer>
   );
 }

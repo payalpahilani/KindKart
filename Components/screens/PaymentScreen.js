@@ -19,9 +19,9 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { auth } from '../../firebaseConfig';
 import { ThemeContext } from '../Utilities/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { checkAndAwardBadges } from '../Utilities/firebaseHelpers'; 
+import { checkAndAwardBadges } from '../Utilities/firebaseHelpers';
 
 export default function PaymentScreen() {
   const [amount, setAmount] = useState('');
@@ -34,16 +34,15 @@ export default function PaymentScreen() {
   const [unlockedBadge, setUnlockedBadge] = useState(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
 
-
   const { isDarkMode } = useContext(ThemeContext);
   const { t } = useTranslation();
-
   const styles = isDarkMode ? darkStyles : lightStyles;
 
   const {
     campaignId,
     title,
     ngoName,
+    ngoId,
     currency = 'CAD',
     imageUrls = [],
   } = route.params || {};
@@ -54,74 +53,130 @@ export default function PaymentScreen() {
       Alert.alert(t('payment.invalidAmountTitle'), t('payment.invalidAmountMessage'));
       return;
     }
-  
+
+    if (!ngoId) {
+      Alert.alert("Error", "NGO ID missing. Cannot proceed.");
+      return;
+    }
+
     setPaymentLoading(true);
     try {
       const response = await fetch('https://kindkart-0l245p6y.b4a.run/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: numAmount * 100,
+          amount: Math.round(numAmount * 100),
           currency,
           description: `Donation to ${title}`,
           userId: auth.currentUser?.uid || 'anonymous',
           campaignId,
         }),
       });
-  
-      const { clientSecret } = await response.json();
-  
+
+      const raw = await response.text();
+      console.log("🧾 Raw response from backend:", raw);
+
+      let clientSecret, paymentIntentId;
+      try {
+        const parsed = JSON.parse(raw);
+        clientSecret = parsed.clientSecret;
+        paymentIntentId = parsed.paymentIntentId;
+      } catch (err) {
+        Alert.alert("Stripe Error", "Invalid response from server. Try again.");
+        setPaymentLoading(false);
+        return;
+      }
+
+      if (!clientSecret) {
+        Alert.alert("Stripe Error", "Client secret not received.");
+        setPaymentLoading(false);
+        return;
+      }
+
       const init = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: 'KindKart',
         returnURL: 'kindkartpay://stripe-redirect',
       });
-  
+
       if (init.error) throw init.error;
-  
+
       const result = await presentPaymentSheet();
       if (result.error) throw result.error;
-  
+
       const userId = auth.currentUser?.uid;
-  
+
       if (userId) {
         const userRef = doc(db, "users", userId);
         const userSnap = await getDoc(userRef);
-  
+      
         if (userSnap.exists()) {
           const userData = userSnap.data();
           const currentDonationCount = userData.donationCount || 0;
           const currentTotalDonated = userData.totalDonated || 0;
-
+      
+          // ✅ Update user's donation count and total donated
           await updateDoc(userRef, {
             donationCount: currentDonationCount + 1,
-            totalDonated: currentTotalDonated + parseFloat(amount),
+            totalDonated: currentTotalDonated + numAmount,
           });
-  
+      
+          // ✅ Check for badges
           const unlocked = await checkAndAwardBadges(userId);
-  
+      
+          // ✅ Update campaign raised amount
+          const campaignRef = doc(db, "campaigns", campaignId);
+          const campaignSnap = await getDoc(campaignRef);
+      
+          if (campaignSnap.exists()) {
+            const campaignData = campaignSnap.data();
+            const updatedRaised = (campaignData.raisedAmount || 0) + numAmount;
+      
+            await updateDoc(campaignRef, {
+              raisedAmount: updatedRaised,
+              isEnded: updatedRaised >= campaignData.totalDonation,
+            });
+          }
+      
+          // ✅ Save donation record
+          try {
+            console.log("📤 Saving donation to Firestore...");
+            await addDoc(collection(db, 'donations'), {
+              campaignId,
+              ngoId,
+              userId,
+              amount: numAmount,
+              currency,
+              timestamp: serverTimestamp(),
+              paymentIntentId: paymentIntentId || 'manual',
+            });
+            console.log("✅ Donation saved to Firestore.");
+          } catch (saveError) {
+            console.error("❌ Failed to save donation:", saveError);
+            Alert.alert("Error", "Donation was successful, but record was not saved.");
+          }
+      
+          // ✅ Handle badge modal or success alert
           if (unlocked && unlocked.length > 0) {
             setUnlockedBadge(unlocked[0]);
             setShowBadgeModal(true);
-            return; // prevent goBack below
+            return; // Don't show success alert, modal will show
+          } else {
+            Alert.alert(
+              "🎉 Donation Successful!",
+              `You donated ${currency} ${numAmount.toFixed(2)}. Thank you for your kindness!`
+            );
           }
         }
       }
-  
-      // Only show alert if no badge modal is shown
-      Alert.alert(
-        "🎉 Donation Successful!",
-        `You donated ${currency} ${numAmount.toFixed(2)} Thank you for your kindness!`
-      );
-  
+
       navigation.goBack();
     } catch (err) {
       Alert.alert(t('payment.failedTitle'), err.message);
     }
-  
+
     setPaymentLoading(false);
   };
-  
 
   const thumbnails = imageUrls.map((url, index) => (
     <TouchableOpacity key={index} onPress={() => setSelectedImage({ uri: url })}>
@@ -131,73 +186,68 @@ export default function PaymentScreen() {
 
   return (
     <>
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor={isDarkMode ? '#121212' : '#fff'} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor={isDarkMode ? '#121212' : '#fff'} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scroll}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="chevron-left" size={26} color="#EFAC3A" />
+              <Text style={styles.backText}>{t('payment.back')}</Text>
+            </TouchableOpacity>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll}>
+            <Text style={styles.pageTitle}>{t('payment.completeDonation')}</Text>
 
-          {/* Back Button */}
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="chevron-left" size={26} color="#EFAC3A" />
-            <Text style={styles.backText}>{t('payment.back')}</Text>
-          </TouchableOpacity>
+            <Image
+              source={selectedImage || (imageUrls.length > 0 ? { uri: imageUrls[0] } : require('../../assets/Images/campaign1.jpg'))}
+              style={styles.mainImage}
+            />
 
-          <Text style={styles.pageTitle}>{t('payment.completeDonation')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbRow}>
+              {thumbnails}
+            </ScrollView>
 
-          {/* Campaign Image */}
-          <Image
-            source={selectedImage || (imageUrls.length > 0 ? { uri: imageUrls[0] } : require('../../assets/Images/campaign1.jpg'))}
-            style={styles.mainImage}
-          />
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.subtext}>{t('payment.organizedBy')} {ngoName}</Text>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbRow}>
-            {thumbnails}
+            <Text style={styles.label}>{t('payment.enterAmount', { currency })}</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="decimal-pad"
+              placeholder="25.00"
+              placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
+              value={amount}
+              onChangeText={setAmount}
+            />
+
+            <TouchableOpacity style={styles.payButton} onPress={handlePay} disabled={paymentLoading}>
+              <Text style={styles.payButtonText}>
+                {paymentLoading ? t('payment.processing') : t('payment.payNow')}
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtext}>{t('payment.organizedBy')} {ngoName}</Text>
-
-          <Text style={styles.label}>{t('payment.enterAmount', { currency })}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="decimal-pad"
-            placeholder="25.00"
-            placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
-            value={amount}
-            onChangeText={setAmount}
-          />
-
-          <TouchableOpacity style={styles.payButton} onPress={handlePay} disabled={paymentLoading}>
-            <Text style={styles.payButtonText}>
-              {paymentLoading ? t('payment.processing') : t('payment.payNow')}
+      {showBadgeModal && (
+        <View style={styles.badgeModalOverlay}>
+          <View style={styles.badgeModal}>
+            <Text style={styles.badgeTitle}>🎉 Badge Unlocked!</Text>
+            <Text style={styles.badgeName}>
+              {unlockedBadge === 'firstDonation' ? 'First Donation 🥉' : unlockedBadge}
             </Text>
-          </TouchableOpacity>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-    {showBadgeModal && (
-      <View style={styles.badgeModalOverlay}>
-        <View style={styles.badgeModal}>
-          <Text style={styles.badgeTitle}>🎉 Badge Unlocked!</Text>
-          <Text style={styles.badgeName}>
-            {unlockedBadge === 'firstDonation'
-              ? 'First Donation 🥉'
-              : unlockedBadge}
-          </Text>
-          <TouchableOpacity onPress={() => {
-            setShowBadgeModal(false);
-            navigation.goBack();
-          }} style={styles.badgeButton}>
-            <Text style={styles.badgeButtonText}>Awesome!</Text>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => {
+              setShowBadgeModal(false);
+              navigation.goBack();
+            }} style={styles.badgeButton}>
+              <Text style={styles.badgeButtonText}>Awesome!</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    )}
-  </>
-);
+      )}
+    </>
+  );
 }
+
 
 const baseStyles = {
   container: { flex: 1 },

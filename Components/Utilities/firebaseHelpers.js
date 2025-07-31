@@ -6,7 +6,7 @@ import { db } from "../../firebaseConfig";
 /* ------------------------------------------------------------------ */
 const badgeCriteria = {
   firstDonation:   { field: "donationCount",  required: 1  },    // ≥ 1 donation
-  kindSoul:        { field: "totalDonated",   required: 5  },    // ≥ 5 donation
+  kindSoul:        { field: "donationCount",   required: 5  },    // ≥ 5 donation
   generousHeart:   { field: "totalDonated",   required: 100 },   // ≥ $100 donated
   firstListing:    { field: "listingCount",   required: 1  },    // ≥ 1 listing
   communitySeller: { field: "listingCount",   required: 5  },    // ≥ 5 listings

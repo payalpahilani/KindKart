@@ -21,12 +21,6 @@ import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
-const recentActivities = [
-  { id: 'a1', title: 'Donation Received', detail: 'CAD $200 from Sarah' },
-  { id: 'a2', title: 'Campaign Approved', detail: 'Clean Water Project' },
-  { id: 'a3', title: 'Donation Received', detail: 'CAD $350 from John' },
-];
-
 export default function NgoHomeScreen() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,13 +130,7 @@ export default function NgoHomeScreen() {
           </ScrollView>
         )}
 
-        <Text style={[styles.sectionTitle, { color: text }]}>{t('NgoHome.recentActivity')}</Text>
-        {recentActivities.map((item) => (
-          <View key={item.id} style={[styles.activityItem, { backgroundColor: cardBg }]}>
-            <Text style={[styles.activityTitle, { color: text }]}>{item.title}</Text>
-            <Text style={[styles.activityDetail, { color: muted }]}>{item.detail}</Text>
-          </View>
-        ))}
+
       </ScrollView>
     </SafeAreaView>
   );
