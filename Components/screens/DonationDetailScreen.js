@@ -190,6 +190,7 @@ export default function DonationDetailScreen() {
               campaignId,
               title,
               ngoName: ngo?.ngoName,
+              ngoId: ngo?.uid,
               currency,
               imageUrls,
             })
