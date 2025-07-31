@@ -22,8 +22,22 @@ import { useTranslation } from 'react-i18next';
 export default function DonationDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { campaignId } = route.params;
+  const campaignId = route?.params?.campaignId;
 
+  if (!campaignId) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text>No campaign selected.</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const formatBadge = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') return val.label || val.value || JSON.stringify(val);
+    return String(val);
+  };
   const { isDarkMode } = useContext(ThemeContext);
   const { t } = useTranslation();
 
@@ -138,23 +152,33 @@ export default function DonationDetailScreen() {
           {campaignDate ? new Date(campaignDate).toDateString() : t('donationDetail.dateNotAvailable')}
         </Text>
 
+
         <View style={styles.badgeRow}>
-          {category && (
-            <View style={[styles.badge, { backgroundColor: '#C8F4E5' }]}>
-              <Text style={styles.badgeText}>{category}</Text>
-            </View>
-          )}
-          {campaignCategory && (
-            <View style={[styles.badge, { backgroundColor: '#FFDDCC' }]}>
-              <Text style={styles.badgeText}>{campaignCategory.replace('_', ' ')}</Text>
-            </View>
-          )}
-          {urgent && (
-            <View style={[styles.badge, { backgroundColor: '#FFD6D6' }]}>
-              <Text style={[styles.badgeText, { color: '#B00020' }]}>{t('donationDetail.urgent')}</Text>
-            </View>
-          )}
-        </View>
+  {category && (
+    <View style={[styles.badge, { backgroundColor: '#C8F4E5' }]}>
+      <Text style={styles.badgeText}>{formatBadge(category)}</Text>
+    </View>
+  )}
+  {campaignCategory && (
+    <View style={[styles.badge, { backgroundColor: '#FFDDCC' }]}>
+      <Text style={styles.badgeText}>
+        {formatBadge(
+          typeof campaignCategory === 'string'
+            ? campaignCategory.replace(/_/g, ' ')
+            : campaignCategory
+        )}
+      </Text>
+    </View>
+  )}
+  {urgent && (
+    <View style={[styles.badge, { backgroundColor: '#FFD6D6' }]}>
+      <Text style={[styles.badgeText, { color: '#B00020' }]}>
+        {t('donationDetail.urgent')}
+      </Text>
+    </View>
+  )}
+</View>
+
 
         <Text style={styles.raised}>
           {currency} {raisedAmount.toLocaleString()} {t('donationDetail.from')} {currency}{' '}

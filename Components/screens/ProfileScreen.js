@@ -233,7 +233,7 @@ export default function ProfileScreen() {
                     }}
                     style={[
                       styles.badgeCard,
-                      { backgroundColor: earned ?"transparent" : "#E0E0E0" },
+                      { backgroundColor: earned ?"transparent" : "#fff" },
                     ]}
                   >
                     {earned ? (

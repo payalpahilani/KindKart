@@ -347,7 +347,7 @@ export default function ListItemScreen() {
         imageUrls,
         userId,
         email,
-        campaignId,
+        campaignId: cause,
         pickupLocation,
         pickupCoords,
         createdAt: serverTimestamp(),
