@@ -339,7 +339,7 @@ const base = {
 };
 
 const sharedBadge = {
-  badgeSection: { paddingHorizontal: 16, marginBottom: 20, borderRadius: 12 },
+  badgeSection: { paddingHorizontal: 16, marginBottom: 20, borderRadius: 10 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -444,7 +444,7 @@ const lightStyles = StyleSheet.create({
   /* Badges colors */
   badgeSection: {
     ...sharedBadge.badgeSection,
-    backgroundColor: "#f7f7f7",
+    backgroundColor: "#fff",
   },
   badgeHeading: {
     ...sharedBadge.badgeHeading,
@@ -568,6 +568,6 @@ const darkStyles = StyleSheet.create({
   },
   badgeLabel: {
     ...sharedBadge.badgeLabel,
-    color: "#ddd",
+    color: "#fff",
   },
 });

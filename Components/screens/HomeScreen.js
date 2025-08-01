@@ -64,8 +64,11 @@ export default function HomeScreen({ navigation }) {
 
     allCampaigns.forEach((item) => {
       const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = category === "Show all" || item.category?.toLowerCase() === category.toLowerCase();
-
+      const matchesCategory =
+        category === "Show all" ||
+        (typeof item.category === "string" &&
+          item.category.toLowerCase() === category.toLowerCase());
+          
       if (matchesSearch && matchesCategory) {
         if (item.isUrgent) {
           filteredUrgent.push(item);
@@ -100,7 +103,7 @@ export default function HomeScreen({ navigation }) {
               daysLeft: calculateDaysLeft(data.campaignDate),
               fullStory: data.story || "",
               isUrgent: data.urgent === true,
-              category: data.category || "Uncategorized",
+              category: String(data.category || "Uncategorized").trim(),
             };
             campaigns.push(campaign);
           });
