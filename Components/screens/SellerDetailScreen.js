@@ -486,7 +486,7 @@ export default function SellerDetailScreen({ route, navigation }) {
                 styles.adCard,
                 isDarkMode ? darkStyles.adCard : lightStyles.adCard,
               ]}
-              onPress={() => navigation.navigate("AdDetailsScreen", { ad })}
+              onPress={() => navigation.navigate("AdDetails", { ad })}
               activeOpacity={0.8}
             >
               <Image
